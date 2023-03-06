@@ -70,7 +70,7 @@ erased-serde = { version = "0.3.24", default-features = false, features = ["std"
 serde_json = { version = "1.0.93", default-features = false, features = ["std"] }
 serde_with = { version = "2.2.0", default-features = false, features = ["std", "macros", "base64"] }
 
-thiserror = { version = "1.0.38", default-features = false }
+thiserror = { version = "1.0.39", default-features = false }
 
 either = { version = "1.8.1", default-features = false, features = ["serde"] }
 
