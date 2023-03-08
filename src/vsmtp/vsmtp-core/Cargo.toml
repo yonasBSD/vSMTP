@@ -82,7 +82,7 @@ path = "../vsmtp-rule-engine"
 clap = { version = "4.1.8", default-features = false, features = ["std", "derive", "cargo", "usage", "help", "color"] }
 dotenv = { version = "0.15.0", default-features = false }
 diff = { version = "0.1.13", default-features = false }
-serde_json = { version = "1.0.93", default-features = false, features = ["std"] }
+serde_json = { version = "1.0.94", default-features = false, features = ["std"] }
 
 anyhow = { version = "1.0.69", default-features = false, features = ["std"] }
 either = { version = "1.8.1", default-features = false, features = ["use_std"] }
