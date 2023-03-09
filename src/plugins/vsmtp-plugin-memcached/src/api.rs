@@ -247,8 +247,6 @@ impl CacheConnector {
         }
     }
 
-    // TODO: function to expose.
-    #[allow(dead_code)]
     pub fn gets_with_cas(
         &self,
         keys: &[&str],
@@ -539,7 +537,7 @@ pub mod memcached {
     /// #{
     ///     connect: [
     ///         action "flush the cache" || {
-    ///             srv.flush();
+    ///             srv::cache.flush();
     ///         }
     ///     ],
     /// }
@@ -583,7 +581,7 @@ pub mod memcached {
     ///     connect: [
     ///         action "get value from my memcached server" || {
     ///             // For the sake of this example, we assume that there is a "client_ip" as a key and "0.0.0.0" as its value.
-    ///             const client_ip = srv.get("client_ip");
+    ///             const client_ip = srv::cache.get("client_ip");
     ///             log("info", `ip of my client is: ${client_ip}`);
     ///         }
     ///     ],
@@ -594,7 +592,7 @@ pub mod memcached {
         cache.get(key)
     }
 
-    /// Get something from the server.
+    /// Get a value from the server with its cas_id and its expiration seconds.
     ///
     /// # Args
     ///
@@ -602,7 +600,7 @@ pub mod memcached {
     ///
     /// # Return
     ///
-    /// A rhai::Dynamic with the value inside
+    /// A rhai::Dynamic with the values inside. Keys are "value", "expiration", "cas_id". If the key doesn't exist, returns 0
     ///
     /// # Example
     ///
@@ -628,8 +626,8 @@ pub mod memcached {
     ///     connect: [
     ///         action "get value from my memcached server" || {
     ///             // For the sake of this example, we assume that there is a "client_ip" as a key and "0.0.0.0" as its value.
-    ///             const client_ip = srv.get("client_ip");
-    ///             log("info", `ip of my client is: ${client_ip}`);
+    ///             const cas_id = srv::cache.get_with_cas("client_ip").cas_id;
+    ///             log("info", `id is: ${cas_id}`);
     ///         }
     ///     ],
     /// }
@@ -640,7 +638,10 @@ pub mod memcached {
         let result = cache.get_with_cas(key)?;
         map.insert("value".into(), result.value);
         map.insert("expiration".into(), rhai::Dynamic::from(result.expiration));
-        map.insert("cas_id".into(), rhai::Dynamic::from(result.cas_id));
+        map.insert(
+            "cas_id".into(),
+            rhai::Dynamic::from(result.cas_id.unwrap_or(0)),
+        );
         Ok(rhai::Dynamic::from_map(map))
     }
 
@@ -678,7 +679,7 @@ pub mod memcached {
     ///     connect: [
     ///         action "get value from my memcached server" || {
     ///             // For the sake of this example, we assume that there is a server filled with multiple values
-    ///             const client_ips = srv.gets(["client1_ip", "client2_ip", "client3_ip"]);
+    ///             const client_ips = srv::cache.gets(["client1_ip", "client2_ip", "client3_ip"]);
     ///             log("info", `client 1: ${client_ips["client1_ip"]}`);
     ///             log("info", `client 2: ${client_ips["client2_ip"]}`);
     ///             log("info", `client 3: ${client_ips["client3_ip"]}`);
@@ -702,7 +703,7 @@ pub mod memcached {
         ))
     }
 
-    /// Gets multiple value from mutliple key from the server.
+    /// Gets multiple value from mutliple key from the server with their cas_id, expiration seconds, key and value.
     ///
     /// # Args
     ///
@@ -710,7 +711,7 @@ pub mod memcached {
     ///
     /// # Return
     ///
-    /// A rhai::Map<String, rhai::Dynamic> with the values inside
+    /// A rhai::Array<rhai::Map> with the values cas_id, expiration, key and value inside
     ///
     /// # Example
     ///
@@ -736,20 +737,41 @@ pub mod memcached {
     ///     connect: [
     ///         action "get value from my memcached server" || {
     ///             // For the sake of this example, we assume that there is a server filled with multiple values
-    ///             const client_ips = srv.gets(["client1_ip", "client2_ip", "client3_ip"]);
-    ///             log("info", `client 1: ${client_ips["client1_ip"]}`);
-    ///             log("info", `client 2: ${client_ips["client2_ip"]}`);
-    ///             log("info", `client 3: ${client_ips["client3_ip"]}`);
+    ///             const entries = srv::memcached.gets_with_cas(["client1_ip", "client2_ip", "client3_ip"]);
+    ///             const cas_id = entries.find(|v| v.key == "client1_ip").cas_id;
+    ///             log("info", `id is: ${cas_id}`);
     ///         }
     ///     ],
     /// }
     /// ```
-    // #[rhai_fn(global, return_raw, pure)]
-    // pub fn gets_with_cas(cache: &mut Cache, keys: rhai::Array) -> Result<Dynamic, Box<rhai::EvalAltResult>> {
-    //     let v = keys.into_iter().map(|key| key.to_string()).collect::<Vec<_>>();
-    //     let v: Vec<&str> = v.iter().map(|x| &**x).collect();
-    //     Ok(rhai::Dynamic::from_map(cache.gets_with_cas(&v)?.into_iter().map(|(k, v)| (k.into(), v)).collect::<BTreeMap<_, _>>()))
-    // }
+    #[rhai_fn(global, return_raw, pure)]
+    pub fn gets_with_cas(
+        cache: &mut Cache,
+        keys: rhai::Array,
+    ) -> Result<rhai::Dynamic, Box<rhai::EvalAltResult>> {
+        let v = keys
+            .into_iter()
+            .map(|key| key.to_string())
+            .collect::<Vec<_>>();
+        let v: Vec<&str> = v.iter().map(|x| &**x).collect();
+        let res_map = cache
+            .gets_with_cas(&v)
+            .map_err::<Box<rhai::EvalAltResult>, _>(|err| err.to_string().into())?;
+        Ok(res_map
+            .into_iter()
+            .map(|v| {
+                let mut map = rhai::Map::new();
+                map.insert("key".into(), v.0.into());
+                map.insert("value".into(), v.1.value);
+                map.insert("expiration".into(), rhai::Dynamic::from(v.1.expiration));
+                map.insert(
+                    "cas_id".into(),
+                    rhai::Dynamic::from(v.1.cas_id.unwrap_or(0)),
+                );
+                map
+            })
+            .collect())
+    }
 
     /// Set a value with its associate key into the server with expiration seconds.
     ///
@@ -782,8 +804,8 @@ pub mod memcached {
     /// #{
     ///     connect: [
     ///         action "set value into my memcached server" || {
-    ///             srv.set("client_ip", "0.0.0.0", 0);
-    ///             const client_ip = srv.get("client_ip");
+    ///             srv::cache.set("client_ip", "0.0.0.0", 0);
+    ///             const client_ip = srv::cache.get("client_ip");
     ///             log("info", `ip of my client is: ${client_ip}`);
     ///         }
     ///     ],
@@ -836,9 +858,9 @@ pub mod memcached {
     /// #{
     ///     connect: [
     ///         action "cas a key in the server" || {
-    ///             srv.set("foo", "bar", 0);
-    ///             let result = srv.get_with_cas("foo");
-    ///             srv.cas("foo", "bar2", 0, result.cas_id);
+    ///             srv::cache.set("foo", "bar", 0);
+    ///             let result = srv::cache.get_with_cas("foo");
+    ///             srv::cache.cas("foo", "bar2", 0, result.cas_id);
     ///         }
     ///     ],
     /// }
@@ -893,8 +915,8 @@ pub mod memcached {
     ///     connect: [
     ///         action "add value into my memcached server" || {
     ///             // Will get an error if the key already exists
-    ///             srv.add("client_ip", "0.0.0.0", 0);
-    ///             const client_ip = srv.get("client_ip");
+    ///             srv::cache.add("client_ip", "0.0.0.0", 0);
+    ///             const client_ip = srv::cache.get("client_ip");
     ///             log("info", `ip of my client is: ${client_ip}`);
     ///         }
     ///     ],
@@ -946,10 +968,10 @@ pub mod memcached {
     /// #{
     ///     connect: [
     ///         action "replace value into my memcached server" || {
-    ///             srv.set("client_ip", "0.0.0.0", 0);
+    ///             srv::cache.set("client_ip", "0.0.0.0", 0);
     ///             // Will get an error if the key doesn't exist
-    ///             srv.replace("client_ip", "255.255.255.255", 0);
-    ///             const client_ip = srv.get("client_ip");
+    ///             srv::cache.replace("client_ip", "255.255.255.255", 0);
+    ///             const client_ip = srv::cache.get("client_ip");
     ///             log("info", `ip of my client is: ${client_ip}`);
     ///         }
     ///     ],
@@ -1000,10 +1022,10 @@ pub mod memcached {
     /// #{
     ///     connect: [
     ///         action "append value into my memcached server" || {
-    ///             srv.set("client_ip", "0.0.", 0);
+    ///             srv::cache.set("client_ip", "0.0.", 0);
     ///             // Will get an error if the key doesn't exist
-    ///             srv.append("client_ip", "0.0");
-    ///             const client_ip = srv.get("client_ip");
+    ///             srv::cache.append("client_ip", "0.0");
+    ///             const client_ip = srv::cache.get("client_ip");
     ///             log("info", `ip of my client is: ${client_ip}`);
     ///         }
     ///     ],
@@ -1048,10 +1070,10 @@ pub mod memcached {
     /// #{
     ///     connect: [
     ///         action "prepend value into my memcached server" || {
-    ///             srv.set("client_ip", ".0.0", 0);
+    ///             srv::cache.set("client_ip", ".0.0", 0);
     ///             // Will get an error if the key doesn't exist
-    ///             srv.prepend("client_ip", "0.0");
-    ///             const client_ip = srv.get("client_ip");
+    ///             srv::cache.prepend("client_ip", "0.0");
+    ///             const client_ip = srv::cache.get("client_ip");
     ///             log("info", `ip of my client is: ${client_ip}`);
     ///         }
     ///     ],
@@ -1095,10 +1117,10 @@ pub mod memcached {
     /// #{
     ///     connect: [
     ///         action "delete value into my memcached server" || {
-    ///             srv.set("client_ip", "0.0.0.0", 0);
-    ///             srv.delete("client_ip");
+    ///             srv::cache.set("client_ip", "0.0.0.0", 0);
+    ///             srv::cache.delete("client_ip");
     ///             // Will return nothing
-    ///             const client_ip = srv.get("client_ip");
+    ///             const client_ip = srv::cache.get("client_ip");
     ///             log("info", `ip of my client is: ${client_ip}`);
     ///         }
     ///     ],
@@ -1139,9 +1161,9 @@ pub mod memcached {
     /// #{
     ///     connect: [
     ///         action "increment value into my memcached server" || {
-    ///             srv.set("nb_of_client", 1, 0);
-    ///             srv.increment("nb_of_client", 21);
-    ///             const nb_of_client = srv.get("nb_of_client");
+    ///             srv::cache.set("nb_of_client", 1, 0);
+    ///             srv::cache.increment("nb_of_client", 21);
+    ///             const nb_of_client = srv::cache.get("nb_of_client");
     ///             log("info", `nb of client is: ${nb_of_client}`);
     ///         }
     ///     ],
@@ -1190,9 +1212,9 @@ pub mod memcached {
     /// #{
     ///     connect: [
     ///         action "decrement value into my memcached server" || {
-    ///             srv.set("nb_of_client", 21, 0);
-    ///             srv.decrement("nb_of_client", 1);
-    ///             const nb_of_client = srv.get("nb_of_client");
+    ///             srv::cache.set("nb_of_client", 21, 0);
+    ///             srv::cache.decrement("nb_of_client", 1);
+    ///             const nb_of_client = srv::cache.get("nb_of_client");
     ///             log("info", `nb of client is: ${nb_of_client}`);
     ///         }
     ///     ],
@@ -1241,9 +1263,9 @@ pub mod memcached {
     /// #{
     ///     connect: [
     ///         action "change expiration time of a value into my memcached server" || {
-    ///             srv.set("nb_of_client", 21, 5000);
-    ///             srv.touch("nb_of_client", 0);
-    ///             const nb_of_client = srv.get("nb_of_client");
+    ///             srv::cache.set("nb_of_client", 21, 5000);
+    ///             srv::cache.touch("nb_of_client", 0);
+    ///             const nb_of_client = srv::cache.get("nb_of_client");
     ///             log("info", `nb of client is: ${nb_of_client}`);
     ///         }
     ///     ],
@@ -1291,7 +1313,7 @@ pub mod memcached {
     /// #{
     ///     connect: [
     ///         action "show statistics of my memcached server" || {
-    ///             const stats = srv.stats();
+    ///             const stats = srv::cache.stats();
     ///             log("info", stats);
     ///         }
     ///     ],
