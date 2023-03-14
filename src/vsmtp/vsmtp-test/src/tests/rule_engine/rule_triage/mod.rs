@@ -19,11 +19,8 @@
 //! The email's transaction type.
 
 use crate::run_test;
-use vqueue::GenericQueueManager;
-use vsmtp_common::CodeID;
 use vsmtp_common::{ContextFinished, TransactionType};
 use vsmtp_mail_parser::MessageBody;
-use vsmtp_server::OnMail;
 
 run_test! {
     fn test_incoming,
@@ -117,42 +114,23 @@ run_test! {
         env!("CARGO_MANIFEST_DIR"),
         "src/tests/rule_engine/rule_triage/config/vsmtp.vsl"
     ])).unwrap(),
-    mail_handler = {
-        struct T;
-
-        #[async_trait::async_trait]
-        impl OnMail for T {
-            async fn on_mail(
-                &mut self,
-                context: Box<ContextFinished>,
-                body: MessageBody,
-                _: std::sync::Arc<dyn GenericQueueManager>,
-            ) -> CodeID {
-                match context.rcpt_to.transaction_type {
-                    TransactionType::Internal => {
-                        assert_eq!(body.get_header("X-OUTGOING"), None);
-                        assert_eq!(body.get_header("X-INTERNAL"), Some("green@example.com".to_owned()));
-                        assert_eq!(body.get_header("X-CUSTOM"), Some("An internal email".to_owned()));
-
-                        assert_eq!(body.inner().to_string(), INTERNAL_EMAIL.replace('\n', "\r\n"));
-                    },
-                    TransactionType::Outgoing { domain } => {
-                        assert_eq!(domain, "example.com".parse().unwrap());
-                        assert_eq!(body.get_header("X-OUTGOING"), Some("bar@other.com".to_owned()));
-                        assert_eq!(body.get_header("X-INTERNAL"), None);
-                        assert_eq!(body.get_header("X-CUSTOM"), None);
-
-                        assert_eq!(body.inner().to_string().as_str(), OUTGOING_EMAIL.replace('\n', "\r\n"));
-                    },
-
-                    TransactionType::Incoming(_) => panic!("should be outgoing / internal"),
-                }
-
-                CodeID::Ok
-            }
+    mail_handler = |ctx: ContextFinished, body: MessageBody| {
+        match ctx.rcpt_to.transaction_type {
+            TransactionType::Internal => {
+                assert_eq!(body.get_header("X-OUTGOING"), None);
+                assert_eq!(body.get_header("X-INTERNAL"), Some("green@example.com".to_owned()));
+                assert_eq!(body.get_header("X-CUSTOM"), Some("An internal email".to_owned()));
+                assert_eq!(body.inner().to_string(), INTERNAL_EMAIL.replace('\n', "\r\n"));
+            },
+            TransactionType::Outgoing { domain } => {
+                assert_eq!(domain, "example.com".parse().unwrap());
+                assert_eq!(body.get_header("X-OUTGOING"), Some("bar@other.com".to_owned()));
+                assert_eq!(body.get_header("X-INTERNAL"), None);
+                assert_eq!(body.get_header("X-CUSTOM"), None);
+                assert_eq!(body.inner().to_string().as_str(), OUTGOING_EMAIL.replace('\n', "\r\n"));
+            },
+            TransactionType::Incoming(_) => panic!("should be outgoing / internal"),
         }
-
-        T
     },
 }
 

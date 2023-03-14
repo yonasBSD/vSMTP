@@ -15,28 +15,6 @@
  *
 */
 
-use vqueue::GenericQueueManager;
-use vsmtp_common::CodeID;
-use vsmtp_mail_parser::MessageBody;
-
-/// used for testing, does not do anything once the email is received.
-#[derive(Default, Clone)]
-pub struct DefaultMailHandler {
-    _phantom: std::marker::PhantomData<u32>,
-}
-
-#[async_trait::async_trait]
-impl vsmtp_server::OnMail for DefaultMailHandler {
-    async fn on_mail(
-        &mut self,
-        _: Box<vsmtp_common::ContextFinished>,
-        _: MessageBody,
-        _: std::sync::Arc<dyn GenericQueueManager>,
-    ) -> CodeID {
-        CodeID::Ok
-    }
-}
-
 /// run a connection and assert output produced by `vSMTP` and `expected_output`
 #[macro_export]
 macro_rules! run_test {
@@ -158,12 +136,6 @@ macro_rules! run_test {
         let queue_manager_cloned = std::sync::Arc::clone(&queue_manager);
 
         let server = tokio::spawn(async move {
-            let mail_handler = { // Box<dyn OnMail + Send>
-                let _f = || $crate::receiver::DefaultMailHandler::default();    $(
-                let _f = || $mail_handler;                                      )?
-                Box::new(_f())
-            };
-
             let kind = {
                 let _f = || vsmtp_protocol::ConnectionKind::Relay;                  $(
                 let _f = || {
@@ -175,6 +147,11 @@ macro_rules! run_test {
             };
 
             let resolvers = std::sync::Arc::new(vsmtp_config::DnsResolvers::from_config(&config).unwrap());
+
+            let (delivery_channel, working_channel) = (
+                tokio::sync::mpsc::channel::<vsmtp_server::ProcessMessage>(1),
+                tokio::sync::mpsc::channel::<vsmtp_server::ProcessMessage>(1),
+            );
 
             let rule_engine: std::sync::Arc<vsmtp_rule_engine::RuleEngine> = {
                 let _f = || vsmtp_rule_engine::RuleEngine::new(
@@ -192,8 +169,7 @@ macro_rules! run_test {
             };
             let (client_stream, client_addr) = socket_server.accept().await.unwrap();
 
-            let smtp_handler = vsmtp_server::Handler::new(
-                mail_handler,
+            let smtp_handler = || vsmtp_server::Handler::new(
                 config.clone(),
                 {
                     let _tls_config = Option::<std::sync::Arc<rustls::ServerConfig>>::None;
@@ -215,12 +191,24 @@ macro_rules! run_test {
                 },
                 rule_engine,
                 queue_manager.clone(),
+                vsmtp_mail_parser::BasicParser::default,
+                working_channel.0.clone(),
+                delivery_channel.0.clone(),
                 client_addr,
                 server_addr,
                 config.server.name.parse().unwrap(),
                 time::OffsetDateTime::now_utc(),
                 uuid::Uuid::new_v4()
             );
+
+            let smtp_handler = {
+                let _f = smtp_handler.clone();          $(
+                let _f = || { $crate::Wrapper{
+                    inner: smtp_handler(),
+                    hook: $mail_handler,
+                }};                                     )?
+                _f()
+            };
 
             let smtp_receiver = vsmtp_protocol::Receiver::<_, vsmtp_server::ValidationVSL, _, _>::new(
                 client_stream,

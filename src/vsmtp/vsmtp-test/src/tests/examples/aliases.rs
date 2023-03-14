@@ -16,11 +16,9 @@
 */
 
 use crate::run_test;
-use vqueue::GenericQueueManager;
-use vsmtp_common::{addr, CodeID};
+use vsmtp_common::addr;
 use vsmtp_common::{ContextFinished, TransactionType};
 use vsmtp_mail_parser::MessageBody;
-use vsmtp_server::OnMail;
 
 // TODO: add examples with outgoing & internal transaction types.
 run_test! {
@@ -57,36 +55,19 @@ run_test! {
         "../../../examples/alias/vsmtp.vsl"
     ]))
     .unwrap(),
-    mail_handler = {
-        struct MailHandler;
+    mail_handler = |ctx: ContextFinished, _: MessageBody| {
+        let fp = ctx.rcpt_to.delivery;
 
-        #[async_trait::async_trait]
-        impl OnMail for MailHandler {
-            async fn on_mail(
-                &mut self,
-                ctx: Box<ContextFinished>,
-                _: MessageBody,
-                _: std::sync::Arc<dyn GenericQueueManager>,
-            ) -> CodeID {
-                let fp = ctx.rcpt_to.delivery;
-
-                assert_eq!(fp.len(), 2);
-                assert_eq!(ctx.rcpt_to.transaction_type, TransactionType::Incoming(Some("mydomain.com".parse().unwrap())));
-                assert!(fp.values().flatten().map(|(addr, _)| addr).cloned().eq([
-                    addr!("oliver@mydomain.com"),
-                    addr!("john.doe@mydomain.com")
-                ]));
+        assert_eq!(fp.len(), 2);
+        assert_eq!(ctx.rcpt_to.transaction_type, TransactionType::Incoming(Some("mydomain.com".parse().unwrap())));
+        assert!(fp.values().flatten().map(|(addr, _)| addr).cloned().eq([
+            addr!("oliver@mydomain.com"),
+            addr!("john.doe@mydomain.com")
+        ]));
 
 
-                // FIXME: logical error: adding a recipient with `add_rcpt_envelop` should take
-                //        the `transaction_type` field into account, which it does not do for now.
-
-                // assert_eq!(fp[1].transaction_type, TransactionType::Incoming(Some("mydomain.com".to_owned())));
-
-                CodeID::Ok
-            }
-        }
-
-        MailHandler
+        // FIXME: logical error: adding a recipient with `add_rcpt_envelop` should take
+        //        the `transaction_type` field into account, which it does not do for now.
+        // assert_eq!(fp[1].transaction_type, TransactionType::Incoming(Some("mydomain.com".to_owned())));
     },
 }

@@ -15,11 +15,8 @@
  *
 */
 use crate::run_test;
-use vqueue::GenericQueueManager;
-use vsmtp_common::CodeID;
 use vsmtp_common::ContextFinished;
 use vsmtp_mail_parser::MessageBody;
-use vsmtp_server::OnMail;
 
 const CONFIG: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -70,27 +67,11 @@ run_test! {
         "221 Service closing transmission channel\r\n"
     ],
     config = vsmtp_config::Config::from_vsl_file(CONFIG).unwrap(),
-    mail_handler = {
-        struct MailHandler;
-
-        #[async_trait::async_trait]
-        impl OnMail for MailHandler {
-            async fn on_mail(
-                &mut self,
-                ctx: Box<ContextFinished>,
-                _: MessageBody,
-                _: std::sync::Arc<dyn GenericQueueManager>,
-            ) -> CodeID {
-                ctx.rcpt_to.delivery
-                    .values()
-                    .flatten()
-                    .find(|(addr, _)| *addr == "jane.doe@doe-family.com".parse().unwrap())
-                    .unwrap();
-
-                CodeID::Ok
-            }
-        }
-
-        MailHandler
+    mail_handler = |ctx: ContextFinished, _: MessageBody| {
+        ctx.rcpt_to.delivery
+            .values()
+            .flatten()
+            .find(|(addr, _)| *addr == "jane.doe@doe-family.com".parse().unwrap())
+            .unwrap();
     },
 }

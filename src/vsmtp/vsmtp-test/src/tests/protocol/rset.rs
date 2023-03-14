@@ -15,15 +15,13 @@
  *
 */
 use crate::run_test;
-use vqueue::GenericQueueManager;
+use vsmtp_common::addr;
 use vsmtp_common::ContextFinished;
-use vsmtp_common::{addr, CodeID};
 use vsmtp_mail_parser::BodyType;
 use vsmtp_mail_parser::Mail;
 use vsmtp_mail_parser::MailHeaders;
 use vsmtp_mail_parser::MailMimeParser;
 use vsmtp_mail_parser::MessageBody;
-use vsmtp_server::OnMail;
 
 run_test! {
     fn reset_helo,
@@ -52,53 +50,35 @@ run_test! {
         "250 Ok\r\n",
         "221 Service closing transmission channel\r\n"
     ],
-    mail_handler = {
+    mail_handler = |ctx: ContextFinished, mut body: MessageBody| {
+        assert_eq!(ctx.helo.client_name.to_string(), "foo");
+        assert_eq!(ctx.mail_from.reverse_path, Some(addr!("a@b")));
 
-        struct T;
+        assert!(ctx.rcpt_to.delivery
+            .values()
+            .flatten()
+            .map(|(addr, _)| addr)
+            .cloned()
+            .eq([
+                addr!("b@c")
+            ])
+        );
 
-        #[async_trait::async_trait]
-        impl OnMail for T {
-            async fn on_mail(
-                &mut self,
-                mail: Box<ContextFinished>,
-                mut message: MessageBody,
-                _: std::sync::Arc<dyn GenericQueueManager>,
-            ) -> CodeID {
-
-                assert_eq!(mail.helo.client_name.to_string(), "foo");
-                assert_eq!(mail.mail_from.reverse_path, Some(addr!("a@b")));
-
-                assert!(mail.rcpt_to.delivery
-                    .values()
-                    .flatten()
-                    .map(|(addr, _)| addr)
-                    .cloned()
-                    .eq([
-                        addr!("b@c")
-                    ])
-                );
-
-                assert_eq!(
-                    *message.parsed::<MailMimeParser>().unwrap(),
-                    Mail {
-                        headers: MailHeaders(
-                            [
-                                ("from", "a b <a@b>"),
-                                ("date", "tue, 30 nov 2021 20:54:27 +0100"),
-                            ]
-                            .into_iter()
-                            .map(|(k, v)| (k.to_string(), v.to_string()))
-                            .collect::<Vec<_>>()
-                        ),
-                        body: BodyType::Regular(vec!["mail content wow".to_string()])
-                    }
-                );
-
-                CodeID::Ok
+        assert_eq!(
+            *body.parsed::<MailMimeParser>().unwrap(),
+            Mail {
+                headers: MailHeaders(
+                    [
+                        ("from", "a b <a@b>"),
+                        ("date", "tue, 30 nov 2021 20:54:27 +0100"),
+                    ]
+                    .into_iter()
+                    .map(|(k, v)| (k.to_string(), v.to_string()))
+                    .collect::<Vec<_>>()
+                ),
+                body: BodyType::Regular(vec!["mail content wow".to_string()])
             }
-        }
-
-        T
+        );
     },
 }
 
@@ -167,43 +147,27 @@ run_test! {
         "250 Ok\r\n",
         "221 Service closing transmission channel\r\n"
     ],
-    mail_handler = {
+    mail_handler = |ctx: ContextFinished, mut body: MessageBody| {
+        assert_eq!(ctx.helo.client_name.to_string(), "foo2");
+        assert_eq!(ctx.mail_from.reverse_path, Some(addr!("d@e")));
 
-        struct T;
+        assert!(ctx.rcpt_to.delivery
+            .values()
+            .flatten()
+            .map(|(addr, _)| addr)
+            .cloned()
+            .eq([
+                addr!("b@c")
+            ])
+        );
 
-        #[async_trait::async_trait]
-        impl OnMail for T {
-            async fn on_mail(
-                &mut self,
-                mail: Box<ContextFinished>,
-                mut message: MessageBody,
-                _: std::sync::Arc<dyn GenericQueueManager>,
-            ) -> CodeID {
-                assert_eq!(mail.helo.client_name.to_string(), "foo2");
-                assert_eq!(mail.mail_from.reverse_path, Some(addr!("d@e")));
-
-                assert!(mail.rcpt_to.delivery
-                    .values()
-                    .flatten()
-                    .map(|(addr, _)| addr)
-                    .cloned()
-                    .eq([
-                        addr!("b@c")
-                    ])
-                );
-
-                assert_eq!(
-                    *message.parsed::<MailMimeParser>().unwrap(),
-                    Mail {
-                        headers: MailHeaders(vec![]),
-                        body: BodyType::Undefined
-                    }
-                );
-                CodeID::Ok
+        assert_eq!(
+            *body.parsed::<MailMimeParser>().unwrap(),
+            Mail {
+                headers: MailHeaders(vec![]),
+                body: BodyType::Undefined
             }
-        }
-
-        T
+        );
     },
 }
 
@@ -259,50 +223,34 @@ run_test! {
         "250 Ok\r\n",
         "221 Service closing transmission channel\r\n"
     ],
-    mail_handler = {
+    mail_handler = |ctx: ContextFinished, mut body: MessageBody| {
+        assert_eq!(ctx.helo.client_name.to_string(), "foo");
+        assert_eq!(ctx.mail_from.reverse_path, Some(addr!("foo2@foo")));
+        assert!(ctx.rcpt_to.delivery
+            .values()
+            .flatten()
+            .map(|(addr, _)| addr)
+            .cloned()
+            .eq([
+                addr!("toto2@bar"),
+                addr!("toto3@bar")
+            ])
+        );
 
-        struct T;
-
-        #[async_trait::async_trait]
-        impl OnMail for T {
-            async fn on_mail(
-                &mut self,
-                mail: Box<ContextFinished>,
-                mut message: MessageBody,
-                _: std::sync::Arc<dyn GenericQueueManager>,
-            ) -> CodeID {
-                assert_eq!(mail.helo.client_name.to_string(), "foo");
-                assert_eq!(mail.mail_from.reverse_path, Some(addr!("foo2@foo")));
-                assert!(mail.rcpt_to.delivery
-                    .values()
-                    .flatten()
-                    .map(|(addr, _)| addr)
-                    .cloned()
-                    .eq([
-                        addr!("toto2@bar"),
-                        addr!("toto3@bar")
-                    ])
-                );
-
-                pretty_assertions::assert_eq!(
-                    *message.parsed::<MailMimeParser>().unwrap(),
-                    Mail {
-                        headers: MailHeaders(
-                            [
-                                ("from", "foo2 foo <foo2@foo>"),
-                                ("date", "tue, 30 nov 2021 20:54:27 +0100"),
-                            ]
-                            .into_iter()
-                            .map(|(k, v)| (k.to_string(), v.to_string()))
-                            .collect::<Vec<_>>()
-                        ),
-                        body: BodyType::Undefined
-                    }
-                );
-                CodeID::Ok
+        pretty_assertions::assert_eq!(
+            *body.parsed::<MailMimeParser>().unwrap(),
+            Mail {
+                headers: MailHeaders(
+                    [
+                        ("from", "foo2 foo <foo2@foo>"),
+                        ("date", "tue, 30 nov 2021 20:54:27 +0100"),
+                    ]
+                    .into_iter()
+                    .map(|(k, v)| (k.to_string(), v.to_string()))
+                    .collect::<Vec<_>>()
+                ),
+                body: BodyType::Undefined
             }
-        }
-
-        T
+        );
     },
 }

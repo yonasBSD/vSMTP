@@ -23,22 +23,20 @@ use rhai::plugin::{
     mem, Dynamic, FnAccess, FnNamespace, ImmutableString, Module, NativeCallContext,
     PluginFunction, RhaiResult, TypeId,
 };
-use vsmtp_auth::dkim::{
-    sign, verify, Canonicalization, PrivateKey, PublicKey, Signature, VerificationResult,
-    VerifierError,
-};
+use vsmtp_auth::dkim as backend;
 use vsmtp_common::Domain;
 use vsmtp_mail_parser::MessageBody;
 
 pub use dkim::*;
 
+/// Parameters used by the [`sign`] function.
 #[derive(Debug)]
-struct SignatureParams {
+pub struct SignatureParams {
     sdid: Option<String>,
     selector: String,
-    private_key: std::sync::Arc<PrivateKey>,
+    private_key: std::sync::Arc<backend::PrivateKey>,
     headers_field: Option<Vec<String>>,
-    canonicalization: Option<Canonicalization>,
+    canonicalization: Option<backend::Canonicalization>,
 }
 
 impl TryFrom<rhai::Map> for SignatureParams {
@@ -61,15 +59,17 @@ impl TryFrom<rhai::Map> for SignatureParams {
                     selector = Some(value.into_string()?);
                 }
                 "private_key" => {
-                    private_key = Some(value.try_cast::<rhai::Shared<PrivateKey>>().ok_or_else(
-                        || {
-                            Box::new(rhai::EvalAltResult::ErrorMismatchDataType(
-                                "Arc<PrivateKey>".to_string(),
-                                value_type_name.to_string(),
-                                rhai::Position::NONE,
-                            ))
-                        },
-                    )?);
+                    private_key = Some(
+                        value
+                            .try_cast::<rhai::Shared<backend::PrivateKey>>()
+                            .ok_or_else(|| {
+                                Box::new(rhai::EvalAltResult::ErrorMismatchDataType(
+                                    "Arc<PrivateKey>".to_string(),
+                                    value_type_name.to_string(),
+                                    rhai::Position::NONE,
+                                ))
+                            })?,
+                    );
                 }
                 "headers_field" => {
                     headers_field = Some(
@@ -168,15 +168,15 @@ mod dkim {
         Ok(r#virtual.unwrap_or_default())
     }
 
-    /// return the `sdid` property of the [`Signature`]
+    /// return the `sdid` property of the [`backend::Signature`]
     #[rhai_fn(global, get = "sdid", pure)]
-    pub fn sdid(signature: &mut Signature) -> String {
+    pub fn sdid(signature: &mut backend::Signature) -> String {
         signature.sdid.clone()
     }
 
-    /// return the `auid` property of the [`Signature`]
+    /// return the `auid` property of the [`backend::Signature`]
     #[rhai_fn(global, get = "auid", pure)]
-    pub fn auid(signature: &mut Signature) -> String {
+    pub fn auid(signature: &mut backend::Signature) -> String {
         signature.auid.clone()
     }
 
@@ -457,14 +457,14 @@ pub enum DkimErrors {
     #[error("the parsing of the signature failed: `{inner}`")]
     SignatureParsingFailed {
         ///
-        inner: <Signature as std::str::FromStr>::Err,
+        inner: <backend::Signature as std::str::FromStr>::Err,
     },
     ///
     #[strum(message = "neutral", detailed_message = "key_parsing_failed")]
     #[error("the parsing of the public key failed: `{inner}`")]
     KeyParsingFailed {
         ///
-        inner: <PublicKey as std::str::FromStr>::Err,
+        inner: <backend::PublicKey as std::str::FromStr>::Err,
     },
     ///
     #[strum(message = "neutral", detailed_message = "invalid_argument")]
@@ -492,7 +492,7 @@ pub enum DkimErrors {
     #[error("the signature does not match: `{inner}`")]
     SignatureMismatch {
         ///
-        inner: VerifierError,
+        inner: backend::VerifierError,
     },
 }
 
@@ -540,27 +540,27 @@ impl Impl {
     }
 
     #[tracing::instrument(ret, err)]
-    pub fn parse_signature(input: &str) -> Result<Signature, DkimErrors> {
-        <Signature as std::str::FromStr>::from_str(input)
+    pub fn parse_signature(input: &str) -> Result<backend::Signature, DkimErrors> {
+        <backend::Signature as std::str::FromStr>::from_str(input)
             .map_err(|inner| DkimErrors::SignatureParsingFailed { inner })
     }
 
     #[tracing::instrument(ret, err)]
     fn verify(
         message: &MessageBody,
-        signature: &Signature,
-        key: &PublicKey,
+        signature: &backend::Signature,
+        key: &backend::PublicKey,
     ) -> Result<(), DkimErrors> {
-        verify(signature, message.inner(), key)
+        backend::verify(signature, message.inner(), key)
             .map_err(|inner| DkimErrors::SignatureMismatch { inner })
     }
 
     #[tracing::instrument(skip(server), ret, err)]
     fn get_public_key(
         server: &Server,
-        signature: &Signature,
+        signature: &backend::Signature,
         on_multiple_key_records: &str,
-    ) -> Result<Vec<PublicKey>, DkimErrors> {
+    ) -> Result<Vec<backend::PublicKey>, DkimErrors> {
         const VALID_POLICY: [&str; 2] = ["first", "cycle"];
         if !VALID_POLICY.contains(&on_multiple_key_records) {
             return Err(DkimErrors::InvalidArgument {
@@ -590,10 +590,10 @@ impl Impl {
 
         let keys = txt_record
             .into_iter()
-            .map(|i| <PublicKey as std::str::FromStr>::from_str(&i.to_string()));
+            .map(|i| <backend::PublicKey as std::str::FromStr>::from_str(&i.to_string()));
 
         let keys = keys
-            .collect::<Result<Vec<_>, <PublicKey as std::str::FromStr>::Err>>()
+            .collect::<Result<Vec<_>, <backend::PublicKey as std::str::FromStr>::Err>>()
             .map_err(|inner| DkimErrors::KeyParsingFailed { inner })?;
 
         Ok(if on_multiple_key_records == "first" {
@@ -609,7 +609,7 @@ impl Impl {
         ctx: &vsmtp_common::Context,
         params: SignatureParams,
     ) -> Result<String, DkimErrors> {
-        let signature = sign(
+        let signature = backend::sign(
             message.inner(),
             &params.private_key,
             params.sdid.unwrap_or_else(|| ctx.server_name().to_string()),
@@ -632,7 +632,7 @@ impl Impl {
     }
 
     pub fn store(ctx: &Context, result: &rhai::Map) -> EngineResult<()> {
-        let result = VerificationResult {
+        let result = backend::VerificationResult {
             status: result
                 .get("status")
                 .ok_or_else::<Box<rhai::EvalAltResult>, _>(|| {

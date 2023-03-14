@@ -30,7 +30,6 @@
 
 mod channel_message;
 mod delivery;
-mod on_mail;
 mod processing;
 mod runtime;
 mod server;
@@ -42,7 +41,6 @@ mod receiver {
 }
 
 pub use channel_message::ProcessMessage;
-pub use on_mail::{MailHandler, OnMail};
 pub use receiver::handler::Handler;
 pub use receiver::pre_transaction::ValidationVSL;
 pub use runtime::start_runtime;

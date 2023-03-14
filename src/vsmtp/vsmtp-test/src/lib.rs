@@ -38,6 +38,8 @@ pub mod config;
 
 ///
 pub mod receiver;
+mod recv_handler_wrapper;
+pub use recv_handler_wrapper::Wrapper;
 
 ///
 pub mod get_tls_file;

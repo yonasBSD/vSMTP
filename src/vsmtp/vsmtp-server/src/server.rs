@@ -14,16 +14,14 @@
  * this program. If not, see https://www.gnu.org/licenses/.
  *
 */
-use crate::{
-    channel_message::ProcessMessage, on_mail::MailHandler, receiver::handler::Handler,
-    ValidationVSL,
-};
+use crate::{channel_message::ProcessMessage, receiver::handler::Handler, ValidationVSL};
 use anyhow::Context;
 use tokio_rustls::rustls;
 use tokio_stream::StreamExt;
 use vqueue::GenericQueueManager;
 use vsmtp_common::CodeID;
 use vsmtp_config::{get_rustls_config, Config};
+use vsmtp_mail_parser::BasicParser;
 use vsmtp_protocol::{AcceptArgs, ConnectionKind};
 use vsmtp_rule_engine::RuleEngine;
 
@@ -264,14 +262,13 @@ impl Server {
         delivery_sender: tokio::sync::mpsc::Sender<ProcessMessage>,
     ) -> anyhow::Result<()> {
         let smtp_handler = Handler::new(
-            Box::new(MailHandler {
-                working_sender,
-                delivery_sender,
-            }),
             config.clone(),
             tls_config,
             rule_engine,
             queue_manager,
+            BasicParser::default,
+            working_sender,
+            delivery_sender,
             args.client_addr,
             args.server_addr,
             config.server.name.parse().unwrap(),

@@ -15,16 +15,10 @@
  *
  */
 use crate::config;
+use crate::recv_handler_wrapper::OnMessageCompletedHook;
 use crate::run_test;
-use vqueue::GenericQueueManager;
-use vsmtp_common::ContextFinished;
-use vsmtp_common::{addr, CodeID};
-use vsmtp_mail_parser::BodyType;
-use vsmtp_mail_parser::Mail;
-use vsmtp_mail_parser::MailHeaders;
-use vsmtp_mail_parser::MailMimeParser;
-use vsmtp_mail_parser::MessageBody;
-use vsmtp_server::OnMail;
+use vsmtp_common::{addr, ContextFinished};
+use vsmtp_mail_parser::{BodyType, Mail, MailHeaders, MailMimeParser, MessageBody};
 
 // see https://datatracker.ietf.org/doc/html/rfc5321#section-4.3.2
 
@@ -47,34 +41,18 @@ run_test! {
         "250 Ok\r\n",
         "221 Service closing transmission channel\r\n",
     ],
-    mail_handler = {
-
-        struct T;
-
-        #[async_trait::async_trait]
-        impl OnMail for T {
-            async fn on_mail(
-                &mut self,
-                mail: Box<ContextFinished>,
-                _: MessageBody,
-                _: std::sync::Arc<dyn GenericQueueManager>,
-            ) -> CodeID {
-                assert_eq!(mail.helo.client_name.to_string(), "foobar");
-                assert_eq!(mail.mail_from.reverse_path, Some(addr!("john@doe")));
-                assert!(mail.rcpt_to.delivery
-                    .values()
-                    .flatten()
-                    .map(|(addr, _)| addr)
-                    .cloned()
-                    .eq([
-                        addr!("aa@bb")
-                    ])
-                );
-                CodeID::Ok
-            }
-        }
-
-        T
+    mail_handler = |ctx: ContextFinished, _: MessageBody| {
+        assert_eq!(ctx.helo.client_name.to_string(), "foobar");
+        assert_eq!(ctx.mail_from.reverse_path, Some(addr!("john@doe")));
+        assert!(ctx.rcpt_to.delivery
+            .values()
+            .flatten()
+            .map(|(addr, _)| addr)
+            .cloned()
+            .eq([
+                addr!("aa@bb")
+            ])
+        );
     }
 }
 
@@ -264,53 +242,48 @@ run_test! {
         "221 Service closing transmission channel\r\n",
     ],
     mail_handler = {
+        #[derive(Clone)]
+        struct T { count: std::sync::Arc<std::sync::atomic::AtomicU32> }
 
-        struct T { count: u32, }
-
-        #[async_trait::async_trait]
-        impl OnMail for T {
-            async fn on_mail(
-                &mut self,
-                mail: Box<ContextFinished>,
-                mut message: MessageBody,
-                _: std::sync::Arc<dyn GenericQueueManager>,
-            ) -> CodeID {
-                assert_eq!(mail.helo.client_name.to_string(), "foobar");
+        impl OnMessageCompletedHook for T {
+            fn on_message_completed(self, ctx: ContextFinished, mut msg: MessageBody) {
+                let count = self.count.load(std::sync::atomic::Ordering::Relaxed);
+                assert_eq!(ctx.helo.client_name.to_string(), "foobar");
                 assert_eq!(
-                    mail.mail_from.reverse_path,
-                    Some(addr!(&format!("john{}@doe", self.count)))
+                    ctx.mail_from.reverse_path,
+                    Some(addr!(&format!("john{count}@doe")))
                 );
-                assert!(mail.rcpt_to.delivery
+                assert!(ctx.rcpt_to.delivery
                     .values()
                     .flatten()
                     .map(|(addr, _)| addr)
                     .cloned()
                     .eq([
-                        addr!(&format!("aa{}@bb", self.count))
+                        addr!(&format!("aa{count}@bb"))
                     ])
                 );
 
                 pretty_assertions::assert_eq!(
-                    *message.parsed::<MailMimeParser>().unwrap(),
+                    *msg.parsed::<MailMimeParser>().unwrap(),
                     Mail {
                         headers: MailHeaders(
                             [
-                                ("from", format!("john{} doe <john{}@doe>", self.count, self.count)),
+                                ("from", format!("john{count} doe <john{count}@doe>")),
                                 ("date", "tue, 30 nov 2021 20:54:27 +0100".to_string()),
                             ]
                             .into_iter()
                             .map(|(k, v)| (k.to_string(), v))
                             .collect::<Vec<_>>()
                         ),
-                         body: BodyType::Regular(vec![format!("mail {}", self.count)])
+                         body: BodyType::Regular(vec![format!("mail {count}")])
                     }
                 );
 
-                self.count += 1;
-                CodeID::Ok
+                self.count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             }
         }
-        T { count: 1 }
+
+        T { count: std::sync::Arc::new(std::sync::atomic::AtomicU32::new(1)) }
     },
 }
 
@@ -356,42 +329,36 @@ run_test! {
         "221 Service closing transmission channel\r\n",
     ],
     mail_handler = {
+        #[derive(Clone)]
+        struct T { count: std::sync::Arc<std::sync::atomic::AtomicU32> }
 
-        struct T { count: u32, }
-
-        #[async_trait::async_trait]
-        impl OnMail for T {
-            async fn on_mail(
-                &mut self,
-                mail: Box<ContextFinished>,
-                mut message: MessageBody,
-                _: std::sync::Arc<dyn GenericQueueManager>,
-            ) -> CodeID {
-                assert_eq!(mail.helo.client_name.to_string(), format!("foobar{}", self.count));
+        impl OnMessageCompletedHook for T {
+            fn on_message_completed(self, ctx: ContextFinished, mut msg: MessageBody) {
+                let count = self.count.load(std::sync::atomic::Ordering::Relaxed);
+                assert_eq!(ctx.helo.client_name.to_string(), format!("foobar{count}"));
                 assert_eq!(
-                    mail.mail_from.reverse_path,
-                    Some(addr!(&format!("john{}@doe", self.count)))
+                    ctx.mail_from.reverse_path,
+                    Some(addr!(&format!("john{count}@doe")))
                 );
 
-                assert!(mail.rcpt_to.delivery
+                assert!(ctx.rcpt_to.delivery
                     .values()
                     .flatten()
                     .map(|(addr, _)| addr)
                     .cloned()
                     .eq([
-                        addr!(&format!("aa{}@bb", self.count))
+                        addr!(&format!("aa{count}@bb"))
                     ])
                 );
 
-
                 pretty_assertions::assert_eq!(
-                    *message.parsed::<MailMimeParser>().unwrap(),
+                    *msg.parsed::<MailMimeParser>().unwrap(),
                     Mail {
                         headers: MailHeaders(
                             [
                                 (
                                     "from",
-                                    format!("john{} doe <john{}@doe>", self.count, self.count)
+                                    format!("john{count} doe <john{count}@doe>")
                                 ),
                                 ("date", "tue, 30 nov 2021 20:54:27 +0100".to_string()),
                             ]
@@ -399,16 +366,14 @@ run_test! {
                             .map(|(k, v)| (k.to_string(), v))
                             .collect::<Vec<_>>()
                         ),
-                        body: BodyType::Regular(vec![format!("mail {}", self.count)])
+                        body: BodyType::Regular(vec![format!("mail {count}")])
                     }
                 );
 
-                self.count += 1;
-
-                CodeID::Ok
+                self.count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             }
         }
-        T { count: 1 }
+        T { count: std::sync::Arc::new(std::sync::atomic::AtomicU32::new(1)) }
     },
 }
 

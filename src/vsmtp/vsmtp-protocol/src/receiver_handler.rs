@@ -19,8 +19,10 @@ use crate::{
     Error, HeloArgs, MailFromArgs, ParseArgsError, RcptToArgs, UnparsedArgs, Verb,
 };
 use tokio_rustls::rustls;
+use vsmtp_common::ContextFinished;
 // TODO: should we move these type in this crate
 use vsmtp_common::{Reply, Stage};
+use vsmtp_mail_parser::MessageBody;
 
 // NOTE: could have 3 trait to make the implementation easier
 // PreTransactionHandler + TransactionHandler + PostTransactionHandler
@@ -74,13 +76,23 @@ pub trait ReceiverHandler {
     async fn on_rcpt_to(&mut self, ctx: &mut ReceiverContext, args: RcptToArgs) -> Reply;
 
     /// Called after receiving a [`Verb::Data`] command.
+    ///
     /// The stream is the body of the message, with dot-stuffing handled.
     /// The stream return `None` when the message is finished (`.<CRLF>`).
     async fn on_message(
         &mut self,
         ctx: &mut ReceiverContext,
         stream: impl tokio_stream::Stream<Item = Result<Vec<u8>, Error>> + Send + Unpin,
-    ) -> Reply;
+    ) -> (Reply, Option<Vec<(ContextFinished, MessageBody)>>);
+
+    /// Called for each message produced by the [`ReceiverHandler::on_message()`] method.
+    ///
+    /// If this callback returns `Some`, the reply produced by [`ReceiverHandler::on_message()`] is discarded.
+    async fn on_message_completed(
+        &mut self,
+        ctx: ContextFinished,
+        msg: MessageBody,
+    ) -> Option<Reply>;
 
     /// Called when the number of reply considered as error reached a threshold (hard).
     async fn on_hard_error(&mut self, ctx: &mut ReceiverContext, reply: Reply) -> Reply;

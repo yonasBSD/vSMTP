@@ -4329,6 +4329,7 @@ dependencies = [
  "uuid",
  "vsmtp-auth",
  "vsmtp-common",
+ "vsmtp-mail-parser",
 ]
 
 [[package]]

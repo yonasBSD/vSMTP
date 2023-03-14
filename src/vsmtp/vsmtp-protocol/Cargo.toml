@@ -22,6 +22,7 @@ categories = ["email", "smtp"]
 pre-release-replacements = [
     { file = "Cargo.toml", prerelease = true, search = "auth\\]\nversion = .*", replace = "auth]\nversion = \"={{version}}\"" },
     { file = "Cargo.toml", prerelease = true, search = "common\\]\nversion = .*", replace = "common]\nversion = \"={{version}}\"" },
+    { file = "Cargo.toml", prerelease = true, search = "mail-parser\\]\nversion = .*", replace = "mail-parser]\nversion = \"={{version}}\"" },
 ]
 
 [dependencies.vsmtp-auth]
@@ -32,8 +33,11 @@ path = "../vsmtp-auth"
 version = "=2.1.1"
 path = "../vsmtp-common"
 
-[dependencies]
+[dependencies.vsmtp-mail-parser]
+version = "=2.1.1"
+path = "../vsmtp-mail-parser"
 
+[dependencies]
 tokio = { version = "1.26.0", default-features = false, features = [
     "macros",
     "sync",

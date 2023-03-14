@@ -17,28 +17,8 @@
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, Bencher, BenchmarkId, Criterion,
 };
-use vqueue::GenericQueueManager;
-use vsmtp_common::CodeID;
-use vsmtp_common::ContextFinished;
 use vsmtp_config::Config;
-use vsmtp_mail_parser::MessageBody;
-use vsmtp_server::OnMail;
 use vsmtp_test::run_test;
-
-#[derive(Clone)]
-struct DefaultMailHandler;
-
-#[async_trait::async_trait]
-impl OnMail for DefaultMailHandler {
-    async fn on_mail(
-        &mut self,
-        _: Box<ContextFinished>,
-        _: MessageBody,
-        _: std::sync::Arc<dyn GenericQueueManager>,
-    ) -> CodeID {
-        CodeID::Ok
-    }
-}
 
 fn get_test_config() -> std::sync::Arc<Config> {
     std::sync::Arc::new(
@@ -77,7 +57,7 @@ fn make_bench(
                 input = input,
                 expected = output,
                 config_arc = config.clone(),
-                mail_handler = DefaultMailHandler,
+                mail_handler = |_, _| (),
             };
         })
 }

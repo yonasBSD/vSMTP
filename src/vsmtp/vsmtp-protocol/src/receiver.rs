@@ -246,7 +246,15 @@ where
                         let message_stream = self.stream.as_message_stream(self.message_size_max).fuse();
                         tokio::pin!(message_stream);
 
-                        let reply = self.handler.on_message(&mut self.context, message_stream).await;
+                        let (mut reply, completed) = self.handler.on_message(&mut self.context, message_stream).await;
+                        if let Some(completed) = completed {
+                            for (ctx, msg) in completed {
+                                if let Some(error) = self.handler.on_message_completed(ctx, msg).await {
+                                    reply = error;
+                                    break;
+                                }
+                            }
+                        }
                         self.sink
                             .send_reply(&mut self.context, &mut self.error_counter, &mut self.handler, reply)
                             .await?;
@@ -323,7 +331,15 @@ where
                         let message_stream = self.stream.as_message_stream(self.message_size_max).fuse();
                         tokio::pin!(message_stream);
 
-                        let reply = self.handler.on_message(&mut self.context, message_stream).await;
+                        let (mut reply, completed) = self.handler.on_message(&mut self.context, message_stream).await;
+                        if let Some(completed) = completed {
+                            for (ctx, msg) in completed {
+                                if let Some(error) = self.handler.on_message_completed(ctx, msg).await {
+                                    reply = error;
+                                    break;
+                                }
+                            }
+                        }
                         self.sink
                             .send_reply(&mut self.context, &mut self.error_counter, &mut self.handler, reply)
                             .await?;

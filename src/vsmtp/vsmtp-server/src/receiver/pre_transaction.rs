@@ -15,16 +15,21 @@
  *
 */
 
-use crate::{Handler, OnMail};
+use crate::Handler;
 use tokio_rustls::rustls;
 use vsmtp_common::{auth::Credentials, status::Status, ClientName, CodeID, Reply};
+use vsmtp_mail_parser::MailParser;
 use vsmtp_protocol::{
     AcceptArgs, AuthArgs, AuthError, CallbackWrap, ConnectionKind, EhloArgs, HeloArgs,
     ReceiverContext,
 };
 use vsmtp_rule_engine::{ExecutionStage, RuleEngine, RuleState};
 
-impl<M: OnMail + Send> Handler<M> {
+impl<Parser, ParserFactory> Handler<Parser, ParserFactory>
+where
+    Parser: MailParser + Send + Sync,
+    ParserFactory: Fn() -> Parser + Send + Sync,
+{
     pub(super) fn generic_helo(
         &mut self,
         ctx: &mut ReceiverContext,
