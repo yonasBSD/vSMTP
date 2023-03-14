@@ -134,8 +134,28 @@ impl<M: OnMail + Send> Handler<M> {
                 self.skipped.clone(),
                 mail,
             );
-            let (mail_ctx, message) =
-                std::mem::replace(&mut self.state, self.rule_engine.spawn()).take();
+            let (client_addr, server_addr, server_name, timestamp, uuid) = {
+                let ctx = self.state.context();
+                let ctx = ctx.read().expect("state poisoned");
+                (
+                    *ctx.client_addr(),
+                    *ctx.server_addr(),
+                    ctx.server_name().clone(),
+                    *ctx.connection_timestamp(),
+                    *ctx.connection_uuid(),
+                )
+            };
+            let (mail_ctx, message) = std::mem::replace(
+                &mut self.state,
+                self.rule_engine.spawn_at_connect(
+                    client_addr,
+                    server_addr,
+                    server_name,
+                    timestamp,
+                    uuid,
+                ),
+            )
+            .take();
             let mut mail_ctx = mail_ctx
                 .unwrap_finished()
                 .expect("has been set to finished");
@@ -144,14 +164,6 @@ impl<M: OnMail + Send> Handler<M> {
                 .context()
                 .write()
                 .expect("state poisoned")
-                .to_connect(
-                    mail_ctx.connect.client_addr,
-                    mail_ctx.connect.server_addr,
-                    mail_ctx.connect.server_name.clone(),
-                    mail_ctx.connect.connect_timestamp,
-                    mail_ctx.connect.connect_uuid,
-                )
-                .expect("bad state")
                 .to_helo(
                     mail_ctx.helo.client_name.clone(),
                     mail_ctx.helo.using_deprecated,

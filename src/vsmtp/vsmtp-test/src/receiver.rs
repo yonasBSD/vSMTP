@@ -190,6 +190,7 @@ macro_rules! run_test {
                 ).unwrap();                                         )?
                 std::sync::Arc::new(_f())
             };
+            let (client_stream, client_addr) = socket_server.accept().await.unwrap();
 
             let smtp_handler = vsmtp_server::Handler::new(
                 mail_handler,
@@ -214,8 +215,12 @@ macro_rules! run_test {
                 },
                 rule_engine,
                 queue_manager.clone(),
+                client_addr,
+                server_addr,
+                config.server.name.parse().unwrap(),
+                time::OffsetDateTime::now_utc(),
+                uuid::Uuid::new_v4()
             );
-            let (client_stream, client_addr) = socket_server.accept().await.unwrap();
 
             let smtp_receiver = vsmtp_protocol::Receiver::<_, vsmtp_server::ValidationVSL, _, _>::new(
                 client_stream,

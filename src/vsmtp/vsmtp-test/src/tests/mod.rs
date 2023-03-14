@@ -41,13 +41,13 @@ mod protocol {
 mod rule_engine {
     mod actions;
     // mod todo;
+    mod codes;
+    mod context;
+    mod domains;
+    mod dotenv;
     mod getters;
+    mod quarantine;
     mod rule_default;
     mod rule_triage;
-}
-mod rules {
-    mod codes;
-    mod dotenv;
-    mod quarantine;
 }
 mod vqueue;

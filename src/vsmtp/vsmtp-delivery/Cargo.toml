@@ -91,5 +91,10 @@ test-log = { version = "0.2.11", features = ["trace"] }
 rstest = "0.16.0"
 
 env_logger = "0.10.0"
-tracing-subscriber = { version = "0.3.16", default-features = false, features = ["env-filter", "fmt"] }
+tracing-subscriber = { version = "0.3.16", default-features = false, features = [
+  "std",
+  "smallvec",
+  "env-filter",
+  "fmt",
+] }
 # tracing-test = "0.2.3"

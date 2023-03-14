@@ -180,6 +180,7 @@ pub enum Delivery {
 }
 
 impl From<std::io::Error> for Delivery {
+    #[inline]
     fn from(err: std::io::Error) -> Self {
         Self::Connection {
             with_source: Some(err.to_string()),
@@ -233,20 +234,17 @@ pub enum Variant {
 }
 
 impl From<trust_dns_resolver::error::ResolveError> for Lookup {
+    #[inline]
     fn from(error: trust_dns_resolver::error::ResolveError) -> Self {
         match error.kind() {
             trust_dns_resolver::error::ResolveErrorKind::Message(e) => {
-                Self::Message((*e).to_string())
+                Self::Message((*e).to_owned())
             }
             trust_dns_resolver::error::ResolveErrorKind::Msg(e) => Self::Message(e.to_string()),
             trust_dns_resolver::error::ResolveErrorKind::NoConnections => Self::NoConnections,
-            trust_dns_resolver::error::ResolveErrorKind::NoRecordsFound {
-                query: _,
-                soa: _,
-                negative_ttl: _,
-                response_code: _,
-                trusted: _,
-            } => Self::NoRecords {},
+            trust_dns_resolver::error::ResolveErrorKind::NoRecordsFound { .. } => {
+                Self::NoRecords {}
+            }
             trust_dns_resolver::error::ResolveErrorKind::Io(io) => Self::IO(io.to_string()),
             trust_dns_resolver::error::ResolveErrorKind::Proto(proto) => {
                 Self::Proto(proto.to_string())
@@ -259,12 +257,14 @@ impl From<trust_dns_resolver::error::ResolveError> for Lookup {
 }
 
 impl From<lettre::transport::smtp::Error> for Delivery {
+    #[inline]
     fn from(value: lettre::transport::smtp::Error) -> Self {
         let with_source = std::error::Error::source(&value).map(ToString::to_string);
 
         if value.is_client() {
             Self::Client { with_source }
         } else if value.is_permanent() {
+            #[allow(clippy::expect_used)]
             Self::Permanent {
                 with_source,
                 reply: value
@@ -273,6 +273,7 @@ impl From<lettre::transport::smtp::Error> for Delivery {
                     .into(),
             }
         } else if value.is_transient() {
+            #[allow(clippy::expect_used)]
             Self::Transient {
                 with_source,
                 reply: value
@@ -308,6 +309,7 @@ impl Delivery {
 impl Variant {
     /// Is the error considered permanent, and retrying would produce the same result
     #[must_use]
+    #[inline]
     pub fn is_permanent(&self) -> bool {
         match self {
             Self::LocalDelivery(
@@ -323,13 +325,12 @@ impl Variant {
                 | Lookup::IO(_)
                 | Lookup::Proto(_)
                 | Lookup::Message(_)
-                | Lookup::ContainsNullMX { .. },
+                | Lookup::ContainsNullMX { .. }
+                | Lookup::NotImplemented,
             )
             | Self::Rules(Rule::Denied(_)) => false,
 
             Self::Delivery(attempts) => attempts.iter().all(|(_, e)| e.is_permanent()),
-
-            Self::Lookup(Lookup::NotImplemented) => unreachable!(),
         }
     }
 }

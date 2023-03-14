@@ -53,6 +53,7 @@ pub enum Status {
 impl Status {
     /// Should the evaluation of the rules finish ?
     #[must_use]
+    #[inline]
     pub const fn is_finished(&self) -> bool {
         matches!(
             self,
@@ -65,17 +66,19 @@ impl Status {
 /// (mostly a new type over `lettre::SmtpTransport` to implement debug
 /// and make switching transport easy if needed)
 #[derive(Clone)]
-pub struct SmtpConnection(pub std::sync::Arc<std::sync::Mutex<lettre::SmtpTransport>>);
+pub struct SmtpConnection(pub alloc::sync::Arc<std::sync::Mutex<lettre::SmtpTransport>>);
 
 impl Eq for SmtpConnection {}
 impl PartialEq for SmtpConnection {
+    #[inline]
     fn eq(&self, _: &Self) -> bool {
         false
     }
 }
 
-impl std::fmt::Debug for SmtpConnection {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Debug for SmtpConnection {
+    #[inline]
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_tuple("SmtpTransport").finish()
     }
 }

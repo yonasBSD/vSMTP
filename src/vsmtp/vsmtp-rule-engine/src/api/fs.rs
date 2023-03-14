@@ -15,7 +15,7 @@
  *
 */
 
-use crate::api::{mail_context::message_id, Context, EngineResult, Message, Server};
+use crate::api::{Context, EngineResult, Message, Server};
 use rhai::plugin::{
     mem, Dynamic, EvalAltResult, FnAccess, FnNamespace, ImmutableString, Module, NativeCallContext,
     PluginFunction, RhaiResult, TypeId,
@@ -130,7 +130,12 @@ fn write(srv: &Server, ctx: &Context, message: &Message, dir: &str) -> EngineRes
         format!("cannot create folder '{}': {err}", dir.display()).into()
     })?;
 
-    dir.push(format!("{}.eml", message_id(ctx)?));
+    dir.push(format!(
+        "{}.eml",
+        vsl_guard_ok!(ctx.read())
+            .message_uuid()
+            .map_err(Into::<crate::error::RuntimeError>::into)?
+    ));
 
     let file = std::fs::OpenOptions::new()
         .create(true)
@@ -155,7 +160,12 @@ fn dump(srv: &Server, ctx: &Context, dir: &str) -> EngineResult<()> {
         format!("cannot create folder '{}': {err}", dir.display()).into()
     })?;
 
-    dir.push(format!("{}.json", message_id(ctx)?));
+    dir.push(format!(
+        "{}.json",
+        vsl_guard_ok!(ctx.read())
+            .message_uuid()
+            .map_err(Into::<crate::error::RuntimeError>::into)?
+    ));
 
     let mut file = std::fs::OpenOptions::new()
         .create(true)

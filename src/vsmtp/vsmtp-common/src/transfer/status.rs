@@ -57,6 +57,7 @@ pub enum Status {
 // NOTE: ignore the timestamp
 #[cfg(feature = "testing")]
 impl PartialEq for Status {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Sent { .. }, Self::Sent { .. })
@@ -73,6 +74,7 @@ impl PartialEq for Status {
 }
 
 impl Default for Status {
+    #[inline]
     fn default() -> Self {
         Self::Waiting {
             timestamp: time::OffsetDateTime::now_utc(),
@@ -83,6 +85,7 @@ impl Default for Status {
 impl Status {
     /// Should the recipient be delivered, or it has been done already ?
     #[must_use]
+    #[inline]
     pub const fn is_sendable(&self) -> bool {
         match self {
             Self::Waiting { .. } | Self::HeldBack { .. } => true,
@@ -91,8 +94,10 @@ impl Status {
     }
 
     /// Set the status to [`Status::HeldBack`] with an error, or increase the previous stack.
+    #[inline]
     pub fn held_back(&mut self, error: impl Into<Variant>) {
         let error = error.into();
+        #[allow(clippy::wildcard_enum_match_arm)]
         match self {
             Self::HeldBack { errors } => {
                 errors.push(Error::new(error));
@@ -106,6 +111,7 @@ impl Status {
     }
 
     ///
+    #[inline]
     #[must_use]
     pub fn sent() -> Self {
         Self::Sent {
@@ -114,6 +120,7 @@ impl Status {
     }
 
     ///
+    #[inline]
     #[must_use]
     pub fn failed(error: impl Into<Variant>) -> Self {
         Self::Failed {
@@ -135,6 +142,8 @@ pub struct Error {
 #[cfg(feature = "testing")]
 impl PartialEq for Error {
     // NOTE: ignore the timestamp
+    #[inline]
+    #[allow(clippy::unneeded_field_pattern)]
     fn eq(&self, other: &Self) -> bool {
         let Self {
             variant: self_variant,
@@ -153,6 +162,7 @@ impl PartialEq for Error {
 impl Error {
     /// Create a new instance with the current timestamp
     #[must_use]
+    #[inline]
     pub fn new(variant: Variant) -> Self {
         Self {
             variant,
@@ -163,12 +173,14 @@ impl Error {
     /// Get the underlying error (only for testing)
     #[cfg(feature = "testing")]
     #[must_use]
+    #[inline]
     pub const fn variant(&self) -> &Variant {
         &self.variant
     }
 
     /// Get the underlying timestamp
     #[must_use]
+    #[inline]
     pub const fn timestamp(&self) -> &time::OffsetDateTime {
         &self.timestamp
     }

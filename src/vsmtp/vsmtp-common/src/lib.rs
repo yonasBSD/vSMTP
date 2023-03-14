@@ -28,7 +28,32 @@
 #![warn(clippy::cargo)]
 #![warn(clippy::undocumented_unsafe_blocks)]
 //
+#![warn(clippy::restriction)]
+// restriction we ignore
+#![allow(
+    clippy::blanket_clippy_restriction_lints,
+    clippy::missing_docs_in_private_items,
+    clippy::pub_use,
+    clippy::implicit_return,
+    clippy::shadow_reuse,
+    clippy::shadow_unrelated,
+    clippy::unseparated_literal_suffix,
+    clippy::missing_trait_methods
+)]
+// fixme:
 #![allow(clippy::missing_const_for_fn)] // see https://github.com/rust-lang/rust-clippy/issues/9271
+#![allow(
+    clippy::exhaustive_enums,
+    clippy::exhaustive_structs,
+    clippy::std_instead_of_core, // thiserror
+    clippy::pattern_type_mismatch,
+    clippy::mod_module_files,
+    clippy::integer_arithmetic,
+    clippy::arithmetic_side_effects
+)]
+#![cfg_attr(test, allow(clippy::unwrap_used, clippy::std_instead_of_core))]
+
+extern crate alloc;
 
 /// Default smtp port
 pub const SMTP_PORT: u16 = 25;
@@ -76,8 +101,8 @@ pub type ReplyOrCodeID = either::Either<CodeID, Reply>;
 mod context;
 pub use context::{
     AuthProperties, ConnectProperties, Context, ContextConnect, ContextFinished, ContextHelo,
-    ContextMailFrom, ContextRcptTo, Error, FinishedProperties, HeloProperties, MailFromProperties,
-    RcptToProperties, Stage, TlsProperties, TransactionType,
+    ContextMailFrom, ContextRcptTo, Error, FieldAccessError, FinishedProperties, HeloProperties,
+    MailFromProperties, RcptToProperties, Stage, TlsProperties, TransactionType,
 };
 
 /// abstraction of the libc

@@ -64,19 +64,6 @@ impl<M: OnMail + Send> Handler<M> {
         ctx: &mut ReceiverContext,
         args: &AcceptArgs,
     ) -> Reply {
-        self.state
-            .context()
-            .write()
-            .expect("state poisoned")
-            .to_connect(
-                args.client_addr,
-                args.server_addr,
-                self.config.server.name.parse().unwrap(),
-                args.timestamp,
-                args.uuid,
-            )
-            .expect("bad state");
-
         if self
             .rule_engine
             .get_delegation_directive_bound_to_address(args.server_addr)

@@ -26,6 +26,7 @@ use anyhow::Context;
 /// * port was not found.
 /// * failed to parse the port.
 /// * failed to parse the scope id.
+#[inline]
 pub fn ipv6_with_scope_id(input: &str) -> anyhow::Result<std::net::SocketAddr> {
     if ip6_has_scope_id(input) {
         let (addr, port) = parse_ip6_port(input)?;
@@ -74,8 +75,8 @@ mod test {
     #[test]
     fn test_ip6_with_scope_id() {
         // the function does not handle parsing without a port.
-        assert!(ipv6_with_scope_id("::1").is_err(),);
-        assert!(ipv6_with_scope_id("::1%eth0").is_err(),);
+        ipv6_with_scope_id("::1").unwrap_err();
+        ipv6_with_scope_id("::1%eth0").unwrap_err();
 
         assert_eq!(
             ipv6_with_scope_id("[::1]:25").unwrap(),

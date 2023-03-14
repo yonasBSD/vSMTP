@@ -35,24 +35,25 @@ pub type Domain = trust_dns_resolver::Name;
 /// assert_eq!(domain_part.next(), None);
 /// ```
 #[must_use]
+#[inline]
 #[allow(clippy::module_name_repetitions)]
 pub fn domain_iter(domain: &str) -> IterDomain<'_> {
     IterDomain::iter(domain)
 }
 
 #[allow(clippy::module_name_repetitions)]
-pub struct IterDomain<'a>(Option<&'a str>);
+pub struct IterDomain<'item>(Option<&'item str>);
 
-impl<'a> IterDomain<'a> {
+impl<'item> IterDomain<'item> {
     /// Create an iterator over the given domain.
     #[must_use]
-    pub const fn iter(domain: &'a str) -> Self {
+    pub const fn iter(domain: &'item str) -> Self {
         Self(Some(domain))
     }
 }
 
-impl<'a> Iterator for IterDomain<'a> {
-    type Item = &'a str;
+impl<'item> Iterator for IterDomain<'item> {
+    type Item = &'item str;
 
     fn next(&mut self) -> Option<Self::Item> {
         let out = self.0;

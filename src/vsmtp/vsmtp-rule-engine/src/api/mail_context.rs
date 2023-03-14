@@ -15,17 +15,16 @@
  *
 */
 
-use vsmtp_plugin_vsl::objects::Object;
-
 use crate::{
     api::{
         EngineResult, {Context, SharedObject},
     },
-    get_global, ExecutionStage,
+    get_global,
 };
 use rhai::plugin::{
     Dynamic, FnAccess, FnNamespace, Module, NativeCallContext, PluginFunction, RhaiResult, TypeId,
 };
+use vsmtp_plugin_vsl::objects::Object;
 
 pub use mail_context::*;
 
@@ -346,12 +345,10 @@ mod mail_context {
     /// ```
     #[rhai_fn(name = "helo", return_raw)]
     pub fn helo(ncc: NativeCallContext) -> EngineResult<String> {
-        Ok(vsl_missing_ok!(
-            ref vsl_guard_ok!(get_global!(ncc, ctx)?.read()).client_name().ok(),
-            "helo",
-            ExecutionStage::Helo
-        )
-        .to_string())
+        Ok(vsl_guard_ok!(get_global!(ncc, ctx)?.read())
+            .client_name()
+            .map(ToString::to_string)
+            .map_err(Into::<crate::error::RuntimeError>::into)?)
     }
 
     /// Get the value of the `MAIL FROM` command sent by the client.
@@ -379,12 +376,8 @@ mod mail_context {
     pub fn mail_from(ncc: NativeCallContext) -> EngineResult<SharedObject> {
         let reverse_path = vsl_guard_ok!(get_global!(ncc, ctx)?.read())
             .reverse_path()
-            .cloned();
-        let reverse_path = vsl_missing_ok!(
-            ref reverse_path.ok(),
-            "mail_from",
-            ExecutionStage::MailFrom
-        );
+            .map_err(Into::<crate::error::RuntimeError>::into)?
+            .clone();
         Ok(std::sync::Arc::new(reverse_path.map_or_else(
             || Object::Identifier("null".to_string()),
             Object::Address,
@@ -417,19 +410,15 @@ mod mail_context {
     /// ```
     #[rhai_fn(name = "rcpt_list", return_raw)]
     pub fn rcpt_list(ncc: NativeCallContext) -> EngineResult<rhai::Array> {
-        Ok(vsl_missing_ok!(
-            vsl_guard_ok!(get_global!(ncc, ctx)?.read())
-                .forward_paths()
-                .ok(),
-            "rcpt_list",
-            ExecutionStage::RcptTo
-        )
-        .iter()
-        .cloned()
-        .map(Object::Address)
-        .map(std::sync::Arc::new)
-        .map(rhai::Dynamic::from)
-        .collect())
+        Ok(vsl_guard_ok!(get_global!(ncc, ctx)?.read())
+            .forward_paths()
+            .map_err(Into::<crate::error::RuntimeError>::into)?
+            .iter()
+            .cloned()
+            .map(Object::Address)
+            .map(std::sync::Arc::new)
+            .map(rhai::Dynamic::from)
+            .collect())
     }
 
     /// Get the value of the current `RCPT TO` command sent by the client.
@@ -458,17 +447,16 @@ mod mail_context {
     /// ```
     #[rhai_fn(name = "rcpt", return_raw)]
     pub fn rcpt(ncc: NativeCallContext) -> EngineResult<SharedObject> {
-        let binding = get_global!(ncc, ctx)?;
-        let guard = binding.read().unwrap();
-        let rcpts = guard.forward_paths().ok();
+        let rcpt = vsl_guard_ok!(get_global!(ncc, ctx)?.read())
+            .forward_paths()
+            .map_err(Into::<crate::error::RuntimeError>::into)?
+            .last()
+            .ok_or_else(|| crate::error::RuntimeError::Generic {
+                message: "recipient are empty".to_string(),
+            })?
+            .clone();
 
-        let rcpts = vsl_missing_ok!(ref rcpts, "rcpt", ExecutionStage::RcptTo);
-
-        Ok(std::sync::Arc::new(Object::Address(vsl_missing_ok!(
-            ref rcpts.last().cloned(),
-            "rcpt",
-            ExecutionStage::RcptTo
-        ))))
+        Ok(std::sync::Arc::new(Object::Address(rcpt)))
     }
 
     /// Get the time of reception of the email.
@@ -495,13 +483,9 @@ mod mail_context {
     /// ```
     #[rhai_fn(name = "mail_timestamp", return_raw)]
     pub fn mail_timestamp(ncc: NativeCallContext) -> EngineResult<time::OffsetDateTime> {
-        Ok(**vsl_missing_ok!(
-            vsl_guard_ok!(get_global!(ncc, ctx)?.read())
-                .mail_timestamp()
-                .ok(),
-            "mail_timestamp",
-            ExecutionStage::MailFrom
-        ))
+        Ok(*vsl_guard_ok!(get_global!(ncc, ctx)?.read())
+            .mail_timestamp()
+            .map_err(Into::<crate::error::RuntimeError>::into)?)
     }
 
     /// Get the unique id of the received message.
@@ -528,20 +512,9 @@ mod mail_context {
     /// ```
     #[rhai_fn(name = "message_id", return_raw)]
     pub fn message_id(ncc: NativeCallContext) -> EngineResult<String> {
-        super::message_id(&get_global!(ncc, ctx)?)
+        Ok(vsl_guard_ok!(get_global!(ncc, ctx)?.read())
+            .message_uuid()
+            .map_err(Into::<crate::error::RuntimeError>::into)?
+            .to_string())
     }
-}
-
-/// Get the unique id of the received message.
-///
-/// # Errors
-/// * Could not read the context.
-/// * The function is called pre-mail stage.
-pub fn message_id(context: &Context) -> EngineResult<String> {
-    Ok(vsl_missing_ok!(
-        ref vsl_guard_ok!(context.read()).message_uuid().ok(),
-        "message_id",
-        ExecutionStage::MailFrom
-    )
-    .to_string())
 }

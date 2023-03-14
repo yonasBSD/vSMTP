@@ -17,7 +17,7 @@
 use crate::on_mail::OnMail;
 use tokio_rustls::rustls;
 use vqueue::GenericQueueManager;
-use vsmtp_common::{status::Status, Address, CodeID, Reply, Stage, TransactionType};
+use vsmtp_common::{status::Status, Address, CodeID, Domain, Reply, Stage, TransactionType};
 use vsmtp_config::Config;
 use vsmtp_delivery::Deliver;
 use vsmtp_protocol::{
@@ -50,16 +50,28 @@ pub struct Handler<M: OnMail> {
 impl<M: OnMail> Handler<M> {
     ///
     #[must_use]
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         on_mail: Box<M>,
         config: std::sync::Arc<Config>,
         rustls_config: Option<std::sync::Arc<rustls::ServerConfig>>,
         rule_engine: std::sync::Arc<RuleEngine>,
         queue_manager: std::sync::Arc<dyn GenericQueueManager>,
+        client_addr: std::net::SocketAddr,
+        server_addr: std::net::SocketAddr,
+        server_name: Domain,
+        timestamp: time::OffsetDateTime,
+        uuid: uuid::Uuid,
     ) -> Self {
         Self {
             on_mail,
-            state: rule_engine.spawn(),
+            state: rule_engine.spawn_at_connect(
+                client_addr,
+                server_addr,
+                server_name,
+                timestamp,
+                uuid,
+            ),
             state_internal: None,
             skipped: None,
             config,
@@ -224,7 +236,7 @@ impl<M: OnMail + Send + Sync> vsmtp_protocol::ReceiverHandler for Handler<M> {
                         }
 
                         self.state_internal = Some(
-                            self.rule_engine.spawn_with(
+                            self.rule_engine.spawn_finished(
                                 ctx_internal,
                                 self.state
                                     .message()

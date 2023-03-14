@@ -176,7 +176,7 @@ mod tests {
             "v": r#"{"type":"forward","params":{"host":"localhost","hello_name":null,"port":25,"credentials":null,"tls":"opportunistic"}}"#,
         }).to_string(),
         Forward::new(
-            "localhost".parse().expect(""),
+            "localhost".parse().unwrap(),
         )
     )]
     fn deserialize(#[case] input: &str, #[case] instance: Forward) {

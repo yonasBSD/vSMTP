@@ -4111,6 +4111,7 @@ dependencies = [
  "either",
  "erased-serde",
  "fastrand",
+ "function_name",
  "lettre",
  "libc",
  "pretty_assertions",

@@ -27,8 +27,6 @@ use vsmtp_common::{
 use vsmtp_config::Config;
 extern crate alloc;
 
-#[allow(clippy::std_instead_of_core)]
-#[allow(clippy::empty_structs_with_brackets)]
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Payload {
@@ -311,7 +309,6 @@ mod test {
         match &updated_rcpt.first().unwrap().1 {
             Status::HeldBack { errors } => assert_eq!(
                 *errors.first().unwrap().variant(),
-                // error: "no record found for Query { name: Name(\"foo.bar.\"), query_type: MX, query_class: IN }".to_owned()
                 Variant::Lookup(Lookup::NoRecords {})
             ),
             _ => panic!(),

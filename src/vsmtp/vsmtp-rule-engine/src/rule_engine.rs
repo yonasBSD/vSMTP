@@ -195,12 +195,22 @@ impl RuleEngine {
 
     ///
     #[must_use]
-    pub fn spawn(&self) -> std::sync::Arc<RuleState> {
-        self.spawn_with(vsmtp_common::Context::Empty, MessageBody::default())
+    pub fn spawn_at_connect(
+        &self,
+        client_addr: std::net::SocketAddr,
+        server_addr: std::net::SocketAddr,
+        server_name: Domain,
+        timestamp: time::OffsetDateTime,
+        uuid: uuid::Uuid,
+    ) -> std::sync::Arc<RuleState> {
+        self.spawn_finished(
+            vsmtp_common::Context::new(client_addr, server_addr, server_name, timestamp, uuid),
+            MessageBody::default(),
+        )
     }
 
     /// build a cheap rhai engine with vsl's api.
-    pub fn spawn_with(
+    pub fn spawn_finished(
         &self,
         mail_context: vsmtp_common::Context,
         message: MessageBody,
@@ -450,7 +460,7 @@ impl RuleEngine {
         mail_context: vsmtp_common::Context,
         mail_message: MessageBody,
     ) -> (vsmtp_common::Context, MessageBody, Status) {
-        let rule_state = self.spawn_with(mail_context, mail_message);
+        let rule_state = self.spawn_finished(mail_context, mail_message);
         let result = self.run_when(&rule_state, skipped, state);
         let (mail_context, mail_message) = rule_state.take();
         (mail_context, mail_message, result)

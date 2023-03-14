@@ -29,6 +29,7 @@ pub struct ProtocolVersion(pub rustls::ProtocolVersion);
 impl std::str::FromStr for ProtocolVersion {
     type Err = anyhow::Error;
 
+    #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "TLSv1_2" | "TLSv1.2" | "0x0303" => Ok(Self(rustls::ProtocolVersion::TLSv1_2)),
@@ -39,8 +40,9 @@ impl std::str::FromStr for ProtocolVersion {
 }
 
 impl std::fmt::Display for ProtocolVersion {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.as_str().expect("valid protocol version").fmt(f)
+    #[inline]
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        self.0.as_str().ok_or(std::fmt::Error)?.fmt(f)
     }
 }
 

@@ -272,6 +272,11 @@ impl Server {
             tls_config,
             rule_engine,
             queue_manager,
+            args.client_addr,
+            args.server_addr,
+            config.server.name.parse().unwrap(),
+            args.timestamp,
+            args.uuid,
         );
         let smtp_receiver = vsmtp_protocol::Receiver::<_, ValidationVSL, _, _>::new(
             tcp_stream,

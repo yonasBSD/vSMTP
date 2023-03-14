@@ -61,6 +61,7 @@ pub enum Mechanism {
 
 impl Mechanism {
     /// Does the client must send data first with initial response
+    #[inline]
     #[must_use]
     pub const fn client_first(self) -> bool {
         match self {
@@ -70,6 +71,7 @@ impl Mechanism {
     }
 
     /// Does this mechanism must be under TLS (STARTTLS or Tunnel)
+    #[inline]
     #[must_use]
     pub const fn must_be_under_tls(self) -> bool {
         match self {
@@ -93,6 +95,6 @@ mod tests {
 
     #[test]
     fn error() {
-        assert!(<Mechanism as std::str::FromStr>::from_str("foobar").is_err());
+        <Mechanism as std::str::FromStr>::from_str("foobar").unwrap_err();
     }
 }

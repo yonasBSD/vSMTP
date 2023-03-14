@@ -45,12 +45,10 @@
     test,
     allow(
         clippy::unwrap_used,
-        clippy::expect_used,
         clippy::panic,
         clippy::std_instead_of_core,
         clippy::missing_trait_methods,
         clippy::as_conversions,
-        clippy::undocumented_unsafe_blocks
     )
 )]
 

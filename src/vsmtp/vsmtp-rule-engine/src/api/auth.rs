@@ -31,7 +31,7 @@ use super::EngineResult;
 mod auth {
     use crate::api::state;
     use crate::api::EngineResult;
-    use crate::{get_global, ExecutionStage};
+    use crate::get_global;
     use vsmtp_common::{auth::Credentials, status::Status};
 
     /// Process the SASL authentication mechanism.
@@ -121,17 +121,18 @@ mod auth {
     /// ```
     #[rhai_fn(name = "credentials", return_raw)]
     pub fn credentials(ncc: NativeCallContext) -> EngineResult<Credentials> {
-        Ok(vsl_missing_ok!(
-            vsl_missing_ok!(
-                vsl_guard_ok!(get_global!(ncc, ctx)?.read()).auth(),
-                "auth",
-                ExecutionStage::Authenticate
+        vsl_guard_ok!(get_global!(ncc, ctx)?.read())
+            .auth()
+            .as_ref()
+            .and_then(|auth| auth.credentials.clone())
+            .map_or_else(
+                || {
+                    Err("no `credentials` available in the connection"
+                        .to_string()
+                        .into())
+                },
+                Ok,
             )
-            .credentials,
-            "credentials",
-            ExecutionStage::Authenticate
-        )
-        .clone())
     }
 
     /// Get the type of the `auth` property of the connection.

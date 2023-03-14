@@ -21,7 +21,7 @@ use crate::run_test;
 async fn dotenv() {
     let path = std::env::current_dir()
         .unwrap()
-        .join("src/tests/rules/test.env");
+        .join("src/tests/rule_engine/test.env");
     dotenv::from_path(path).unwrap();
 
     run_test! {
