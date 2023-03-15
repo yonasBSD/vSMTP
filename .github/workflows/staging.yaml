@@ -10,7 +10,6 @@ permissions:
 
 jobs:
   push-dockerhub:
-    needs: get-release-version
     runs-on: ubuntu-latest
     steps:
       - uses: docker/setup-qemu-action@v2
