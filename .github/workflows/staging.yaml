@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  push-dockerhub:
+  unstable-push-dockerhub:
     runs-on: ubuntu-latest
     steps:
       - uses: docker/setup-qemu-action@v2
@@ -23,10 +23,11 @@ jobs:
         with:
           push: true
           tags: "viridit/vsmtp:unstable"
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           file: debian.Dockerfile
 
   test-staging:
+    needs: unstable-push-dockerhub
     runs-on: ubuntu-latest
     steps:
       - name: Repository Dispatch
@@ -35,6 +36,7 @@ jobs:
           token: ${{ secrets.PAT }}
           repository: ${{ secrets.STAGING_REPO }}
           event-type: test_staging
+
   run-fuzz:
     runs-on: ubuntu-latest # could be self-hosted
     steps:
