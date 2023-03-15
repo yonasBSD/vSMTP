@@ -24,7 +24,7 @@ echo "=>  Run tests"
 
 echo "=>      reject first time connection"
 # Simply send an email twice, to verify the effects of the greylist.
-reject=$(curl -vv -k --url 'smtp://localhost:10025' \
+reject=$(curl -vv -k --url 'smtp://127.0.0.1:10025' \
     --mail-from 'john.doe@example.com' --mail-rcpt 'jenny.doe@example.com' \
     --upload-file ./test.eml 2>&1)
 
@@ -37,7 +37,7 @@ else
 fi
 
 echo "=>      accept second connection"
-accept=$(curl -vv -k --url 'smtp://localhost:10025' \
+accept=$(curl -vv -k --url 'smtp://127.0.0.1:10025' \
     --mail-from 'john.doe@example.com' --mail-rcpt 'jenny.doe@example.com' \
     --upload-file ./test.eml 2>&1)
 
