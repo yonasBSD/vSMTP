@@ -34,7 +34,7 @@ jobs:
           outputs: type=docker,dest=/tmp/myimage.tar
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: myimage
           path: /tmp/myimage.tar
