@@ -93,6 +93,7 @@ impl Config {
         let default_values = FieldServerSMTP::default_smtp_codes();
         let reply_codes = &mut config.server.smtp.codes;
 
+        let name = config.server.name.to_string();
         for key in <CodeID as strum::IntoEnumIterator>::iter() {
             reply_codes
                 .entry(key)
@@ -101,7 +102,7 @@ impl Config {
             reply_codes.entry(key).and_modify(|reply| {
                 *reply = reply
                     .to_string()
-                    .replace("{name}", &config.server.name)
+                    .replace("{name}", &name)
                     .parse::<Reply>()
                     .unwrap();
             });

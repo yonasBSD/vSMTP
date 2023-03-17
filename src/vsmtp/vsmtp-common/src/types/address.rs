@@ -39,30 +39,36 @@ macro_rules! addr {
 impl std::str::FromStr for Address {
     type Err = anyhow::Error;
 
+    #[inline]
+    #[allow(clippy::unwrap_in_result)]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if let Err(error) = addr::parse_email_address(s) {
             anyhow::bail!("'{s}' is not a valid address: {error}")
         }
+        #[allow(clippy::expect_used)]
         Ok(Self {
             at_sign: s.find('@').expect("no '@' in address"),
-            full: s.to_string(),
+            full: s.to_owned(),
         })
     }
 }
 
 impl PartialEq for Address {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.full == other.full
     }
 }
 
 impl std::hash::Hash for Address {
+    #[inline]
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.full.hash(state);
     }
 }
 
 impl std::fmt::Display for Address {
+    #[inline]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.full)
     }
@@ -71,19 +77,25 @@ impl std::fmt::Display for Address {
 impl Address {
     /// get the full email address.
     #[must_use]
+    #[inline]
     pub fn full(&self) -> &str {
         &self.full
     }
 
     /// get the user of the address.
     #[must_use]
+    #[inline]
     pub fn local_part(&self) -> &str {
+        #[allow(clippy::indexing_slicing, clippy::string_slice)]
         &self.full[..self.at_sign]
     }
 
     /// get the fqdn of the address.
     #[must_use]
+    #[inline]
+    #[allow(clippy::expect_used)]
     pub fn domain(&self) -> Domain {
+        #[allow(clippy::indexing_slicing, clippy::string_slice)]
         Domain::from_utf8(&self.full[self.at_sign + 1..])
             .expect("at this point, domain is valid (checked in `new`)")
     }
@@ -94,6 +106,8 @@ impl Address {
     ///
     /// * there is no '@' characters in the string
     #[must_use]
+    #[inline]
+    #[allow(clippy::unwrap_used)]
     pub fn new_unchecked(addr: String) -> Self {
         Self {
             at_sign: addr.find('@').unwrap(),
@@ -101,10 +115,14 @@ impl Address {
         }
     }
 
+    /// # Panics
     ///
+    /// * if the address is not valid
     #[must_use]
+    #[inline]
+    #[allow(clippy::unwrap_used)]
     pub fn to_lettre(&self) -> lettre::Address {
-        lettre::Address::new(self.local_part(), self.domain().to_string()).expect("valid")
+        lettre::Address::new(self.local_part(), self.domain().to_string()).unwrap()
     }
 }
 
@@ -119,7 +137,7 @@ mod tests {
         assert_eq!(
             parsed,
             Address {
-                full: "hello@domain.com".to_string(),
+                full: "hello@domain.com".to_owned(),
                 at_sign: 6
             }
         );
@@ -131,7 +149,7 @@ mod tests {
     fn serialize() {
         assert_eq!(
             serde_json::to_string(&Address {
-                full: "hello@domain.com".to_string(),
+                full: "hello@domain.com".to_owned(),
                 at_sign: 6
             })
             .unwrap(),

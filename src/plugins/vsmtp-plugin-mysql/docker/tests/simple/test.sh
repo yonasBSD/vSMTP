@@ -23,11 +23,11 @@ docker compose up -d --remove-orphans --wait
 echo "=>  Run tests"
 
 # Simply send an email twice, to verify the effects of the greylist.
-reject=$(curl -vv -k --url 'smtp://localhost:10025' \
+reject=$(curl -vv -k --url 'smtp://127.0.0.1:10025' \
     --mail-from 'john.doe@example.com' --mail-rcpt 'jenny.doe@example.com' \
-    --upload-file ./test.eml 2>&1 | tail -n 1)
+    --upload-file ./test.eml 2>&1)
 
-if [[ $(echo "$reject" | grep -Fi "451") ]]; then
+if [[ $(echo "$reject" | tail -n 1 | grep -Fi "451") ]]; then
     echo "First send command rejected with 451 code"
 else
     echo "ERROR: first command did not get rejected by greylist."
@@ -35,11 +35,11 @@ else
     exit 1
 fi
 
-accept=$(curl -vv -k --url 'smtp://localhost:10025' \
+accept=$(curl -vv -k --url 'smtp://127.0.0.1:10025' \
     --mail-from 'john.doe@example.com' --mail-rcpt 'jenny.doe@example.com' \
-    --upload-file ./test.eml 2>&1 | tail -n 3)
+    --upload-file ./test.eml 2>&1)
 
-if [[ $(echo "$accept" | grep -Fi "250 Ok") ]]; then
+if [[ $(echo "$accept" | tail -n 3 | grep -Fi "250 Ok") ]]; then
     echo "Second send command accepted with 250 code"
     echo "$accept"
 else

@@ -6,12 +6,8 @@ services:
       greylist:
         condition: service_healthy
     build:
-      dockerfile: Dockerfile
-      # Not using the official docker image since latest
-      # updates are on the develop branch.
-      context: ../../../../docker
-      args:
-        VSMTP_BRANCH: develop
+      dockerfile: debian.Dockerfile
+      context: ../../../../
     volumes:
       - ./vsmtp-config/conf.d:/etc/vsmtp/conf.d
       - ./vsmtp-config/services:/etc/vsmtp/services

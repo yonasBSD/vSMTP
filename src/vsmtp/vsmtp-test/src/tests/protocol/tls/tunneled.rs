@@ -46,7 +46,6 @@ run_test! {
       config.server.r#virtual.insert(
           "testserver.com".parse().unwrap(),
           FieldServerVirtual {
-            is_default: false,
             tls: Some(
                   FieldServerVirtualTls::from_path(
                       "src/template/certs/certificate.crt",
@@ -92,7 +91,6 @@ run_test! {
       config.server.r#virtual.insert(
           "testserver.com".parse().unwrap(),
           FieldServerVirtual {
-            is_default: false,
               tls: Some(
                   FieldServerVirtualTls::from_path(
                       "src/template/certs/certificate.crt",
@@ -135,7 +133,6 @@ run_test! {
         config.server.r#virtual.insert(
             "second.testserver.com".parse().unwrap(),
             FieldServerVirtual {
-                is_default: false,
                 tls: Some(
                     FieldServerVirtualTls::from_path(
                         "src/template/certs/sni/second.certificate.crt",

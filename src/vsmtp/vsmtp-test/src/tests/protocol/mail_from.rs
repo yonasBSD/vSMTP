@@ -16,14 +16,11 @@
 */
 
 use crate::run_test;
-use vqueue::GenericQueueManager;
 use vsmtp_common::addr;
 use vsmtp_common::Address;
 use vsmtp_common::ClientName;
-use vsmtp_common::CodeID;
 use vsmtp_common::ContextFinished;
 use vsmtp_mail_parser::MessageBody;
-use vsmtp_server::OnMail;
 
 // TODO: add SMTPUTF8
 // TODO: add errors tests
@@ -68,22 +65,16 @@ fn test(#[case] mail_from: &str, #[case] reverse_path: Option<&str>) {
                 "250 Ok\r\n",
             ],
             mail_handler = {
+                #[derive(Clone)]
                 struct T {
                     reverse_path: Option<Address>,
                 }
 
-                #[async_trait::async_trait]
-                impl OnMail for T {
-                    async fn on_mail(
-                        &mut self,
-                        ctx: Box<ContextFinished>,
-                        _: MessageBody,
-                        _: std::sync::Arc<dyn GenericQueueManager>,
-                    ) -> CodeID {
+                impl crate::recv_handler_wrapper::OnMessageCompletedHook for T {
+                    fn on_message_completed(self, ctx: ContextFinished, _: MessageBody) {
                         assert_eq!(ctx.helo.client_name, ClientName::Domain("foobar".parse().unwrap()));
                         assert_eq!(ctx.mail_from.reverse_path, self.reverse_path);
 
-                        CodeID::Ok
                     }
                 }
 

@@ -25,7 +25,7 @@ use crate::{
     },
     Config,
 };
-use vsmtp_common::{auth::Mechanism, collection, CodeID, Reply};
+use vsmtp_common::{auth::Mechanism, collection, CodeID, Domain, Reply};
 
 impl Default for Config {
     fn default() -> Self {
@@ -144,8 +144,13 @@ impl Default for FieldServer {
 }
 
 impl FieldServer {
-    pub(crate) fn hostname() -> String {
-        hostname::get().unwrap().to_str().unwrap().to_string()
+    pub(crate) fn hostname() -> Domain {
+        hostname::get()
+            .expect("`hostname()` failed")
+            .to_string_lossy()
+            .to_string()
+            .parse()
+            .expect("`hostname()` is not a valid domain")
     }
 
     pub(crate) const fn default_client_count_max() -> i64 {

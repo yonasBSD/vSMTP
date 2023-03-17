@@ -31,15 +31,15 @@ pub use time_mod::*;
 mod time_mod {
     /// Get the current time.
     ///
-    /// ### Return
+    /// # Return
     ///
     /// * `string` - the current time.
     ///
-    /// ### Effective smtp stage
+    /// # Effective smtp stage
     ///
     /// All of them.
     ///
-    /// ### Examples
+    /// # Examples
     ///
     /// ```text
     /// #{
@@ -50,6 +50,8 @@ mod time_mod {
     ///     ]
     /// }
     /// ```
+    ///
+    /// # rhai-autodocs:index:1
     #[must_use]
     pub fn now() -> String {
         let now = time::OffsetDateTime::now_utc();
@@ -60,15 +62,15 @@ mod time_mod {
 
     /// Get the current date.
     ///
-    /// ### Return
+    /// # Return
     ///
     /// * `string` - the current date.
     ///
-    /// ### Effective smtp stage
+    /// # Effective smtp stage
     ///
     /// All of them.
     ///
-    /// ### Examples
+    /// # Examples
     ///
     /// ```text
     /// #{
@@ -79,6 +81,8 @@ mod time_mod {
     ///     ]
     /// }
     /// ```
+    ///
+    /// # rhai-autodocs:index:2
     #[must_use]
     pub fn date() -> String {
         let now = time::OffsetDateTime::now_utc();

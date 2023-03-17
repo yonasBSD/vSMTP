@@ -34,6 +34,8 @@ use vsmtp_common::Address;
 mod message {
 
     /// Generate the `.eml` representation of the message.
+    ///
+    /// # rhai-autodocs:index:1
     #[rhai_fn(global, pure)]
     pub fn to_string(message: &mut Message) -> String {
         message
@@ -88,6 +90,8 @@ mod message {
     /// # use vsmtp_common::{status::Status, CodeID};
     /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::PreQ].2, Status::Accept(either::Left(CodeID::Ok)));
     /// ```
+    ///
+    /// # rhai-autodocs:index:2
     #[rhai_fn(name = "has_header", return_raw)]
     pub fn has_header(ncc: NativeCallContext, header: &str) -> EngineResult<bool> {
         Ok(vsl_guard_ok!(get_global!(ncc, msg)?.read())
@@ -149,6 +153,8 @@ mod message {
     /// #  "250 count is 3 and 1\r\n".parse().unwrap()
     /// # )));
     /// ```
+    ///
+    /// # rhai-autodocs:index:3
     #[rhai_fn(name = "count_header", return_raw)]
     pub fn count_header(ncc: NativeCallContext, header: &str) -> EngineResult<rhai::INT> {
         super::Impl::count_header(&get_global!(ncc, msg)?, header)
@@ -217,6 +223,8 @@ mod message {
     /// #  "250 foo Unit test are cool\r\n".parse().unwrap()
     /// # )));
     /// ```
+    ///
+    /// # rhai-autodocs:index:4
     #[rhai_fn(name = "get_header", return_raw)]
     pub fn get_header(ncc: NativeCallContext, header: &str) -> EngineResult<String> {
         Ok(vsl_guard_ok!(get_global!(ncc, msg)?.read())
@@ -231,6 +239,10 @@ mod message {
     }
 
     /// Get a list of all headers.
+    ///
+    /// # Args
+    ///
+    /// * `header` - the name of the header to search. (optional, if not set, returns every header)
     ///
     /// # Return
     ///
@@ -258,12 +270,15 @@ mod message {
     /// #{
     ///   preq: [
     ///     rule "display headers" || {
-    ///         log("info", `header: ${get_all_headers}`);
+    ///         log("info", `all headers: ${msg::get_all_headers()}`);
+    ///         log("info", `all "Return-Path" headers: ${msg::get_all_headers("Return-Path")}`);
     ///     }
     ///   ]
     /// }
     /// # "#)?.build()), Some(msg));
     /// ```
+    ///
+    /// # rhai-autodocs:index:5
     #[rhai_fn(name = "get_all_headers", return_raw)]
     pub fn get_all_headers(ncc: NativeCallContext) -> EngineResult<rhai::Array> {
         Ok(vsl_guard_ok!(get_global!(ncc, msg)?.read())
@@ -274,44 +289,7 @@ mod message {
             .collect())
     }
 
-    /// Get a list of all values of a specific header from the incoming message.
-    ///
-    /// # Args
-    ///
-    /// * `header` - the name of the header to search.
-    ///
-    /// # Return
-    ///
-    /// * `array` - all header values, or an empty array if the header was not found.
-    ///
-    /// # Effective smtp stage
-    ///
-    /// All of them, although it is most useful in the `preq` stage because this
-    /// is when the email body is received.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # let msg = r#"
-    /// X-My-Header: 250 foo
-    /// Subject: Unit test are cool
-    ///
-    /// Hello world!
-    /// # "#
-    /// ; // .eml ends here
-    /// # let msg = vsmtp_mail_parser::MessageBody::try_from(msg[1..].replace("\n", "\r\n").as_str()).unwrap();
-    ///
-    /// # let states = vsmtp_test::vsl::run_with_msg(
-    /// # |builder| Ok(builder.add_root_filter_rules(r#"
-    /// #{
-    ///     postq: [
-    ///         action "display return path" || {
-    ///             log("info", msg::get_all_headers("Return-Path"));
-    ///         }
-    ///     ],
-    /// }
-    /// # "#)?.build()), Some(msg));
-    /// ```
+    #[doc(hidden)]
     #[rhai_fn(name = "get_all_headers", return_raw)]
     pub fn get_all_headers_str(ncc: NativeCallContext, name: &str) -> EngineResult<rhai::Array> {
         super::Impl::get_all_headers(&get_global!(ncc, msg)?, name)
@@ -366,6 +344,8 @@ mod message {
     /// }
     /// # "#)?.build()), Some(msg));
     /// ```
+    ///
+    /// # rhai-autodocs:index:6
     #[rhai_fn(return_raw)]
     pub fn get_header_untouched(ncc: NativeCallContext, name: &str) -> EngineResult<rhai::Array> {
         super::Impl::get_header_untouched(&get_global!(ncc, msg)?, name)
@@ -418,6 +398,8 @@ mod message {
     /// #   "X-My-Header-3: baz\r\n".to_string(),
     /// # ]);
     /// ```
+    ///
+    /// # rhai-autodocs:index:7
     #[rhai_fn(name = "append_header", return_raw)]
     pub fn append_header(ncc: NativeCallContext, header: &str, value: &str) -> EngineResult<()> {
         super::Impl::append_header(&get_global!(ncc, msg)?, &header, &value)
@@ -480,6 +462,8 @@ mod message {
     /// #   "Subject: Unit test are cool\r\n".to_string(),
     /// # ]);
     /// ```
+    ///
+    /// # rhai-autodocs:index:8
     #[rhai_fn(name = "prepend_header", return_raw)]
     pub fn prepend_header(ncc: NativeCallContext, header: &str, value: &str) -> EngineResult<()> {
         super::Impl::prepend_header(&get_global!(ncc, msg)?, header, value)
@@ -544,6 +528,8 @@ mod message {
     /// #  "250 The header value has been updated again\r\n".parse().unwrap()
     /// # )));
     /// ```
+    ///
+    /// # rhai-autodocs:index:9
     #[rhai_fn(name = "set_header", return_raw)]
     pub fn set_header(ncc: NativeCallContext, header: &str, value: &str) -> EngineResult<()> {
         super::Impl::set_header(&get_global!(ncc, msg)?, header, value)
@@ -614,6 +600,8 @@ mod message {
     /// #  "250 The initial header value\r\n".parse().unwrap()
     /// # )));
     /// ```
+    ///
+    /// # rhai-autodocs:index:10
     #[rhai_fn(name = "rename_header", return_raw)]
     pub fn rename_header(ncc: NativeCallContext, old: &str, new: &str) -> EngineResult<()> {
         super::Impl::rename_header(&get_global!(ncc, msg)?, old, new)
@@ -667,6 +655,8 @@ mod message {
     /// }
     /// # "#)?.build()));
     /// ```
+    ///
+    /// # rhai-autodocs:index:11
     #[rhai_fn(name = "mail", return_raw)]
     pub fn mail(ncc: NativeCallContext) -> EngineResult<String> {
         Ok(vsl_guard_ok!(get_global!(ncc, msg)?.read())
@@ -727,6 +717,8 @@ mod message {
     /// #  "250 Rust is good !!!!!\r\n".parse().unwrap()
     /// # )));
     /// ```
+    ///
+    /// # rhai-autodocs:index:12
     #[rhai_fn(name = "rm_header", return_raw)]
     pub fn remove_header(ncc: NativeCallContext, header: &str) -> EngineResult<bool> {
         super::Impl::remove_header(&get_global!(ncc, msg)?, header)
@@ -760,6 +752,8 @@ mod message {
     /// }
     /// # "#)?.build()));
     /// ```
+    ///
+    /// # rhai-autodocs:index:13
     #[rhai_fn(name = "rw_mail_from", return_raw)]
     pub fn rewrite_mail_from_message_str(
         ncc: NativeCallContext,
@@ -800,6 +794,8 @@ mod message {
     /// }
     /// # "#)?.build()));
     /// ```
+    ///
+    /// # rhai-autodocs:index:14
     #[rhai_fn(name = "rw_rcpt", return_raw)]
     pub fn rewrite_rcpt_message_str_str(
         ncc: NativeCallContext,
@@ -865,6 +861,8 @@ mod message {
     /// }
     /// # "#)?.build()));
     /// ```
+    ///
+    /// # rhai-autodocs:index:15
     #[rhai_fn(name = "add_rcpt", return_raw)]
     pub fn add_rcpt_message_str(ncc: NativeCallContext, new_addr: &str) -> EngineResult<()> {
         super::Impl::add_rcpt_message(&get_global!(ncc, msg)?, new_addr)
@@ -901,6 +899,8 @@ mod message {
     /// }
     /// # "#)?.build()));
     /// ```
+    ///
+    /// # rhai-autodocs:index:16
     #[rhai_fn(name = "rm_rcpt", return_raw)]
     pub fn remove_rcpt_message_str(ncc: NativeCallContext, addr: &str) -> EngineResult<()> {
         super::Impl::remove_rcpt_message(&get_global!(ncc, msg)?, addr)

@@ -91,6 +91,7 @@ pub enum Error {
 impl TryFrom<(&rsasl::callback::SessionData, &rsasl::callback::Context<'_>)> for Credentials {
     type Error = Error;
 
+    #[inline]
     fn try_from(
         value: (&rsasl::callback::SessionData, &rsasl::callback::Context<'_>),
     ) -> Result<Self, Self::Error> {
@@ -102,21 +103,21 @@ impl TryFrom<(&rsasl::callback::SessionData, &rsasl::callback::Context<'_>)> for
                     authid: context
                         .get_ref::<rsasl::property::AuthId>()
                         .ok_or(Error::MissingField)?
-                        .to_string(),
+                        .to_owned(),
                     authpass: std::str::from_utf8(
                         context
                             .get_ref::<rsasl::property::Password>()
                             .ok_or(Error::MissingField)?,
                     )
                     .map_err(Error::Utf8)?
-                    .to_string(),
+                    .to_owned(),
                 })
             }
             mech if mech == Mechanism::Anonymous.as_ref() => Ok(Self::AnonymousToken {
                 token: context
                     .get_ref::<rsasl::mechanisms::anonymous::AnonymousToken>()
                     .ok_or(Error::MissingField)?
-                    .to_string(),
+                    .to_owned(),
             }),
             // mech if mech == Mechanism::CramMd5.as_ref() => todo!(),
             _ => Err(Error::Unimplemented),

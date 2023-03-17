@@ -20,11 +20,12 @@
 /// # Errors
 ///
 /// see daemon(2) ERRORS
+#[inline]
 pub fn daemon(nochdir: bool, noclose: bool) -> anyhow::Result<()> {
     #[allow(unsafe_code)]
     // SAFETY: ffi call
     match unsafe { libc::daemon(i32::from(nochdir), i32::from(noclose)) } {
-        0 => Ok(()),
+        0i32 => Ok(()),
         _ => Err(anyhow::anyhow!(
             "daemon: '{}'",
             std::io::Error::last_os_error()
@@ -42,7 +43,7 @@ pub fn setuid(uid: libc::uid_t) -> anyhow::Result<i32> {
     #[allow(unsafe_code)]
     // SAFETY: ffi call
     match unsafe { libc::setuid(uid) } {
-        -1 => Err(anyhow::anyhow!(
+        -1i32 => Err(anyhow::anyhow!(
             "setuid: '{}'",
             std::io::Error::last_os_error()
         )),
@@ -60,7 +61,7 @@ pub fn setgid(gid: libc::gid_t) -> anyhow::Result<i32> {
     #[allow(unsafe_code)]
     // SAFETY: ffi call
     match unsafe { libc::setgid(gid) } {
-        -1 => Err(anyhow::anyhow!(
+        -1i32 => Err(anyhow::anyhow!(
             "setgid: '{}'",
             std::io::Error::last_os_error()
         )),
@@ -73,12 +74,13 @@ pub fn setgid(gid: libc::gid_t) -> anyhow::Result<i32> {
 /// # Errors
 ///
 /// see initgroups(2) ERRORS
+#[inline]
 pub fn initgroups(user: &str, gid: libc::gid_t) -> anyhow::Result<()> {
-    let user = std::ffi::CString::new(user)?;
+    let user = alloc::ffi::CString::new(user)?;
     #[allow(unsafe_code)]
     // SAFETY: ffi call
     match unsafe { libc::initgroups(user.as_ptr(), gid) } {
-        0 => Ok(()),
+        0i32 => Ok(()),
         _ => Err(anyhow::anyhow!(
             "initgroups: '{}'",
             std::io::Error::last_os_error()
@@ -92,8 +94,9 @@ pub fn initgroups(user: &str, gid: libc::gid_t) -> anyhow::Result<()> {
 ///
 /// * `@path` cannot be convert to `CString`
 /// * see chown(2) ERRORS
+#[inline]
 pub fn chown(path: &std::path::Path, user: Option<u32>, group: Option<u32>) -> anyhow::Result<()> {
-    let path = std::ffi::CString::new(path.to_string_lossy().as_bytes())?;
+    let path = alloc::ffi::CString::new(path.to_string_lossy().as_bytes())?;
     #[allow(unsafe_code)]
     // SAFETY: ffi call
     match unsafe {
@@ -103,7 +106,7 @@ pub fn chown(path: &std::path::Path, user: Option<u32>, group: Option<u32>) -> a
             group.unwrap_or(u32::MAX),
         )
     } {
-        0 => Ok(()),
+        0i32 => Ok(()),
         otherwise => Err(anyhow::anyhow!(
             "failed to change file owner: ({}) '{}'",
             otherwise,
@@ -120,8 +123,9 @@ pub fn chown(path: &std::path::Path, user: Option<u32>, group: Option<u32>) -> a
 ///
 /// see `if_nametoindex(2)` ERRORS
 /// * ENXIO: No index found for the @name
+#[inline]
 pub fn if_nametoindex(name: &str) -> anyhow::Result<u32> {
-    let ifname = std::ffi::CString::new(name)?;
+    let ifname = alloc::ffi::CString::new(name)?;
     #[allow(unsafe_code)]
     // SAFETY: ffi call
     match unsafe { libc::if_nametoindex(ifname.as_ptr()) } {
@@ -139,6 +143,7 @@ pub fn if_nametoindex(name: &str) -> anyhow::Result<u32> {
 ///
 /// * No interface found for the `@index`
 /// * Interface name is not utf8
+#[inline]
 pub fn if_indextoname(index: u32) -> anyhow::Result<String> {
     let mut buf = [0; libc::IF_NAMESIZE];
 
@@ -152,7 +157,7 @@ pub fn if_indextoname(index: u32) -> anyhow::Result<String> {
         // SAFETY: the foreign allocated is used correctly as specified in `CStr::from_ptr`
         _ => Ok(unsafe { std::ffi::CStr::from_ptr(buf.as_ptr()) }
             .to_str()?
-            .to_string()),
+            .to_owned()),
     }
 }
 
@@ -162,6 +167,7 @@ pub fn if_indextoname(index: u32) -> anyhow::Result<String> {
 ///
 /// * see getpwuid(2) ERRORS
 /// * the filepath does not contain valid utf8 data
+#[inline]
 pub fn getpwuid(uid: libc::uid_t) -> anyhow::Result<std::path::PathBuf> {
     #[allow(unsafe_code)]
     // SAFETY: ffi call

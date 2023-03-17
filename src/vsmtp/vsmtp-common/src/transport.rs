@@ -36,7 +36,7 @@ pub enum DeserializerError {
 pub type DeserializerFn =
     unsafe extern "C" fn(
         input: *const std::os::raw::c_char,
-    ) -> Result<std::sync::Arc<dyn AbstractTransport>, DeserializerError>;
+    ) -> Result<alloc::sync::Arc<dyn AbstractTransport>, DeserializerError>;
 
 /// Name of the transport deserialize entry point in plugins
 pub const DESERIALIZER_SYMBOL_NAME: &str = "deserialize_transport";
@@ -50,7 +50,7 @@ pub type DeliverTo = Vec<(Address, Status)>;
 pub trait AbstractTransport: erased_serde::Serialize + GetID + Send + Sync {
     /// Take the data required to deliver the email and return the updated version of the recipient.
     async fn deliver(
-        self: std::sync::Arc<Self>,
+        self: alloc::sync::Arc<Self>,
         context: &ContextFinished,
         rcpt_to: DeliverTo,
         message: &[u8],
@@ -58,6 +58,7 @@ pub trait AbstractTransport: erased_serde::Serialize + GetID + Send + Sync {
 
     /// Cast the [`AbstractTransport::deserialize()`] as a [`DeserializerFn`] (ffi compatible function).
     #[must_use]
+    #[inline]
     fn get_symbol() -> DeserializerFn
     where
         Self: Sized + serde::Deserialize<'static> + 'static,
@@ -71,6 +72,7 @@ pub trait AbstractTransport: erased_serde::Serialize + GetID + Send + Sync {
     ///
     /// * same note as [`std::ffi::CStr::from_ptr()`] safety section.
     #[allow(unsafe_code, improper_ctypes_definitions)]
+    #[inline]
     unsafe extern "C" fn deserialize<'de>(
         input: *const std::os::raw::c_char,
     ) -> Result<alloc::sync::Arc<dyn AbstractTransport>, DeserializerError>
@@ -90,6 +92,7 @@ pub trait AbstractTransport: erased_serde::Serialize + GetID + Send + Sync {
 }
 
 impl std::fmt::Debug for dyn AbstractTransport {
+    #[inline]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("AbstractTransport")
             .field(&self.get_id())
@@ -105,6 +108,8 @@ where
     Self: erased_serde::Serialize,
 {
     /// Produce a unique identifier for the transport
+    #[inline]
+    #[allow(clippy::unwrap_used)]
     fn get_id(&self) -> String {
         let writer = Vec::with_capacity(128);
         let mut ser = serde_json::Serializer::new(writer);
@@ -114,12 +119,14 @@ where
 }
 
 impl std::hash::Hash for dyn AbstractTransport {
+    #[inline]
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.get_id().hash(state);
     }
 }
 
 impl PartialEq for dyn AbstractTransport {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.get_id() == other.get_id()
     }
@@ -136,10 +143,11 @@ pub enum WrapperSerde {
     Raw(String),
     /// Ready to use instance
     #[serde(skip_deserializing)]
-    Ready(std::sync::Arc<dyn AbstractTransport>),
+    Ready(alloc::sync::Arc<dyn AbstractTransport>),
 }
 
 impl serde::Serialize for WrapperSerde {
+    #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -152,6 +160,7 @@ impl serde::Serialize for WrapperSerde {
 }
 
 impl PartialEq for WrapperSerde {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Raw(l0), Self::Raw(r0)) => l0 == r0,
@@ -162,6 +171,7 @@ impl PartialEq for WrapperSerde {
 }
 
 impl std::hash::Hash for WrapperSerde {
+    #[inline]
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match self {
             Self::Raw(raw) => raw.hash(state),
@@ -177,11 +187,12 @@ impl WrapperSerde {
     ///
     /// * see [`DeserializerError`]
     #[inline]
+    #[allow(clippy::expect_used, clippy::unwrap_in_result)]
     pub fn to_ready(&self, deserializer: &[DeserializerFn]) -> Result<Self, DeserializerError> {
         match self {
             Self::Ready(_) => Err(DeserializerError::UnexpectedReady),
             Self::Raw(raw) => {
-                let i = std::ffi::CString::new(raw.as_bytes()).expect("CString::new failed");
+                let i = alloc::ffi::CString::new(raw.as_bytes()).expect("CString::new failed");
 
                 deserializer
                     .iter()
@@ -212,8 +223,10 @@ impl WrapperSerde {
     /// # Panics
     ///
     /// * if the delivery assignation is not `Ready`
+    #[inline]
     #[must_use]
-    pub fn unwrap_ready(self) -> std::sync::Arc<dyn AbstractTransport> {
+    #[allow(clippy::panic)]
+    pub fn unwrap_ready(self) -> alloc::sync::Arc<dyn AbstractTransport> {
         match self {
             Self::Ready(transport) => transport,
             Self::Raw(_) => panic!("cannot unwrap a raw delivery assignation"),

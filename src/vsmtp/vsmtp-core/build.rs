@@ -38,7 +38,11 @@ fn main() {
         )
         .expect("failed to build static modules");
 
-        let docs = rhai_autodocs::generate_documentation(&engine, false)
+        let docs = rhai_autodocs::options()
+            .format_sections_with(rhai_autodocs::SectionFormat::Tabs)
+            .include_standard_packages(false)
+            .order_functions_with(rhai_autodocs::FunctionOrder::ByIndex)
+            .generate(&engine)
             .expect("failed to generate documentation");
 
         write_docs(&docs_path, &docs);

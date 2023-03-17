@@ -15,7 +15,7 @@
  *
 */
 
-use crate::ExecutionStage;
+use vsmtp_common::FieldAccessError;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug)]
@@ -87,13 +87,8 @@ impl From<CompilationError> for Box<rhai::EvalAltResult> {
 pub enum RuntimeError {
     #[error("a lock guard is poisoned: `{source}`")]
     PoisonedGuard { source: anyhow::Error },
-    #[error(
-        "the field: `{field}` is not defined yet, it only is available from the `{stage}` stage"
-    )]
-    MissingField {
-        field: String,
-        stage: ExecutionStage,
-    },
+    #[error("{0}")]
+    MissingField(FieldAccessError),
     #[error("failed to parse the message body, `{source}`")]
     ParseMessageBody { source: anyhow::Error },
     #[error("invalid type conversion expected: `{r#type}`, but got: `{source}`")]
@@ -103,6 +98,15 @@ pub enum RuntimeError {
     },
     #[error("vsl runtime error: `{message}`")]
     Generic { message: String },
+}
+
+impl From<vsmtp_common::Error> for RuntimeError {
+    fn from(value: vsmtp_common::Error) -> Self {
+        match value {
+            vsmtp_common::Error::BadState(e) => Self::MissingField(e),
+            vsmtp_common::Error::Conversion {} => todo!(),
+        }
+    }
 }
 
 #[macro_export]
@@ -155,31 +159,6 @@ macro_rules! vsl_guard_ok {
             }
             .into()
         })?
-    };
-}
-
-macro_rules! vsl_missing_ok {
-    ($option:expr, $field:expr, $stage:expr) => {
-        $option
-            .as_ref()
-            .ok_or_else(|| $crate::error::RuntimeError::MissingField {
-                field: $field.to_string(),
-                stage: $stage,
-            })?
-    };
-    (ref $option:expr, $field:expr, $stage:expr) => {
-        $option.ok_or_else(|| $crate::error::RuntimeError::MissingField {
-            field: $field.to_string(),
-            stage: $stage,
-        })?
-    };
-    (mut $option:expr, $field:expr,  $stage:expr) => {
-        $option
-            .as_mut()
-            .ok_or_else(|| $crate::error::RuntimeError::MissingField {
-                field: $field.to_string(),
-                stage: $stage,
-            })?
     };
 }
 

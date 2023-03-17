@@ -40,6 +40,7 @@ pub struct CipherSuite(pub rustls::CipherSuite);
 impl std::str::FromStr for CipherSuite {
     type Err = anyhow::Error;
 
+    #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "TLS_AES_256_GCM_SHA384" => Ok(Self(rustls::CipherSuite::TLS13_AES_256_GCM_SHA384)),
@@ -71,7 +72,9 @@ impl std::str::FromStr for CipherSuite {
 }
 
 impl std::fmt::Display for CipherSuite {
+    #[inline]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        #[allow(clippy::wildcard_enum_match_arm)]
         f.write_str(match self.0 {
             rustls::CipherSuite::TLS13_AES_256_GCM_SHA384 => "TLS_AES_256_GCM_SHA384",
             rustls::CipherSuite::TLS13_AES_128_GCM_SHA256 => "TLS_AES_128_GCM_SHA256",

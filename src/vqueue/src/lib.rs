@@ -39,7 +39,8 @@
     clippy::implicit_return,
     clippy::unseparated_literal_suffix,
     clippy::shadow_reuse,
-    clippy::mod_module_files
+    clippy::mod_module_files,
+    clippy::semicolon_outside_block
 )]
 //
 #![cfg_attr(test, allow(clippy::unwrap_used, clippy::std_instead_of_core))]
