@@ -30,92 +30,52 @@ use vsmtp_mail_parser::MessageBody;
 pub use dkim::*;
 
 /// Parameters used by the [`sign`] function.
-#[derive(Debug)]
+#[derive(Debug, serde::Deserialize)]
 pub struct SignatureParams {
     sdid: Option<String>,
     selector: String,
+    #[serde(deserialize_with = "deserialize_private_key")]
     private_key: std::sync::Arc<backend::PrivateKey>,
     headers_field: Option<Vec<String>>,
+    #[serde(deserialize_with = "deserialize_canonicalization")]
     canonicalization: Option<backend::Canonicalization>,
 }
 
-impl TryFrom<rhai::Map> for SignatureParams {
-    type Error = Box<rhai::EvalAltResult>;
+fn deserialize_private_key<'de, D>(
+    deserializer: D,
+) -> Result<std::sync::Arc<backend::PrivateKey>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let private_key = <rhai::Dynamic as serde::Deserialize>::deserialize(deserializer)?;
 
-    fn try_from(value: rhai::Map) -> Result<Self, Self::Error> {
-        let mut sdid = None;
-        let mut selector = None;
-        let mut private_key = None;
-        let mut headers_field = None;
-        let mut canonicalization = None;
+    private_key
+        .try_cast::<rhai::Shared<backend::PrivateKey>>()
+        .ok_or_else(|| serde::de::Error::custom("failed to parse private key"))
+}
 
-        for (key, value) in value {
-            let value_type_name = value.type_name();
-            match key.as_ref() {
-                "sdid" => {
-                    sdid = Some(value.into_string()?);
-                }
-                "selector" => {
-                    selector = Some(value.into_string()?);
-                }
-                "private_key" => {
-                    private_key = Some(
-                        value
-                            .try_cast::<rhai::Shared<backend::PrivateKey>>()
-                            .ok_or_else(|| {
-                                Box::new(rhai::EvalAltResult::ErrorMismatchDataType(
-                                    "Arc<PrivateKey>".to_string(),
-                                    value_type_name.to_string(),
-                                    rhai::Position::NONE,
-                                ))
-                            })?,
-                    );
-                }
-                "headers_field" => {
-                    headers_field = Some(
-                        value
-                            .into_array()?
-                            .into_iter()
-                            .map(rhai::Dynamic::into_string)
-                            .collect::<Result<Vec<_>, _>>()?,
-                    );
-                }
-                "canonicalization" => {
-                    canonicalization = Some(value.into_string()?.parse().map_err(|_| {
-                        Box::new(rhai::EvalAltResult::ErrorMismatchDataType(
-                            "Canonicalization".to_string(),
-                            value_type_name.to_string(),
-                            rhai::Position::NONE,
-                        ))
-                    })?);
-                }
-                otherwise => {
-                    return Err(Box::new(rhai::EvalAltResult::ErrorPropertyNotFound(
-                        otherwise.to_string(),
-                        rhai::Position::NONE,
-                    )))
-                }
-            }
-        }
+fn deserialize_canonicalization<'de, D>(
+    deserializer: D,
+) -> Result<Option<backend::Canonicalization>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let canonicalization = <rhai::Dynamic as serde::Deserialize>::deserialize(deserializer)?;
 
-        Ok(Self {
-            sdid,
-            selector: selector.ok_or_else(|| {
-                Box::new(rhai::EvalAltResult::ErrorParsing(
-                    rhai::ParseErrorType::VariableUndefined("selector".to_string()),
-                    rhai::Position::NONE,
-                ))
-            })?,
-            private_key: private_key.ok_or_else(|| {
-                Box::new(rhai::EvalAltResult::ErrorParsing(
-                    rhai::ParseErrorType::VariableUndefined("private_key".to_string()),
-                    rhai::Position::NONE,
-                ))
-            })?,
-            headers_field,
-            canonicalization,
-        })
+    if canonicalization.is_unit() {
+        return Ok(None);
     }
+
+    canonicalization
+        .into_string()
+        .map_err(|t| {
+            serde::de::Error::custom(format!(
+                "dkim canonicalization parameter is not a string (got {t})"
+            ))
+        })?
+        .parse()
+        .map(Some)
+        .map_err(|_| serde::de::Error::custom("failed to parse canonicalization"))
 }
 
 /// Generate and verify DKIM signatures.
@@ -380,11 +340,12 @@ mod dkim {
     ///
     /// # Args
     ///
-    /// * `selector` - the DNS selector to expose the public key & for the verifier
-    /// * `private_key` - the private key to sign the mail,
-    ///     associated with the public key in the `selector._domainkey.sdid` DNS record
-    /// * `headers_field` - list of headers to sign
-    /// * `canonicalization` - the canonicalization algorithm to use (ex: "simple/relaxed")
+    /// * `selector`         - the DNS selector to expose the public key & for the verifier
+    /// * `private_key`      - the private key to sign the mail,
+    ///                        associated with the public key in the `selector._domainkey.sdid`
+    ///                        DNS record.
+    /// * `headers_field`    - list of headers to sign.
+    /// * `canonicalization` - the canonicalization algorithm to use. (ex: "simple/relaxed")
     ///
     /// # Effective smtp stage
     ///
@@ -392,8 +353,8 @@ mod dkim {
     ///
     /// # Example
     ///
-    /// ```text
-    /// #{
+    /// ```
+    /// # let rules = r#"#{
     ///   preq: [
     ///     action "sign dkim" || {
     ///       for private_key in dkim::get_private_keys("testserver.com") {
@@ -414,16 +375,30 @@ mod dkim {
     ///            canonicalization:    "simple/relaxed"
     ///         });
     ///       }
-    ///     }
+    ///     },
+    /// #   rule "trailing" || state::accept(),
     ///   ]
     /// }
+    /// # "#;
+    ///
+    /// # let states = vsmtp_test::vsl::run(|builder| Ok(builder
+    /// #   .add_root_filter_rules("#{}")?
+    /// #      .add_domain_rules("testserver.com".parse().unwrap())
+    /// #        .with_incoming(rules)?
+    /// #        .with_outgoing(rules)?
+    /// #        .with_internal(rules)?
+    /// #      .build()
+    /// #   .build()));
+    /// # use vsmtp_common::{status::Status, CodeID};
+    /// # use vsmtp_rule_engine::ExecutionStage;
+    /// # assert_eq!(states[&ExecutionStage::PreQ].2, Status::Accept(either::Left(CodeID::Ok)));
     /// ```
     #[rhai_fn(name = "sign", return_raw)]
     pub fn sign(ncc: NativeCallContext, params: rhai::Map) -> EngineResult<()> {
         let signature = vsl_generic_ok!(super::Impl::generate_signature(
             &*vsl_guard_ok!(get_global!(ncc, msg)?.read()),
             &*vsl_guard_ok!(get_global!(ncc, ctx)?.read()),
-            SignatureParams::try_from(params)?,
+            rhai::serde::from_dynamic::<SignatureParams>(&params.into())?
         ));
 
         crate::api::message::prepend_header(ncc, "DKIM-Signature", &signature)

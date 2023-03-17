@@ -19,8 +19,8 @@ use crate::api::{
     EngineResult, {Context, Server},
 };
 use rhai::plugin::{
-    mem, Dynamic, FnAccess, FnNamespace, ImmutableString, Module, NativeCallContext,
-    PluginFunction, RhaiResult, TypeId,
+    mem, Dynamic, FnAccess, FnNamespace, Module, NativeCallContext, PluginFunction, RhaiResult,
+    TypeId,
 };
 use vsmtp_auth::viaspf;
 use vsmtp_common::{ClientName, Stage};
@@ -29,6 +29,32 @@ const AUTH_HEADER: &str = "Authentication-Results";
 const SPF_HEADER: &str = "Received-SPF";
 
 pub use spf::*;
+
+#[derive(Default, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum Policy {
+    #[default]
+    Strict,
+    Soft,
+}
+
+#[derive(Default, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum Headers {
+    Spf,
+    Auth,
+    #[default]
+    Both,
+    None,
+}
+
+#[derive(Default, serde::Deserialize)]
+struct SpfParameters {
+    #[serde(default)]
+    header: Headers,
+    #[serde(default)]
+    policy: Policy,
+}
 
 /// Implementation of the Sender Policy Framework (SPF), described by RFC 4408. (<https://www.ietf.org/rfc/rfc4408.txt>)
 #[rhai::plugin::export_module]
@@ -39,12 +65,17 @@ mod spf {
     use crate::get_global;
 
     /// Check spf record following the Sender Policy Framework (RFC 7208).
-    /// see https://datatracker.ietf.org/doc/html/rfc7208
+    /// see <https://datatracker.ietf.org/doc/html/rfc7208>
     ///
     /// # Args
     ///
-    /// * `header` - "spf" | "auth" | "both" | "none"
-    /// * `policy` - "strict" | "soft"
+    /// * a map composed of the following parameters:
+    ///     * `header` - The header(s) where the spf results will be written.
+    ///                  Can be "spf", "auth", "both" or "none". (default: "both")
+    ///     * `policy` - Degrees of flexibility when getting spf results.
+    ///                  Can be "strict" or "soft". (default: "strict")
+    ///                  A "soft" policy will let softfail pass while a "strict"
+    ///                  policy will return a deny if the results are not "pass".
     ///
     /// # Return
     ///
@@ -65,14 +96,35 @@ mod spf {
     /// `spf::check` only checks for the sender's identity, not the `helo` value.
     ///
     /// # Example
-    /// ```ignore
-    /// #{
+    ///
+    /// ```
+    /// # let rules = r#"#{
     ///     mail: [
-    ///        rule "check spf" || spf::check("spf", "soft")
+    ///        rule "check spf" || spf::check(),
     ///     ]
     /// }
+    /// # "#;
     ///
-    /// #{
+    /// # let states = vsmtp_test::vsl::run(|builder| Ok(builder
+    /// #   .add_root_filter_rules("#{}")?
+    /// #      .add_domain_rules("testserver.com".parse().unwrap())
+    /// #        .with_incoming(rules)?
+    /// #        .with_outgoing(rules)?
+    /// #        .with_internal(rules)?
+    /// #      .build()
+    /// #   .build()));
+    /// # use vsmtp_common::{status::Status, CodeID};
+    /// # use vsmtp_rule_engine::ExecutionStage;
+    /// # // NOTE: only testing parameter parsing here.
+    /// # assert_eq!(states[&ExecutionStage::MailFrom].2,
+    /// #   Status::Deny(either::Right(
+    /// #     "550 5.7.23 SPF validation failed\r\n".parse().unwrap(),
+    /// #   ))
+    /// # );
+    /// ```
+    ///
+    /// ```
+    /// # let rules = r#"#{
     ///     mail: [
     ///         // if this check succeed, it wil return `next`.
     ///         // if it fails, it might return `deny` with a custom code
@@ -82,21 +134,44 @@ mod spf {
     ///         // function on the last line of your rule.
     ///         rule "check spf 1" || {
     ///             log("debug", `running sender policy framework on ${ctx::mail_from()} identity ...`);
-    ///             spf::check("spf", "soft")
+    ///             spf::check(#{ header: "spf", policy: "soft" })
     ///         },
     ///
     ///         // policy is set to "strict" by default.
-    ///         rule "check spf 2" || spf::check("both"),
+    ///         rule "check spf 2" || spf::check(#{ header: "both" }),
     ///     ],
     /// }
+    /// # "#;
+    ///
+    /// # let states = vsmtp_test::vsl::run(|builder| Ok(builder
+    /// #   .add_root_filter_rules("#{}")?
+    /// #      .add_domain_rules("testserver.com".parse().unwrap())
+    /// #        .with_incoming(rules)?
+    /// #        .with_outgoing(rules)?
+    /// #        .with_internal(rules)?
+    /// #      .build()
+    /// #   .build()));
+    /// # use vsmtp_common::{status::Status, CodeID};
+    /// # use vsmtp_rule_engine::ExecutionStage;
+    /// # // NOTE: only testing parameter parsing here.
+    /// # assert_eq!(states[&ExecutionStage::MailFrom].2,
+    /// #   Status::Deny(either::Right(
+    /// #     "550 5.7.23 SPF validation failed\r\n".parse().unwrap(),
+    /// #   ))
+    /// # );
     /// ```
     #[rhai_fn(name = "check", return_raw)]
-    pub fn check(ncc: NativeCallContext, header: &str, policy: &str) -> EngineResult<Status> {
+    pub fn check_no_params(ncc: NativeCallContext) -> EngineResult<Status> {
+        super::spf::check_with_params(ncc, rhai::Map::default())
+    }
+
+    #[doc(hidden)]
+    #[rhai_fn(name = "check", return_raw)]
+    pub fn check_with_params(ncc: NativeCallContext, params: rhai::Map) -> EngineResult<Status> {
+        let params = rhai::serde::from_dynamic::<SpfParameters>(&params.into())?;
         let ctx = get_global!(ncc, ctx)?;
         let srv = get_global!(ncc, srv)?;
-
         let query = super::check(&ctx, &srv)?;
-
         let msg = get_global!(ncc, msg)?;
 
         let (hostname, sender, client_ip) = {
@@ -110,11 +185,11 @@ mod spf {
         };
 
         // TODO: The Received-SPF header field is a trace field
-        // and SHOULD be prepended to the existing header, above the Received: field
-        // It MUST appear above all other Received-SPF fields in the message.
-        match header {
+        //       and SHOULD be prepended to the existing header, above the Received: field
+        //       It MUST appear above all other Received-SPF fields in the message.
+        match params.header {
             // It is RECOMMENDED that SMTP receivers record the result"
-            "spf" => Impl::prepend_header(
+            Headers::Spf => Impl::prepend_header(
                 &msg,
                 SPF_HEADER,
                 &super::spf_header(
@@ -124,7 +199,7 @@ mod spf {
                     &client_ip,
                 ),
             )?,
-            "auth" => Impl::prepend_header(
+            Headers::Auth => Impl::prepend_header(
                 &msg,
                 AUTH_HEADER,
                 &super::auth_header(
@@ -134,7 +209,7 @@ mod spf {
                     &client_ip,
                 ),
             )?,
-            "both" => {
+            Headers::Both => {
                 Impl::prepend_header(
                     &msg,
                     AUTH_HEADER,
@@ -156,100 +231,41 @@ mod spf {
                     ),
                 )?;
             }
-            "none" => {}
-            _ => {
-                return Err(format!(
-                    "spf 'header' argument must be 'spf', 'auth' or 'both', not '{header}'"
-                )
-                .into())
-            }
+            Headers::None => {}
         };
 
-        if policy == "strict" {
-            Ok(match query.result.as_str() {
-                "pass" => state::next(),
-                "temperror" | "permerror" => {
-                    state::deny_with_code(&mut crate::api::code::c550_7_24())?
-                }
-                // "softfail" | "fail"
-                _ => state::deny_with_code(&mut crate::api::code::c550_7_23())?,
-            })
-        } else if policy == "soft" {
-            Ok(match query.result.as_str() {
-                "pass" | "softfail" => state::next(),
-                "temperror" | "permerror" => {
-                    state::deny_with_code(&mut crate::api::code::c550_7_24())?
-                }
-                // "fail"
-                _ => state::deny_with_code(&mut crate::api::code::c550_7_23())?,
-            })
-        } else {
-            Err(format!("spf 'policy' argument must be 'strict' or 'soft', not '{policy}'").into())
+        match params.policy {
+            Policy::Strict => {
+                Ok(match query.result.as_str() {
+                    "pass" => state::next(),
+                    "temperror" | "permerror" => {
+                        state::deny_with_code(&mut crate::api::code::c550_7_24())?
+                    }
+                    // "softfail" | "fail"
+                    _ => state::deny_with_code(&mut crate::api::code::c550_7_23())?,
+                })
+            }
+            Policy::Soft => {
+                Ok(match query.result.as_str() {
+                    "pass" | "softfail" => state::next(),
+                    "temperror" | "permerror" => {
+                        state::deny_with_code(&mut crate::api::code::c550_7_24())?
+                    }
+                    // "fail"
+                    _ => state::deny_with_code(&mut crate::api::code::c550_7_23())?,
+                })
+            }
         }
     }
 
-    /// Check spf record following the Sender Policy Framework (RFC 7208).
-    /// A wrapper with the policy set to "strict" by default.
-    /// see <https://datatracker.ietf.org/doc/html/rfc7208>
-    ///
-    /// # Args
-    ///
-    /// * `header` - "spf" | "auth" | "both" | "none"
-    ///
-    /// # Return
-    /// * `deny(code550_7_23 | code550_7_24)` - an error occurred during lookup. (returned even when a softfail is received using the "strict" policy)
-    /// * `next()` - the operation succeeded.
-    ///
-    /// # Effective smtp stage
-    ///
-    /// `mail` and onwards.
-    ///
-    /// # Errors
-    ///
-    /// * The `header` argument is not valid.
-    ///
-    /// # Note
-    ///
-    /// `spf::check` only checks for the sender's identity, not the `helo` value.
-    ///
-    /// # Examples
-    ///
-    /// ```text
-    /// #{
-    ///     mail: [
-    ///        rule "check spf relay" || spf::check(allowed_hosts),
-    ///     ]
-    /// }
-    ///
-    /// #{
-    ///     mail: [
-    ///         // if this check succeed, it wil return `next`.
-    ///         // if it fails, it might return `deny` with a custom code
-    ///         // (X.7.24 or X.7.25 for example)
-    ///         //
-    ///         // if you want to use the return status, just put the spf::check
-    ///         // function on the last line of your rule.
-    ///         rule "check spf 1" || {
-    ///             log("debug", `running sender policy framework on ${ctx::mail_from()} identity ...`);
-    ///             spf::check("spf", "soft")
-    ///         },
-    ///
-    ///         // policy is set to "strict" by default.
-    ///         rule "check spf 2" || spf::check("both"),
-    ///     ],
-    /// }
-    /// ```
-    #[rhai_fn(name = "check", return_raw)]
-    pub fn check_with_header(ncc: NativeCallContext, header: &str) -> EngineResult<Status> {
-        check(ncc, header, "strict")
-    }
-
-    /// WARNING: Low level API, use `spf::check` instead.
+    /// WARNING: Low level API, use `spf::check` instead if you do not need
+    /// to peek inside the spf result data.
     ///
     /// Check spf record following the Sender Policy Framework (RFC 7208).
     /// see <https://datatracker.ietf.org/doc/html/rfc7208>
     ///
     /// # Return
+    ///
     /// * `map` - the result of the spf check, contains the `result`, `mechanism` and `problem` keys.
     ///
     /// # Effective smtp stage

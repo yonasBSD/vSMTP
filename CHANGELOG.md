@@ -13,6 +13,14 @@ release. They will however *never* happen in a patch release.
 
 ## [Unreleased] - ReleaseDate
 
+### BREAKING CHANGES
+
+* the `spf::check` function takes a map of parameters. (#1079)
+
+```js
+spf::check(#{ header: "spf", policy: "soft" })
+```
+
 ### Added
 
 * `transport::forward` parameters can be passed as url. (#1018)
