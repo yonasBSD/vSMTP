@@ -495,6 +495,8 @@ pub mod memcached {
     ///     connections: 1,
     /// });
     /// ```
+    ///
+    /// # rhai-autodocs:index:1
     #[rhai_fn(global, return_raw)]
     pub fn connect(parameters: rhai::Map) -> Result<Cache, Box<rhai::EvalAltResult>> {
         let parameters = rhai::serde::from_dynamic::<MemcachedParameters>(&parameters.into())?;
@@ -542,6 +544,7 @@ pub mod memcached {
     ///     ],
     /// }
     /// ```
+    /// # rhai-autodocs:index:2
     #[rhai_fn(global, return_raw, pure)]
     pub fn flush(cache: &mut Cache) -> Result<(), Box<rhai::EvalAltResult>> {
         cache.flush()
@@ -587,6 +590,7 @@ pub mod memcached {
     ///     ],
     /// }
     /// ```
+    /// # rhai-autodocs:index:3
     #[rhai_fn(global, return_raw, pure)]
     pub fn get(cache: &mut Cache, key: &str) -> Result<Dynamic, Box<rhai::EvalAltResult>> {
         cache.get(key)
@@ -632,6 +636,7 @@ pub mod memcached {
     ///     ],
     /// }
     /// ```
+    /// # rhai-autodocs:index:4
     #[rhai_fn(global, return_raw, pure)]
     pub fn get_with_cas(cache: &mut Cache, key: &str) -> Result<Dynamic, Box<rhai::EvalAltResult>> {
         let mut map = rhai::Map::new();
@@ -687,6 +692,7 @@ pub mod memcached {
     ///     ],
     /// }
     /// ```
+    /// # rhai-autodocs:index:5
     #[rhai_fn(global, return_raw, pure)]
     pub fn gets(cache: &mut Cache, keys: rhai::Array) -> Result<Dynamic, Box<rhai::EvalAltResult>> {
         let v = keys
@@ -744,6 +750,7 @@ pub mod memcached {
     ///     ],
     /// }
     /// ```
+    /// # rhai-autodocs:index:6
     #[rhai_fn(global, return_raw, pure)]
     pub fn gets_with_cas(
         cache: &mut Cache,
@@ -811,6 +818,7 @@ pub mod memcached {
     ///     ],
     /// }
     /// ```
+    /// # rhai-autodocs:index:7
     #[rhai_fn(global, return_raw, pure)]
     pub fn set(
         cache: &mut Cache,
@@ -865,6 +873,7 @@ pub mod memcached {
     ///     ],
     /// }
     /// ```
+    /// # rhai-autodocs:index:8
     #[rhai_fn(global, return_raw, pure)]
     pub fn cas(
         cache: &mut Cache,
@@ -922,6 +931,7 @@ pub mod memcached {
     ///     ],
     /// }
     /// ```
+    /// # rhai-autodocs:index:9
     #[rhai_fn(global, return_raw, pure)]
     pub fn add(
         cache: &mut Cache,
@@ -977,6 +987,7 @@ pub mod memcached {
     ///     ],
     /// }
     /// ```
+    /// # rhai-autodocs:index:10
     #[rhai_fn(global, return_raw, pure)]
     pub fn replace(
         cache: &mut Cache,
@@ -1031,6 +1042,7 @@ pub mod memcached {
     ///     ],
     /// }
     /// ```
+    /// # rhai-autodocs:index:11
     #[rhai_fn(global, return_raw, pure)]
     pub fn append(
         cache: &mut Cache,
@@ -1079,6 +1091,7 @@ pub mod memcached {
     ///     ],
     /// }
     /// ```
+    /// # rhai-autodocs:index:12
     #[rhai_fn(global, return_raw, pure)]
     pub fn prepend(
         cache: &mut Cache,
@@ -1126,6 +1139,7 @@ pub mod memcached {
     ///     ],
     /// }
     /// ```
+    /// # rhai-autodocs:index:13
     #[rhai_fn(global, return_raw, pure)]
     pub fn delete(cache: &mut Cache, key: &str) -> Result<bool, Box<rhai::EvalAltResult>> {
         cache.delete(key)
@@ -1169,6 +1183,7 @@ pub mod memcached {
     ///     ],
     /// }
     /// ```
+    /// # rhai-autodocs:index:14
     #[rhai_fn(global, return_raw, pure)]
     pub fn increment(
         cache: &mut Cache,
@@ -1220,6 +1235,7 @@ pub mod memcached {
     ///     ],
     /// }
     /// ```
+    /// # rhai-autodocs:index:15
     #[rhai_fn(global, return_raw, pure)]
     pub fn decrement(
         cache: &mut Cache,
@@ -1271,6 +1287,7 @@ pub mod memcached {
     ///     ],
     /// }
     /// ```
+    /// # rhai-autodocs:index:16
     #[rhai_fn(global, return_raw, pure)]
     pub fn touch(
         cache: &mut Cache,
@@ -1319,6 +1336,7 @@ pub mod memcached {
     ///     ],
     /// }
     /// ```
+    /// # rhai-autodocs:index:17
     #[rhai_fn(global, return_raw, pure)]
     pub fn stats(cache: &mut Cache) -> Result<String, Box<rhai::EvalAltResult>> {
         cache.stats()

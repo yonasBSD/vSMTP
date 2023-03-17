@@ -50,7 +50,7 @@ mod logging {
     ///       log("info", `[${date()}/${time()}] client=${ctx::client_ip()}`);
     ///     },
     ///     action "log on connection (str/obj)" || {
-    ///       log("error", identifier("Ehllo world!"));
+    ///       log("error", identifier("Hello world!"));
     ///     },
     ///     action "log on connection (obj/obj)" || {
     ///       const level = "trace";
@@ -67,141 +67,8 @@ mod logging {
     /// }
     /// # "#)?.build()));
     /// ```
-    #[doc(hidden)]
-    #[rhai_fn(global, name = "log")]
-    pub fn log_str_obj(level: &str, message: SharedObject) {
-        log(level, &message.to_string());
-    }
-
-    /// Log information to stdout in `nodaemon` mode or to a file.
     ///
-    /// # Args
-    ///
-    /// * `level` - the level of the message, can be "trace", "debug", "info", "warn" or "error".
-    /// * `message` - the message to log.
-    ///
-    /// # Effective smtp stage
-    ///
-    /// All of them.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # vsmtp_test::vsl::run(
-    /// # |builder| Ok(builder.add_root_filter_rules(r#"
-    /// #{
-    ///   connect: [
-    ///     action "log on connection (str/str)" || {
-    ///       log("info", `[${date()}/${time()}] client=${ctx::client_ip()}`);
-    ///     },
-    ///     action "log on connection (str/obj)" || {
-    ///       log("error", identifier("Ehllo world!"));
-    ///     },
-    ///     action "log on connection (obj/obj)" || {
-    ///       const level = "trace";
-    ///       const message = "connection established";
-    ///
-    ///       log(identifier(level), identifier(message));
-    ///     },
-    ///     action "log on connection (obj/str)" || {
-    ///       const level = "warn";
-    ///
-    ///       log(identifier(level), "I love vsl!");
-    ///     },
-    ///   ],
-    /// }
-    /// # "#)?.build()));
-    /// ```
-    #[doc(hidden)]
-    #[rhai_fn(global, name = "log", pure)]
-    pub fn log_obj_str(level: &mut SharedObject, message: &str) {
-        log(&level.to_string(), message);
-    }
-
-    /// Log information to stdout in `nodaemon` mode or to a file.
-    ///
-    /// # Args
-    ///
-    /// * `level` - the level of the message, can be "trace", "debug", "info", "warn" or "error".
-    /// * `message` - the message to log.
-    ///
-    /// # Effective smtp stage
-    ///
-    /// All of them.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # vsmtp_test::vsl::run(
-    /// # |builder| Ok(builder.add_root_filter_rules(r#"
-    /// #{
-    ///   connect: [
-    ///     action "log on connection (str/str)" || {
-    ///       log("info", `[${date()}/${time()}] client=${ctx::client_ip()}`);
-    ///     },
-    ///     action "log on connection (str/obj)" || {
-    ///       log("error", identifier("Ehllo world!"));
-    ///     },
-    ///     action "log on connection (obj/obj)" || {
-    ///       const level = "trace";
-    ///       const message = "connection established";
-    ///
-    ///       log(identifier(level), identifier(message));
-    ///     },
-    ///     action "log on connection (obj/str)" || {
-    ///       const level = "warn";
-    ///
-    ///       log(identifier(level), "I love vsl!");
-    ///     },
-    ///   ],
-    /// }
-    /// # "#)?.build()));
-    /// ```
-    #[doc(hidden)]
-    #[rhai_fn(global, name = "log", pure)]
-    pub fn log_obj_obj(level: &mut SharedObject, message: SharedObject) {
-        log(&level.to_string(), &message.to_string());
-    }
-
-    /// Log information to stdout in `nodaemon` mode or to a file.
-    ///
-    /// # Args
-    ///
-    /// * `level` - the level of the message, can be "trace", "debug", "info", "warn" or "error".
-    /// * `message` - the message to log.
-    ///
-    /// # Effective smtp stage
-    ///
-    /// All of them.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # vsmtp_test::vsl::run(
-    /// # |builder| Ok(builder.add_root_filter_rules(r#"
-    /// #{
-    ///   connect: [
-    ///     action "log on connection (str/str)" || {
-    ///       log("info", `[${date()}/${time()}] client=${ctx::client_ip()}`);
-    ///     },
-    ///     action "log on connection (str/obj)" || {
-    ///       log("error", identifier("Ehllo world!"));
-    ///     },
-    ///     action "log on connection (obj/obj)" || {
-    ///       const level = "trace";
-    ///       const message = "connection established";
-    ///
-    ///       log(identifier(level), identifier(message));
-    ///     },
-    ///     action "log on connection (obj/str)" || {
-    ///       const level = "warn";
-    ///
-    ///       log(identifier(level), "I love vsl!");
-    ///     },
-    ///   ],
-    /// }
-    /// # "#)?.build()));
-    /// ```
+    /// # rhai-autodocs:index:1
     #[rhai_fn(global, name = "log")]
     #[allow(clippy::cognitive_complexity)]
     pub fn log(level: &str, message: &str) {
@@ -222,5 +89,23 @@ mod logging {
                 );
             }
         }
+    }
+
+    #[doc(hidden)]
+    #[rhai_fn(global, name = "log")]
+    pub fn log_str_obj(level: &str, message: SharedObject) {
+        log(level, &message.to_string());
+    }
+
+    #[doc(hidden)]
+    #[rhai_fn(global, name = "log", pure)]
+    pub fn log_obj_str(level: &mut SharedObject, message: &str) {
+        log(&level.to_string(), message);
+    }
+
+    #[doc(hidden)]
+    #[rhai_fn(global, name = "log", pure)]
+    pub fn log_obj_obj(level: &mut SharedObject, message: SharedObject) {
+        log(&level.to_string(), &message.to_string());
     }
 }

@@ -67,6 +67,8 @@ mod fs {
     /// #     &std::path::Path::new("archives")
     /// # ]).exists());
     /// ```
+    ///
+    /// # rhai-autodocs:index:1
     #[rhai_fn(name = "write", return_raw)]
     pub fn write_str(ncc: NativeCallContext, dir: &str) -> EngineResult<()> {
         super::write(
@@ -117,6 +119,8 @@ mod fs {
     /// #     &std::path::Path::new("metadata")
     /// # ]).exists());
     /// ```
+    ///
+    /// # rhai-autodocs:index:2
     #[rhai_fn(name = "dump", return_raw)]
     pub fn dump_str(ncc: NativeCallContext, dir: &str) -> EngineResult<()> {
         super::dump(&get_global!(ncc, srv)?, &get_global!(ncc, ctx)?, dir)

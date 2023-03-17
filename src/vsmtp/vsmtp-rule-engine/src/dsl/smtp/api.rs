@@ -101,6 +101,8 @@ pub mod smtp {
     ///     ]
     /// }
     /// ```
+    ///
+    /// # rhai-autodocs:index:1
     #[rhai_fn(return_raw)]
     pub fn connect(parameters: rhai::Map) -> EngineResult<Smtp> {
         let parameters = rhai::serde::from_dynamic::<SmtpParameters>(&parameters.into())?;

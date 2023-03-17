@@ -2779,9 +2779,9 @@ dependencies = [
 
 [[package]]
 name = "rhai-autodocs"
-version = "0.1.2"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da91f4ed1687e7cad9a517e888972c90f979fdcf1826d2dd5ce4bed2823c877d"
+checksum = "4a0baf7f182dd5e98cea827bf9a6f663acb1ba6d87080369a005acf8fdd52bb5"
 dependencies = [
  "rhai",
  "serde",

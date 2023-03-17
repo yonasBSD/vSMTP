@@ -65,6 +65,7 @@
     "libc",
     "libloading",
     "libmilter",
+    "libvsmtp",
     "maildir",
     "mbox",
     "msrv",

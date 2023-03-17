@@ -76,6 +76,8 @@ pub mod cmd {
     ///     timeout: "10s",
     /// });
     /// ```
+    ///
+    /// # rhai-autodocs:index:1
     #[rhai_fn(return_raw)]
     pub fn build(parameters: rhai::Map) -> EngineResult<Cmd> {
         let parameters = rhai::serde::from_dynamic::<CmdParameters>(&parameters.into())?;
@@ -111,7 +113,13 @@ pub mod cmd {
     /// // the command executed will be:
     /// // echo -e 'Hello World. \c This is vSMTP.'
     /// echo.run();
+    ///
+    /// // run the command with custom arguments (based one are replaced).
+    /// // echo -n 'Hello World.'
+    /// echo.run([ "-n", "'Hello World.'" ]);
     /// ```
+    ///
+    /// # rhai-autodocs:index:2
     #[rhai_fn(global, name = "run", return_raw, pure)]
     pub fn run(cmd: &mut Cmd) -> EngineResult<rhai::Map> {
         cmd.run()
@@ -119,29 +127,7 @@ pub mod cmd {
             .map_err::<Box<rhai::EvalAltResult>, _>(|e| e.to_string().into())
     }
 
-    /// Execute the given command with dynamic arguments.
-    ///
-    /// # Return
-    ///
-    /// The command output.
-    ///
-    /// # Error
-    ///
-    /// * The service failed to execute the command.
-    ///
-    /// # Example
-    ///
-    /// ```text
-    /// const echo = cmd::build(#{
-    ///     command: "echo",
-    ///     args: ["-e", "'Hello World. \c This is vSMTP.'"],
-    ///     timeout: "10s",
-    /// });
-    ///
-    /// // run the command with custom arguments (based one are replaced).
-    /// // echo -n 'Hello World.'
-    /// echo.run([ "-n", "'Hello World.'" ]);
-    /// ```
+    #[doc(hidden)]
     #[rhai_fn(global, name = "run", return_raw, pure)]
     pub fn run_with_args(cmd: &mut Cmd, args: rhai::Array) -> EngineResult<rhai::Map> {
         let args = args

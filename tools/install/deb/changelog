@@ -10,6 +10,7 @@ vsmtp (x.y.z) UNRELEASED; urgency=low
   * Modified
     * Loads `/etc/vsmtp/vsmtp.vsl` by default if the `-c`
       flag is missing. (#1020)
+    * Better Rhai API documentation. (#1079)
   * Fixed
     * `deliver` (default transport method) will
       accept the CN correctly. (#1018)

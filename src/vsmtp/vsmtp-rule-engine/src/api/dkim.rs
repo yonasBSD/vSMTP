@@ -83,6 +83,8 @@ where
 #[rhai::plugin::export_module]
 mod dkim {
     /// Has the `ctx()` a DKIM signature verification result ?
+    ///
+    /// # rhai-autodocs:index:1
     #[rhai_fn(name = "has_result", return_raw)]
     pub fn has_result(ncc: NativeCallContext) -> EngineResult<bool> {
         super::Impl::has_dkim_result(&get_global!(ncc, ctx)?)
@@ -90,6 +92,8 @@ mod dkim {
 
     /// Return the DKIM signature verification result in the `ctx()` or
     /// an error if no result is found.
+    ///
+    /// # rhai-autodocs:index:2
     #[rhai_fn(name = "result", return_raw)]
     pub fn result(ncc: NativeCallContext) -> EngineResult<rhai::Map> {
         super::Impl::dkim_result(&get_global!(ncc, ctx)?)
@@ -99,12 +103,16 @@ mod dkim {
     ///
     /// # Error
     /// * The `status` field is missing in the DKIM verification results.
+    ///
+    /// # rhai-autodocs:index:3
     #[rhai_fn(return_raw)]
     pub fn store(ncc: NativeCallContext, result: rhai::Map) -> EngineResult<()> {
         super::Impl::store(&get_global!(ncc, ctx)?, &result)
     }
 
     /// Get the list of DKIM private keys associated with this sdid
+    ///
+    /// # rhai-autodocs:index:4
     #[rhai_fn(return_raw)]
     pub fn get_private_keys(ncc: NativeCallContext, sdid: &str) -> EngineResult<rhai::Array> {
         let server = get_global!(ncc, srv)?;
@@ -129,12 +137,16 @@ mod dkim {
     }
 
     /// return the `sdid` property of the [`backend::Signature`]
+    ///
+    /// # rhai-autodocs:index:5
     #[rhai_fn(global, get = "sdid", pure)]
     pub fn sdid(signature: &mut backend::Signature) -> String {
         signature.sdid.clone()
     }
 
     /// return the `auid` property of the [`backend::Signature`]
+    ///
+    /// # rhai-autodocs:index:6
     #[rhai_fn(global, get = "auid", pure)]
     pub fn auid(signature: &mut backend::Signature) -> String {
         signature.auid.clone()
@@ -303,6 +315,8 @@ mod dkim {
     /// # use vsmtp_rule_engine::ExecutionStage;
     /// # assert_eq!(states[&ExecutionStage::PreQ].2, Status::Accept(either::Left(CodeID::Ok)));
     /// ```
+    ///
+    /// # rhai-autodocs:index:7
     #[rhai_fn(return_raw)]
     pub fn verify(ncc: NativeCallContext) -> EngineResult<rhai::Map> {
         let ctx = get_global!(ncc, ctx)?;
@@ -393,6 +407,8 @@ mod dkim {
     /// # use vsmtp_rule_engine::ExecutionStage;
     /// # assert_eq!(states[&ExecutionStage::PreQ].2, Status::Accept(either::Left(CodeID::Ok)));
     /// ```
+    ///
+    /// # rhai-autodocs:index:8
     #[rhai_fn(name = "sign", return_raw)]
     pub fn sign(ncc: NativeCallContext, params: rhai::Map) -> EngineResult<()> {
         let signature = vsl_generic_ok!(super::Impl::generate_signature(

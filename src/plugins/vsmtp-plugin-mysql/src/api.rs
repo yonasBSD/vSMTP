@@ -152,6 +152,8 @@ pub mod mysql_api {
     ///     connections: 1,
     /// });
     /// ```
+    ///
+    /// # rhai-autodocs:index:1
     #[rhai_fn(global, return_raw)]
     pub fn connect(parameters: rhai::Map) -> Result<MySQL, Box<rhai::EvalAltResult>> {
         let parameters = rhai::serde::from_dynamic::<MySQLDatabaseParameters>(&parameters.into())?;
@@ -221,6 +223,8 @@ pub mod mysql_api {
     ///     ],
     /// }
     /// ```
+    ///
+    /// # rhai-autodocs:index:2
     #[rhai_fn(global, name = "query", return_raw, pure)]
     pub fn query_str(
         database: &mut MySQL,
@@ -229,53 +233,7 @@ pub mod mysql_api {
         super::query(database, query)
     }
 
-    /// Query the database.
-    ///
-    /// # Args
-    ///
-    /// * `query` - The query to execute.
-    ///
-    /// # Return
-    ///
-    /// A list of records.
-    ///
-    /// # Example
-    ///
-    /// Build a service in `services/database.vsl`;
-    ///
-    /// ```text
-    /// // Import the plugin stored in the `plugins` directory.
-    /// import "plugins/libvsmtp_plugin_mysql" as mysql;
-    ///
-    /// export const database = mysql::connect(#{
-    ///     // Connect to a database on the system with the 'greylist-manager' user and 'my-password' password.
-    ///     url: "mysql://localhost/?user=greylist-manager&password=my-password",
-    ///     timeout: "1m",
-    ///     connections: 1,
-    /// });
-    /// ```
-    ///
-    /// Query the database during filtering.
-    ///
-    /// ```text
-    /// import "services/database" as srv;
-    ///
-    /// #{
-    ///     connect: [
-    ///         action "get records from my database" || {
-    ///             // For the sake of this example, we assume that there is a populated
-    ///             // table called 'my_table' in the database.
-    ///             const records = srv::database.query("SELECT * FROM my_table");
-    ///
-    ///             // `records` is an array, we can run a for loop and print all records.
-    ///             log("info", "fetching mysql records ...");
-    ///             for record in records {
-    ///                 log("info", ` -> ${record}`);
-    ///             }
-    ///         }
-    ///     ],
-    /// }
-    /// ```
+    #[doc(hidden)]
     #[rhai_fn(global, name = "query", return_raw, pure)]
     pub fn query_obj(
         database: &mut MySQL,

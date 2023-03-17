@@ -38,6 +38,8 @@ mod net {
     ///     ]
     /// }
     /// ```
+    ///
+    /// # rhai-autodocs:index:1
     #[must_use]
     #[rhai_fn(name = "rg_192")]
     pub fn rg_192() -> SharedObject {
@@ -55,6 +57,8 @@ mod net {
     ///     ]
     /// }
     /// ```
+    ///
+    /// # rhai-autodocs:index:2
     #[must_use]
     #[rhai_fn(name = "rg_172")]
     pub fn rg_172() -> SharedObject {
@@ -72,6 +76,8 @@ mod net {
     ///     ]
     /// }
     /// ```
+    ///
+    /// # rhai-autodocs:index:3
     #[must_use]
     #[rhai_fn(name = "rg_10")]
     pub fn rg_10() -> SharedObject {
@@ -79,6 +85,8 @@ mod net {
     }
 
     /// Return a list of non routable networks (net_192, net_172, and net_10).
+    ///
+    /// # rhai-autodocs:index:4
     #[must_use]
     #[rhai_fn(name = "non_routable")]
     pub fn non_routable() -> rhai::Array {

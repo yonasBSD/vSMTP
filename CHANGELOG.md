@@ -112,6 +112,7 @@ export const directory = ldap::connect(#{
 ### Modified
 
 * vSMTP loads `/etc/vsmtp/vsmtp.vsl` by default if `-c` flag is missing, and stops if no configuration could be found in this path. (#1020)
+* Better Rhai API documentation. (#1079)
 
 ### Fixed
 

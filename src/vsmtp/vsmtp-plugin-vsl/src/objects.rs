@@ -285,48 +285,64 @@ pub mod constructors {
     pub type VSLObject = crate::objects::SharedObject;
 
     /// Build an ip4 address. (a.b.c.d)
+    ///
+    /// # rhai-autodocs:index:1
     #[rhai_fn(global, return_raw)]
     pub fn ip4(ip: &str) -> RhaiResultOf<VSLObject> {
         new_object!(Object::new_ip4(ip))
     }
 
     /// Build an ip6 address. (x:x:x:x:x:x:x:x)
+    ///
+    /// # rhai-autodocs:index:2
     #[rhai_fn(global, return_raw)]
     pub fn ip6(ip: &str) -> RhaiResultOf<VSLObject> {
         new_object!(Object::new_ip6(ip))
     }
 
     /// an ip v4 range. (a.b.c.d/range)
+    ///
+    /// # rhai-autodocs:index:3
     #[rhai_fn(global, return_raw)]
     pub fn rg4(range: &str) -> RhaiResultOf<VSLObject> {
         new_object!(Object::new_rg4(range))
     }
 
     /// an ip v6 range. (x:x:x:x:x:x:x:x/range)
+    ///
+    /// # rhai-autodocs:index:4
     #[rhai_fn(global, return_raw)]
     pub fn rg6(range: &str) -> RhaiResultOf<VSLObject> {
         new_object!(Object::new_rg6(range))
     }
 
     /// an email address (jones@foo.com)
+    ///
+    /// # rhai-autodocs:index:5
     #[rhai_fn(global, return_raw)]
     pub fn address(address: &str) -> RhaiResultOf<VSLObject> {
         new_object!(Object::new_address(address))
     }
 
     /// a valid fully qualified domain name (foo.com)
+    ///
+    /// # rhai-autodocs:index:6
     #[rhai_fn(global, return_raw)]
     pub fn fqdn(domain: &str) -> RhaiResultOf<VSLObject> {
         new_object!(Object::new_fqdn(domain))
     }
 
     /// a regex (^[a-z0-9.]+@foo.com$)
+    ///
+    /// # rhai-autodocs:index:7
     #[rhai_fn(global, return_raw)]
     pub fn regex(regex: &str) -> RhaiResultOf<VSLObject> {
         new_object!(Object::new_regex(regex))
     }
 
     /// the content of a file.
+    ///
+    /// # rhai-autodocs:index:8
     #[rhai_fn(global, return_raw)]
     pub fn file(path: &str, content_type: &str) -> RhaiResultOf<rhai::Array> {
         Object::new_file(path, content_type)
@@ -334,12 +350,21 @@ pub mod constructors {
     }
 
     /// a user identifier.
+    ///
+    /// # rhai-autodocs:index:9
     #[rhai_fn(global)]
     pub fn identifier(identifier: &str) -> VSLObject {
         rhai::Shared::new(Object::new_identifier(identifier))
     }
 
     /// A SMTP code with the code and message as parameter.
+    ///
+    /// ```ignore
+    /// let code = code(250, "Ok");
+    /// let enhanced = code(451, "5.7.3", "STARTTLS is required to send mail");
+    /// ```
+    ///
+    /// # rhai-autodocs:index:10
     #[rhai_fn(global, name = "code", return_raw)]
     pub fn code(code: rhai::INT, text: &str) -> RhaiResultOf<VSLObject> {
         Ok(rhai::Shared::new(Object::new_code(
@@ -349,6 +374,7 @@ pub mod constructors {
     }
 
     /// A SMTP code with the code and message as parameter and an enhanced code.
+    #[doc(hidden)]
     #[rhai_fn(global, name = "code", return_raw)]
     pub fn code_enhanced(code: rhai::INT, enhanced: &str, text: &str) -> RhaiResultOf<VSLObject> {
         Ok(rhai::Shared::new(Object::new_code_enhanced(
@@ -390,6 +416,8 @@ pub mod utils {
     ///     ],
     /// }
     /// ```
+    ///
+    /// # rhai-autodocs:index:1
     #[rhai_fn(global, get = "local_part", return_raw, pure)]
     pub fn local_part(addr: &mut VSLObject) -> RhaiResultOf<String> {
         match &**addr {
@@ -420,6 +448,8 @@ pub mod utils {
     ///     ],
     /// }
     /// ```
+    ///
+    /// # rhai-autodocs:index:2
     #[rhai_fn(global, get = "domain", return_raw, pure)]
     pub fn domain(addr: &mut VSLObject) -> RhaiResultOf<VSLObject> {
         match &**addr {
@@ -460,6 +490,8 @@ pub mod utils {
     ///     ],
     /// }
     /// ```
+    ///
+    /// # rhai-autodocs:index:3
     #[rhai_fn(global, get = "local_parts", return_raw, pure)]
     pub fn local_parts(container: &mut rhai::Array) -> RhaiResultOf<rhai::Array> {
         container
@@ -520,6 +552,8 @@ pub mod utils {
     ///     ],
     /// }
     /// ```
+    ///
+    /// # rhai-autodocs:index:4
     #[rhai_fn(global, get = "domains", return_raw, pure)]
     pub fn domains(container: &mut rhai::Array) -> RhaiResultOf<rhai::Array> {
         container
@@ -550,12 +584,16 @@ pub mod utils {
     }
 
     /// Convert a `SharedObject` to a `String`
+    ///
+    /// # rhai-autodocs:index:5
     #[rhai_fn(global, name = "to_string", pure)]
     pub fn object_to_string(this: &mut VSLObject) -> String {
         this.to_string()
     }
 
     /// Convert a `SharedObject` to a debug string
+    ///
+    /// # rhai-autodocs:index:6
     #[rhai_fn(global, name = "to_debug", pure)]
     pub fn object_to_debug(this: &mut VSLObject) -> String {
         format!("{:#?}", **this)
@@ -567,36 +605,48 @@ pub mod utils {
 pub mod comparisons {
 
     /// Operator `==` for `SharedObject`
+    ///
+    /// # rhai-autodocs:index:1
     #[rhai_fn(global, name = "==", pure)]
     pub fn object_is_self(this: &mut SharedObject, other: SharedObject) -> bool {
         **this == *other
     }
 
     /// Operator `!=` for `SharedObject`
+    ///
+    /// # rhai-autodocs:index:2
     #[rhai_fn(global, name = "!=", pure)]
     pub fn object_not_self(this: &mut SharedObject, other: SharedObject) -> bool {
         **this != *other
     }
 
     /// Operator `==` for `SharedObject` and `&str`
+    ///
+    /// # rhai-autodocs:index:3
     #[rhai_fn(global, name = "==", return_raw, pure)]
     pub fn object_is_string(this: &mut SharedObject, s: &str) -> RhaiResultOf<bool> {
         internal_string_is_object(s, this)
     }
 
     /// Operator `!=` for `SharedObject` and `&str`
+    ///
+    /// # rhai-autodocs:index:4
     #[rhai_fn(global, name = "!=", return_raw, pure)]
     pub fn object_not_string(this: &mut SharedObject, s: &str) -> RhaiResultOf<bool> {
         internal_string_is_object(s, this).map(|res| !res)
     }
 
     /// Operator `==` for `&str` and `SharedObject`
+    ///
+    /// # rhai-autodocs:index:5
     #[rhai_fn(global, name = "==", return_raw)]
     pub fn string_is_object(this: &str, other: SharedObject) -> RhaiResultOf<bool> {
         internal_string_is_object(this, &other)
     }
 
     /// Operator `!=` for `&str` and `SharedObject`
+    ///
+    /// # rhai-autodocs:index:6
     #[rhai_fn(global, name = "!=", return_raw)]
     pub fn string_not_object(this: &str, other: SharedObject) -> RhaiResultOf<bool> {
         internal_string_is_object(this, &other).map(|res| !res)
@@ -604,18 +654,24 @@ pub mod comparisons {
 
     // NOTE: should this return an error if the string cannot be converted ?
     /// Operator `contains`
+    ///
+    /// # rhai-autodocs:index:7
     #[rhai_fn(global, name = "contains", pure)]
     pub fn string_in_object(this: &mut SharedObject, s: &str) -> bool {
         this.contains_str(s)
     }
 
     /// Operator `contains`
+    ///
+    /// # rhai-autodocs:index:8
     #[rhai_fn(global, name = "contains", pure)]
     pub fn object_in_object(this: &mut SharedObject, other: SharedObject) -> bool {
         this.contains(&other)
     }
 
     #[rhai_fn(global, name = "contains", pure)]
+    ///
+    /// # rhai-autodocs:index:9
     pub fn object_in_map(map: &mut rhai::Map, object: SharedObject) -> bool {
         // FIXME: impl Ord on Object to prevent cloning.
         map.contains_key(object.to_string().as_str())

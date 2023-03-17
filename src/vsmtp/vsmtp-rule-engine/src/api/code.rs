@@ -50,6 +50,8 @@ mod code {
     /// #   ))
     /// # );
     /// ```
+    ///
+    /// # rhai-autodocs:index:1
     #[must_use]
     #[rhai_fn(name = "c554_7_1")]
     pub fn c554_7_1() -> SharedObject {
@@ -78,6 +80,8 @@ mod code {
     /// #   ))
     /// # );
     /// ```
+    ///
+    /// # rhai-autodocs:index:2
     #[must_use]
     #[rhai_fn(name = "c550_7_20")]
     pub fn c550_7_20() -> SharedObject {
@@ -106,6 +110,8 @@ mod code {
     /// #   ))
     /// # );
     /// ```
+    ///
+    /// # rhai-autodocs:index:3
     #[must_use]
     #[rhai_fn(name = "c550_7_21")]
     pub fn c550_7_21() -> SharedObject {
@@ -134,6 +140,8 @@ mod code {
     /// #   ))
     /// # );
     /// ```
+    ///
+    /// # rhai-autodocs:index:4
     #[must_use]
     #[rhai_fn(name = "c550_7_22")]
     pub fn c550_7_22() -> SharedObject {
@@ -167,6 +175,8 @@ mod code {
     /// #   ))
     /// # );
     /// ```
+    ///
+    /// # rhai-autodocs:index:5
     #[must_use]
     #[rhai_fn(name = "c550_7_23")]
     pub fn c550_7_23() -> SharedObject {
@@ -195,6 +205,8 @@ mod code {
     /// #   ))
     /// # );
     /// ```
+    ///
+    /// # rhai-autodocs:index:6
     #[must_use]
     #[rhai_fn(name = "c550_7_24")]
     pub fn c550_7_24() -> SharedObject {
@@ -222,6 +234,8 @@ mod code {
     /// #   ))
     /// # );
     /// ```
+    ///
+    /// # rhai-autodocs:index:7
     #[must_use]
     #[rhai_fn(name = "c550_7_25")]
     pub fn c550_7_25() -> SharedObject {
@@ -249,6 +263,8 @@ mod code {
     /// #   ))
     /// # );
     /// ```
+    ///
+    /// # rhai-autodocs:index:8
     #[must_use]
     #[rhai_fn(name = "c500_7_26")]
     pub fn c550_7_26() -> SharedObject {
@@ -277,6 +293,8 @@ mod code {
     /// #   ))
     /// # );
     /// ```
+    ///
+    /// # rhai-autodocs:index:9
     #[must_use]
     #[rhai_fn(name = "c550_7_27")]
     pub fn c550_7_27() -> SharedObject {
@@ -307,6 +325,8 @@ mod code {
     /// #   ))
     /// # );
     /// ```
+    ///
+    /// # rhai-autodocs:index:10
     #[must_use]
     #[rhai_fn(name = "c556_1_10")]
     pub fn c556_1_10() -> SharedObject {
@@ -334,6 +354,8 @@ mod code {
     /// #   ))
     /// # );
     /// ```
+    ///
+    /// # rhai-autodocs:index:11
     #[must_use]
     #[rhai_fn(name = "c451_7_1")]
     pub fn greylist() -> SharedObject {
@@ -364,6 +386,8 @@ mod code {
     /// #   ))
     /// # );
     /// ```
+    ///
+    /// # rhai-autodocs:index:12
     #[must_use]
     #[rhai_fn(name = "c451_3_0")]
     pub fn multi_destination() -> SharedObject {
@@ -398,6 +422,8 @@ mod code {
     /// #   ))
     /// # );
     /// ```
+    ///
+    /// # rhai-autodocs:index:13
     #[must_use]
     #[rhai_fn(name = "c550_1_1")]
     pub fn unknown_account() -> SharedObject {

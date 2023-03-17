@@ -160,6 +160,8 @@ mod spf {
     /// #   ))
     /// # );
     /// ```
+    ///
+    /// # rhai-autodocs:index:1
     #[rhai_fn(name = "check", return_raw)]
     pub fn check_no_params(ncc: NativeCallContext) -> EngineResult<Status> {
         super::spf::check_with_params(ncc, rhai::Map::default())
@@ -289,6 +291,8 @@ mod spf {
     ///     ]
     /// }
     /// ```
+    ///
+    /// # rhai-autodocs:index:2
     #[rhai_fn(name = "check_raw", return_raw)]
     pub fn check_raw(ncc: NativeCallContext) -> EngineResult<rhai::Map> {
         let ctx = get_global!(ncc, ctx)?;

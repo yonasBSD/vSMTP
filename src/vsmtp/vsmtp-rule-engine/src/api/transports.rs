@@ -171,6 +171,8 @@ mod transport {
     /// #   assert!(bound.iter().map(|(r, _)| r).any(|r| *r == *addr));
     /// # }
     /// ```
+    ///
+    /// # rhai-autodocs:index:1
     #[rhai_fn(name = "forward", return_raw)]
     pub fn forward(ncc: NativeCallContext, rcpt: &str, forward: &str) -> EngineResult<()> {
         let params =
@@ -312,6 +314,8 @@ mod transport {
     /// #   assert!(bound.iter().map(|(r, _)| r).any(|r| *r == *addr));
     /// # }
     /// ```
+    ///
+    /// # rhai-autodocs:index:2
     #[rhai_fn(name = "forward_all", return_raw)]
     pub fn forward_all(ncc: NativeCallContext, forward: &str) -> EngineResult<()> {
         let params =
@@ -418,6 +422,8 @@ mod transport {
     /// #   assert!(bound.iter().map(|(r, _)| r).any(|r| *r == *addr));
     /// # }
     /// ```
+    ///
+    /// # rhai-autodocs:index:3
     #[rhai_fn(name = "deliver", return_raw)]
     pub fn deliver(ncc: NativeCallContext, rcpt: &str) -> EngineResult<()> {
         let rcpt = <Address as std::str::FromStr>::from_str(rcpt)
@@ -523,6 +529,8 @@ mod transport {
     /// #   assert!(bound.iter().map(|(r, _)| r).any(|r| *r == *addr));
     /// # }
     /// ```
+    ///
+    /// # rhai-autodocs:index:4
     #[rhai_fn(return_raw)]
     pub fn deliver_all(ncc: NativeCallContext) -> EngineResult<()> {
         let ctx = get_global!(ncc, ctx)?;
@@ -604,6 +612,8 @@ mod transport {
     /// #   assert!(bound.iter().map(|(r, _)| r).any(|r| *r == *addr));
     /// # }
     /// ```
+    ///
+    /// # rhai-autodocs:index:5
     #[rhai_fn(name = "mbox", return_raw)]
     pub fn mbox(ncc: NativeCallContext, rcpt: &str) -> EngineResult<()> {
         let rcpt = <Address as std::str::FromStr>::from_str(rcpt)
@@ -704,6 +714,8 @@ mod transport {
     /// #   assert!(bound.iter().map(|(r, _)| r).any(|r| *r == *addr));
     /// # }
     /// ```
+    ///
+    /// # rhai-autodocs:index:6
     #[rhai_fn(return_raw)]
     pub fn mbox_all(ncc: NativeCallContext) -> EngineResult<()> {
         let ctx = get_global!(ncc, ctx)?;
@@ -785,6 +797,8 @@ mod transport {
     /// #   assert!(bound.iter().map(|(r, _)| r).any(|r| *r == *addr));
     /// # }
     /// ```
+    ///
+    /// # rhai-autodocs:index:7
     #[rhai_fn(name = "maildir", return_raw)]
     pub fn maildir(ncc: NativeCallContext, rcpt: &str) -> EngineResult<()> {
         let rcpt = <Address as std::str::FromStr>::from_str(rcpt)
@@ -887,6 +901,8 @@ mod transport {
     /// #   assert!(bound.iter().map(|(r, _)| r).any(|r| *r == *addr));
     /// # }
     /// ```
+    ///
+    /// # rhai-autodocs:index:8
     #[rhai_fn(return_raw)]
     pub fn maildir_all(ncc: NativeCallContext) -> EngineResult<()> {
         let ctx = get_global!(ncc, ctx)?;
