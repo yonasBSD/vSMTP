@@ -52,11 +52,9 @@ impl rustls::server::ResolvesServerCert for CertResolver {
         &self,
         client_hello: rustls::server::ClientHello<'_>,
     ) -> Option<std::sync::Arc<rustls::sign::CertifiedKey>> {
-        if client_hello.server_name().is_none() {
-            self.default_cert.clone()
-        } else {
-            self.sni_resolver.resolve(client_hello)
-        }
+        self.sni_resolver
+            .resolve(client_hello)
+            .or_else(|| self.default_cert.clone())
     }
 }
 
@@ -65,6 +63,19 @@ pub fn get_rustls_config(
     config: &FieldServerTls,
     virtual_entries: &std::collections::BTreeMap<Domain, FieldServerVirtual>,
 ) -> anyhow::Result<rustls::ServerConfig> {
+    fn to_rustls(
+        cert: Vec<rustls::Certificate>,
+        key: &rustls::PrivateKey,
+    ) -> anyhow::Result<rustls::sign::CertifiedKey> {
+        Ok(rustls::sign::CertifiedKey {
+            cert,
+            key: rustls::sign::any_supported_type(key)?,
+            // TODO: support OCSP and SCT
+            ocsp: None,
+            sct_list: None,
+        })
+    }
+
     let protocol_version = match (
         config
             .protocol_version
@@ -97,34 +108,10 @@ pub fn get_rustls_config(
         cert_resolver
             .add(
                 &virtual_name.to_string(),
-                rustls::sign::CertifiedKey {
-                    cert: certificate.inner.clone(),
-                    key: rustls::sign::any_supported_type(&private_key.inner)?,
-                    // TODO: support OCSP and SCT
-                    ocsp: None,
-                    sct_list: None,
-                },
+                to_rustls(certificate.inner.clone(), &private_key.inner.clone())?,
             )
             .map_err(|e| anyhow::anyhow!("cannot add sni to resolver '{virtual_name}': {e}"))?;
     }
-
-    let default_cert = virtual_entries
-        .values()
-        .find(|i| i.is_default)
-        .and_then(|i| i.tls.as_ref())
-        .map(|tls| {
-            rustls::sign::any_supported_type(&tls.private_key.inner).map(|private_key| {
-                rustls::sign::CertifiedKey {
-                    cert: tls.certificate.inner.clone(),
-                    key: private_key,
-                    // TODO: support OCSP and SCT
-                    ocsp: None,
-                    sct_list: None,
-                }
-            })
-        })
-        .transpose()?
-        .map(std::sync::Arc::new);
 
     let mut tls_config = rustls::ServerConfig::builder()
         .with_cipher_suites(&to_supported_cipher_suite(&config.cipher_suite))
@@ -135,7 +122,17 @@ pub fn get_rustls_config(
         .with_client_cert_verifier(rustls::server::NoClientAuth::new())
         .with_cert_resolver(std::sync::Arc::new(CertResolver {
             sni_resolver: cert_resolver,
-            default_cert,
+            default_cert: config
+                .default
+                .as_ref()
+                .map(|default_tls| {
+                    to_rustls(
+                        default_tls.certificate.inner.clone(),
+                        &default_tls.private_key.inner.clone(),
+                    )
+                })
+                .transpose()?
+                .map(std::sync::Arc::new),
         }));
 
     tls_config.ignore_client_order = config.preempt_cipherlist;

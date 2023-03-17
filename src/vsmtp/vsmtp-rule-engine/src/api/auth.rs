@@ -31,7 +31,7 @@ use super::EngineResult;
 mod auth {
     use crate::api::state;
     use crate::api::EngineResult;
-    use crate::{get_global, ExecutionStage};
+    use crate::get_global;
     use vsmtp_common::{auth::Credentials, status::Status};
 
     /// Process the SASL authentication mechanism.
@@ -42,6 +42,8 @@ mod auth {
     /// The credentials will be verified depending on the mode of `saslauthd`.
     ///
     /// A native implementation will be provided in the future.
+    ///
+    /// # rhai-autodocs:index:1
     #[rhai_fn(name = "unix_users", return_raw)]
     pub fn unix_users(ncc: NativeCallContext) -> EngineResult<Status> {
         let ctx = get_global!(ncc, ctx)?;
@@ -90,6 +92,8 @@ mod auth {
     /// }
     /// # "#)?.build()));
     /// ```
+    ///
+    /// # rhai-autodocs:index:2
     #[rhai_fn(name = "is_authenticated", return_raw)]
     pub fn is_authenticated(ncc: NativeCallContext) -> EngineResult<bool> {
         Ok(vsl_guard_ok!(get_global!(ncc, ctx)?.read())
@@ -119,19 +123,22 @@ mod auth {
     /// }
     /// # "#)?.build()));
     /// ```
+    ///
+    /// # rhai-autodocs:index:3
     #[rhai_fn(name = "credentials", return_raw)]
     pub fn credentials(ncc: NativeCallContext) -> EngineResult<Credentials> {
-        Ok(vsl_missing_ok!(
-            vsl_missing_ok!(
-                vsl_guard_ok!(get_global!(ncc, ctx)?.read()).auth(),
-                "auth",
-                ExecutionStage::Authenticate
+        vsl_guard_ok!(get_global!(ncc, ctx)?.read())
+            .auth()
+            .as_ref()
+            .and_then(|auth| auth.credentials.clone())
+            .map_or_else(
+                || {
+                    Err("no `credentials` available in the connection"
+                        .to_string()
+                        .into())
+                },
+                Ok,
             )
-            .credentials,
-            "credentials",
-            ExecutionStage::Authenticate
-        )
-        .clone())
     }
 
     /// Get the type of the `auth` property of the connection.
@@ -162,6 +169,8 @@ mod auth {
     /// }
     /// # "#)?.build()));
     /// ```
+    ///
+    /// # rhai-autodocs:index:4
     #[rhai_fn(global, get = "type", pure)]
     pub fn get_type(credentials: &mut Credentials) -> String {
         credentials.to_string()
@@ -193,6 +202,8 @@ mod auth {
     /// }
     /// # "#)?.build()));
     /// ```
+    ///
+    /// # rhai-autodocs:index:5
     #[rhai_fn(global, get = "authid", return_raw, pure)]
     pub fn get_authid(credentials: &mut Credentials) -> EngineResult<String> {
         match credentials {
@@ -229,6 +240,8 @@ mod auth {
     /// }
     /// # "#)?.build()));
     /// ```
+    ///
+    /// # rhai-autodocs:index:6
     #[rhai_fn(global, get = "authpass", return_raw, pure)]
     pub fn get_authpass(credentials: &mut Credentials) -> EngineResult<String> {
         match credentials {
@@ -266,6 +279,8 @@ mod auth {
     /// }
     /// # "#)?.build()));
     /// ```
+    ///
+    /// # rhai-autodocs:index:7
     #[rhai_fn(global, get = "anonymous_token", return_raw, pure)]
     pub fn get_anonymous_token(credentials: &mut Credentials) -> EngineResult<String> {
         match credentials {

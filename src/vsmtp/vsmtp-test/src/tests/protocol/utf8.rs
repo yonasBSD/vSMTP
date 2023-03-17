@@ -14,74 +14,15 @@
  * this program. If not, see https://www.gnu.org/licenses/.
  *
 */
-use vqueue::GenericQueueManager;
+use vsmtp_common::addr;
 use vsmtp_common::ContextFinished;
-use vsmtp_common::{addr, CodeID};
 use vsmtp_mail_parser::BodyType;
 use vsmtp_mail_parser::Mail;
 use vsmtp_mail_parser::MailHeaders;
 use vsmtp_mail_parser::MessageBody;
-use vsmtp_server::OnMail;
 
 macro_rules! test_lang {
     ($lang_code:expr) => {{
-
-        struct T;
-
-        #[async_trait::async_trait]
-        impl OnMail for T {
-            async fn on_mail(
-                &mut self,
-                mail: Box<ContextFinished>,
-                mut message: MessageBody,
-                _: std::sync::Arc<dyn GenericQueueManager>,
-            ) -> CodeID {
-
-                assert_eq!(mail.helo.client_name.to_string(), "foobar");
-                assert_eq!(mail.mail_from.reverse_path, Some(addr!("john@doe")));
-
-                assert!(mail.rcpt_to.delivery
-                    .values()
-                    .flatten()
-                    .map(|(addr, _)| addr)
-                    .cloned()
-                    .eq([
-                        addr!("aa@bb"),
-                    ])
-                );
-
-                pretty_assertions::assert_eq!(
-                    *message
-                        .parsed::<vsmtp_mail_parser::MailMimeParser>()
-                        .unwrap(),
-                    Mail {
-                        headers: MailHeaders([
-                            ("from", "john doe <john@doe>"),
-                            ("subject", "ar"),
-                            ("to", "aa@bb"),
-                            ("message-id", "<xxx@localhost.com>"),
-                            ("date", "Tue, 30 Nov 2021 20:54:27 +0100"),
-                        ]
-                        .into_iter()
-                        .map(|(k, v)| (k.to_string(), v.to_string()))
-                        .collect::<Vec<_>>()),
-                        body: BodyType::Regular(
-                            include_str!($lang_code)
-                                .lines()
-                                .map(str::to_string)
-                                .map(|s| if s.starts_with("..") {
-                                    s[1..].to_string()
-                                } else {
-                                    s
-                                })
-                                .collect::<Vec<_>>()
-                        )
-                    }
-                );
-                CodeID::Ok
-            }
-        }
-
         crate::run_test! {
             input = [
                 "HELO foobar\r\n",
@@ -111,7 +52,49 @@ macro_rules! test_lang {
                 "250 Ok\r\n",
                 "221 Service closing transmission channel\r\n",
             ],
-            mail_handler = T,
+            mail_handler = |ctx: ContextFinished, mut body: MessageBody| {
+                assert_eq!(ctx.helo.client_name.to_string(), "foobar");
+                assert_eq!(ctx.mail_from.reverse_path, Some(addr!("john@doe")));
+
+                assert!(ctx.rcpt_to.delivery
+                    .values()
+                    .flatten()
+                    .map(|(addr, _)| addr)
+                    .cloned()
+                    .eq([
+                        addr!("aa@bb"),
+                    ])
+                );
+
+                pretty_assertions::assert_eq!(
+                    *body
+                        .parsed::<vsmtp_mail_parser::MailMimeParser>()
+                        .unwrap(),
+                    Mail {
+                        headers: MailHeaders([
+                            ("from", "john doe <john@doe>"),
+                            ("subject", "ar"),
+                            ("to", "aa@bb"),
+                            ("message-id", "<xxx@localhost.com>"),
+                            ("date", "Tue, 30 Nov 2021 20:54:27 +0100"),
+                        ]
+                        .into_iter()
+                        .map(|(k, v)| (k.to_string(), v.to_string()))
+                        .collect::<Vec<_>>()),
+                        body: BodyType::Regular(
+                            include_str!($lang_code)
+                                .lines()
+                                .map(str::to_string)
+                                .map(|s| if s.starts_with("..") {
+                                    s[1..].to_string()
+                                } else {
+                                    s
+                                })
+                                .collect::<Vec<_>>()
+                        )
+                    }
+                );
+            },
         }
     }};
 }

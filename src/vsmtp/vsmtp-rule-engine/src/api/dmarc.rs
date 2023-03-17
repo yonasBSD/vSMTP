@@ -46,6 +46,8 @@ mod dmarc {
     ///   ]
     /// }
     /// ```
+    ///
+    /// # rhai-autodocs:index:1
     #[rhai_fn(name = "check", return_raw)]
     pub fn check(ncc: NativeCallContext) -> EngineResult<vsmtp_common::status::Status> {
         let msg = get_global!(ncc, msg)?;

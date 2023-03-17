@@ -18,11 +18,9 @@ use super::{safe_auth_config, unsafe_auth_config};
 use crate::run_test;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
-use vqueue::GenericQueueManager;
+use vsmtp_common::addr;
 use vsmtp_common::ContextFinished;
-use vsmtp_common::{addr, CodeID};
 use vsmtp_mail_parser::MessageBody;
-use vsmtp_server::OnMail;
 
 run_test! {
     fn plain_in_clair_secured,
@@ -68,34 +66,18 @@ run_test! {
         "221 Service closing transmission channel\r\n"
     ],
     config = unsafe_auth_config(),
-    mail_handler = {
-
-        struct T;
-
-        #[async_trait::async_trait]
-        impl OnMail for T {
-            async fn on_mail(
-                &mut self,
-                mail: Box<ContextFinished>,
-                _: MessageBody,
-                _: std::sync::Arc<dyn GenericQueueManager>,
-            ) -> CodeID {
-                assert_eq!(mail.helo.client_name.to_string(), "client.com");
-                assert_eq!(mail.mail_from.reverse_path, Some(addr!("foo@bar")));
-                assert!(mail.rcpt_to.delivery
-                    .values()
-                    .flatten()
-                    .map(|(addr, _)| addr)
-                    .cloned()
-                    .eq([
-                        addr!("joe@doe")
-                    ])
-                );
-                CodeID::Ok
-            }
-        }
-
-        T
+    mail_handler = |ctx: ContextFinished, _: MessageBody| {
+        assert_eq!(ctx.helo.client_name.to_string(), "client.com");
+        assert_eq!(ctx.mail_from.reverse_path, Some(addr!("foo@bar")));
+        assert!(ctx.rcpt_to.delivery
+            .values()
+            .flatten()
+            .map(|(addr, _)| addr)
+            .cloned()
+            .eq([
+                addr!("joe@doe")
+            ])
+        );
     },
 }
 
@@ -129,34 +111,18 @@ run_test! {
         "221 Service closing transmission channel\r\n"
     ],
     config = unsafe_auth_config(),
-    mail_handler = {
-
-        struct T;
-
-        #[async_trait::async_trait]
-        impl OnMail for T {
-            async fn on_mail(
-                &mut self,
-                mail: Box<ContextFinished>,
-                _: MessageBody,
-                _: std::sync::Arc<dyn GenericQueueManager>,
-            ) -> CodeID {
-                assert_eq!(mail.helo.client_name.to_string(), "client.com");
-                assert_eq!(mail.mail_from.reverse_path, Some(addr!("foo@bar")));
-                assert!(mail.rcpt_to.delivery
-                    .values()
-                    .flatten()
-                    .map(|(addr, _)| addr)
-                    .cloned()
-                    .eq([
-                        addr!("joe@doe")
-                    ])
-                );
-                CodeID::Ok
-            }
-        }
-
-        T
+    mail_handler = |ctx: ContextFinished, _: MessageBody| {
+        assert_eq!(ctx.helo.client_name.to_string(), "client.com");
+        assert_eq!(ctx.mail_from.reverse_path, Some(addr!("foo@bar")));
+        assert!(ctx.rcpt_to.delivery
+            .values()
+            .flatten()
+            .map(|(addr, _)| addr)
+            .cloned()
+            .eq([
+                addr!("joe@doe")
+            ])
+        );
     },
 }
 
@@ -186,35 +152,19 @@ run_test! {
         "221 Service closing transmission channel\r\n"
     ],
     config = unsafe_auth_config(),
-    mail_handler = {
-
-        struct T;
-
-        #[async_trait::async_trait]
-        impl OnMail for T {
-            async fn on_mail(
-                &mut self,
-                mail: Box<ContextFinished>,
-                _: MessageBody,
-                _: std::sync::Arc<dyn GenericQueueManager>,
-            ) -> CodeID {
-                assert_eq!(mail.helo.client_name.to_string(), "client.com");
-                assert_eq!(mail.mail_from.reverse_path, Some(addr!("foo@bar")));
-                assert!(mail.rcpt_to.delivery
-                    .values()
-                    .flatten()
-                    .map(|(addr, _)| addr)
-                    .cloned()
-                    .eq([
-                        addr!("joe@doe")
-                    ])
-                );
-                CodeID::Ok
-            }
-        }
-
-        T
-    },
+    mail_handler = |ctx: ContextFinished, _: MessageBody| {
+        assert_eq!(ctx.helo.client_name.to_string(), "client.com");
+        assert_eq!(ctx.mail_from.reverse_path, Some(addr!("foo@bar")));
+        assert!(ctx.rcpt_to.delivery
+            .values()
+            .flatten()
+            .map(|(addr, _)| addr)
+            .cloned()
+            .eq([
+                addr!("joe@doe")
+            ])
+        );
+    }
 }
 
 run_test! {
@@ -243,34 +193,18 @@ run_test! {
         "221 Service closing transmission channel\r\n"
     ],
     config = unsafe_auth_config(),
-    mail_handler = {
-
-        struct T;
-
-        #[async_trait::async_trait]
-        impl OnMail for T {
-            async fn on_mail(
-                &mut self,
-                mail: Box<ContextFinished>,
-                _: MessageBody,
-                _: std::sync::Arc<dyn GenericQueueManager>,
-            ) -> CodeID {
-                assert_eq!(mail.helo.client_name.to_string(), "client.com");
-                assert_eq!(mail.mail_from.reverse_path, Some(addr!("foo@bar")));
-                assert!(mail.rcpt_to.delivery
-                    .values()
-                    .flatten()
-                    .map(|(addr, _)| addr)
-                    .cloned()
-                    .eq([
-                        addr!("joe@doe")
-                    ])
-                );
-                CodeID::Ok
-            }
-        }
-
-        T
+    mail_handler = |ctx: ContextFinished, _: MessageBody| {
+        assert_eq!(ctx.helo.client_name.to_string(), "client.com");
+        assert_eq!(ctx.mail_from.reverse_path, Some(addr!("foo@bar")));
+        assert!(ctx.rcpt_to.delivery
+            .values()
+            .flatten()
+            .map(|(addr, _)| addr)
+            .cloned()
+            .eq([
+                addr!("joe@doe")
+            ])
+        );
     },
 }
 
@@ -378,34 +312,18 @@ run_test! {
         "221 Service closing transmission channel\r\n"
     ],
     config = unsafe_auth_config(),
-    mail_handler = {
-
-        struct T;
-
-        #[async_trait::async_trait]
-        impl OnMail for T {
-            async fn on_mail(
-                &mut self,
-                mail: Box<ContextFinished>,
-                _: MessageBody,
-                _: std::sync::Arc<dyn GenericQueueManager>,
-            ) -> CodeID {
-                assert_eq!(mail.helo.client_name.to_string(), "client.com");
-                assert_eq!(mail.mail_from.reverse_path, Some(addr!("foo@bar")));
-                assert!(mail.rcpt_to.delivery
-                    .values()
-                    .flatten()
-                    .map(|(addr, _)| addr)
-                    .cloned()
-                    .eq([
-                        addr!("joe@doe")
-                    ])
-                );
-                CodeID::Ok
-            }
-        }
-
-        T
+    mail_handler = |ctx: ContextFinished, _: MessageBody| {
+        assert_eq!(ctx.helo.client_name.to_string(), "client.com");
+        assert_eq!(ctx.mail_from.reverse_path, Some(addr!("foo@bar")));
+        assert!(ctx.rcpt_to.delivery
+            .values()
+            .flatten()
+            .map(|(addr, _)| addr)
+            .cloned()
+            .eq([
+                addr!("joe@doe")
+            ])
+        );
     },
 }
 

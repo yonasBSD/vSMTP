@@ -17,7 +17,6 @@
 
 use crate::run_test;
 use vsmtp_rule_engine::ExecutionStage;
-use vsmtp_server::ProcessMessage;
 
 const QUARANTINE_RULE: &str = r#"
 #{
@@ -30,9 +29,6 @@ const QUARANTINE_RULE: &str = r#"
 "#;
 
 async fn actual_test(stage: ExecutionStage) {
-    let (delivery_sender, _d) = tokio::sync::mpsc::channel::<ProcessMessage>(1);
-    let (working_sender, _w) = tokio::sync::mpsc::channel::<ProcessMessage>(1);
-
     let rules = QUARANTINE_RULE.replace("{stage}", &stage.to_string());
 
     let queue_manager = run_test! {
@@ -57,7 +53,6 @@ async fn actual_test(stage: ExecutionStage) {
             "250 Ok\r\n",
             "221 Service closing transmission channel\r\n",
         ],
-        mail_handler = vsmtp_server::MailHandler::new(working_sender, delivery_sender),
         hierarchy_builder = move |builder| Ok(
             builder
                 .add_root_filter_rules(&rules.clone())?

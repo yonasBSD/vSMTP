@@ -15,12 +15,9 @@
  *
 */
 use crate::run_test;
-use vqueue::GenericQueueManager;
 use vsmtp_common::addr;
-use vsmtp_common::CodeID;
 use vsmtp_common::{ContextFinished, TransactionType};
 use vsmtp_mail_parser::MessageBody;
-use vsmtp_server::OnMail;
 
 const CONFIG: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -80,65 +77,47 @@ run_test! {
         "221 Service closing transmission channel\r\n"
     ],
     config = vsmtp_config::Config::from_vsl_file(CONFIG).unwrap(),
-    mail_handler = {
-        struct T;
+    mail_handler = |ctx: ContextFinished, body: MessageBody| {
+        match ctx.rcpt_to.transaction_type {
+            TransactionType::Internal => {
+                println!("Internal");
 
-        #[async_trait::async_trait]
-        impl OnMail for T {
-            async fn on_mail(
-                &mut self,
-                mail: Box<ContextFinished>,
-                body: MessageBody,
-                _: std::sync::Arc<dyn GenericQueueManager>,
-            ) -> CodeID {
+                assert_eq!(ctx.helo.client_name.to_string(), "foo");
+                assert_eq!(ctx.mail_from.reverse_path, Some(addr!("john.doe@example.com")));
+                assert!(
+                    ctx.rcpt_to.delivery
+                        .values()
+                        .flatten()
+                        .map(|(addr, _)| addr)
+                        .cloned()
+                        .eq([
+                            addr!("green@example.com"),
+                            addr!("grey@example.com")
+                        ])
+                );
 
-                match mail.rcpt_to.transaction_type {
-                    TransactionType::Internal => {
+                assert!(body.get_header("X-Connect").is_some());
+                assert_eq!(
+                    body.get_header("X-Info"),
+                    Some("email processed by me.".to_string())
+                );
 
-                        println!("Internal");
+                assert_eq!(
+                    body.get_header("From"),
+                    Some("anonymous@example.com".to_string())
+                );
 
-                        assert_eq!(mail.helo.client_name.to_string(), "foo");
-                        assert_eq!(mail.mail_from.reverse_path, Some(addr!("john.doe@example.com")));
-                        assert!(
-                            mail.rcpt_to.delivery
-                                .values()
-                                .flatten()
-                                .map(|(addr, _)| addr)
-                                .cloned()
-                                .eq([
-                                    addr!("green@example.com"),
-                                    addr!("grey@example.com")
-                                ])
-                        );
-
-                        assert!(body.get_header("X-Connect").is_some());
-                        assert_eq!(
-                            body.get_header("X-Info"),
-                            Some("email processed by me.".to_string())
-                        );
-
-                        assert_eq!(
-                            body.get_header("From"),
-                            Some("anonymous@example.com".to_string())
-                        );
-
-                        assert_eq!(
-                            body.get_header("To"),
-                            Some("anonymous@example.com, grey@example.com, john.doe@example.com".to_string())
-                        );
-                    },
-                    TransactionType::Outgoing { domain } => {
-                        println!("Outgoing");
-
-                        assert_eq!(domain, "example.com".parse().unwrap());
-                        assert_eq!(mail.rcpt_to.forward_paths.len(), 0);
-                    },
-                    TransactionType::Incoming(_) => panic!("The email should be internal & outgoing"),
-                }
-
-                CodeID::Ok
-            }
+                assert_eq!(
+                    body.get_header("To"),
+                    Some("anonymous@example.com, grey@example.com, john.doe@example.com".to_string())
+                );
+            },
+            TransactionType::Outgoing { domain } => {
+                println!("Outgoing");
+                assert_eq!(domain, "example.com".parse().unwrap());
+                assert_eq!(ctx.rcpt_to.forward_paths.len(), 0);
+            },
+            TransactionType::Incoming(_) => panic!("The email should be internal & outgoing"),
         }
-        T
     },
 }

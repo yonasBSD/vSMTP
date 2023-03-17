@@ -44,40 +44,21 @@ pub use state::*;
 /// Use `states` in `rules` to deny, accept, or quarantine emails.
 #[rhai::plugin::export_module]
 mod state {
-
-    /// Operator `==` for `Status`
-    #[rhai_fn(global, name = "==", pure)]
-    pub fn eq_status_operator(status_1: &mut Status, status_2: Status) -> bool {
-        *status_1 == status_2
-    }
-
-    /// Operator `!=` for `Status`
-    #[rhai_fn(global, name = "!=", pure)]
-    pub fn neq_status_operator(status_1: &mut Status, status_2: Status) -> bool {
-        !(*status_1 == status_2)
-    }
-
-    /// Convert a `Status` to a `String`
-    #[rhai_fn(global, pure)]
-    pub fn to_string(status: &mut Status) -> String {
-        status.as_ref().to_string()
-    }
-
-    /// Convert a `Status` to a debug string
-    #[rhai_fn(global, pure)]
-    pub fn to_debug(status: &mut Status) -> String {
-        status.as_ref().to_string()
-    }
-
     /// Tell the rule engine to force accept the incoming transaction.
     /// This means that all rules following the one `faccept` is called
     /// will be ignored.
     ///
-    /// Sends an 'Ok' code to the client. To customize the code to send,
-    /// see `faccept(code)`.
-    ///
     /// Use this return status when you are sure that
     /// the incoming client can be trusted.
+    ///
+    /// # Args
+    ///    
+    /// * code - A customized code as a string or code object. (default: "250 Ok")
+    ///
+    /// # Errors
+    ///
+    /// * The object passed as parameter was not a code object.
+    /// * The string passed as parameter failed to be parsed into a valid code.
     ///
     /// # Effective smtp stage
     ///
@@ -100,92 +81,37 @@ mod state {
     ///         }
     ///     ],
     /// }
+    ///
+    /// #{
+    ///     mail: [
+    ///         rule "send a custom code with a code object" || {
+    ///             faccept(code(220, "Ok"))
+    ///         }
+    ///     ],
+    /// }
+    ///
+    /// #{
+    ///     mail: [
+    ///         rule "send a custom code with a string" || {
+    ///             faccept("220 Ok")
+    ///         }
+    ///     ],
+    /// }
     /// ```
+    ///
+    /// # rhai-autodocs:index:1
     #[must_use]
     pub const fn faccept() -> Status {
         Status::Faccept(ReplyOrCodeID::Left(CodeID::Ok))
     }
 
-    /// Tell the rule engine to force accept the incoming transaction.
-    /// This means that all rules following the one `faccept` is called
-    /// will be ignored.
-    ///
-    /// Use this return status when you are sure that
-    /// the incoming client can be trusted.
-    ///
-    /// # Args
-    ///
-    /// * `code` - a custom code using a `code` object to send to the client.
-    ///
-    /// # Error
-    ///
-    /// * The given parameter was not a code object.
-    ///
-    /// # Effective smtp stage
-    ///
-    /// all of them.
-    ///
-    /// # Example
-    ///
-    /// ```ignore
-    /// #{
-    ///     connect: [
-    ///         // Here we imagine that "192.168.1.10" is a trusted source, so we can force accept
-    ///         // any other rules that don't need to be run.
-    ///         rule "check for trusted source" || if ctx::client_ip() == "192.168.1.10" { faccept(code(220, "Ok")) } else { state::next() },
-    ///     ],
-    ///
-    ///     // The following rules will not be evaluated if `ctx::client_ip() == "192.168.1.10"` is true.
-    ///     mail: [
-    ///         rule "another rule" || {
-    ///             // ... doing stuff
-    ///         }
-    ///     ],
-    /// }
-    /// ```
+    #[doc(hidden)]
     #[rhai_fn(name = "faccept", return_raw, pure)]
     pub fn faccept_with_code(code: &mut SharedObject) -> EngineResult<Status> {
         reply_or_code_id_from_object(code).map(Status::Faccept)
     }
 
-    /// Tell the rule engine to force accept the incoming transaction.
-    /// This means that all rules following the one `faccept` is called
-    /// will be ignored.
-    ///
-    /// Use this return status when you are sure that
-    /// the incoming client can be trusted.
-    ///
-    /// # Args
-    ///
-    /// * `code` - a custom code as a string to send to the client.
-    ///
-    /// # Error
-    ///
-    /// * Could not parse the parameter as a valid SMTP reply code.
-    ///
-    /// # Effective smtp stage
-    ///
-    /// all of them.
-    ///
-    /// # Example
-    /// ```ignore
-    /// #{
-    ///     connect: [
-    ///         // Here we imagine that "192.168.1.10" is a trusted source, so we can force accept
-    ///         // any other rules that don't need to be run.
-    ///         rule "check for trusted source" || if ctx::client_ip() == "192.168.1.10" { faccept("220 Ok") } else { state::next() },
-    ///     ],
-    ///
-    ///     // The following rules will not be evaluated if `ctx::client_ip() == "192.168.1.10"` is true.
-    ///     mail: [
-    ///         rule "another rule" || {
-    ///             // ... doing stuff
-    ///         }
-    ///     ],
-    /// }
-    /// ```
-    ///
-    /// # Errors
+    #[doc(hidden)]
     #[rhai_fn(name = "faccept", return_raw)]
     pub fn faccept_with_string(code: &str) -> EngineResult<Status> {
         reply_or_code_id_from_string(code).map(Status::Faccept)
@@ -194,6 +120,15 @@ mod state {
     /// Tell the rule engine to accept the incoming transaction for the current stage.
     /// This means that all rules following the one `accept` is called in the current stage
     /// will be ignored.
+    ///
+    /// # Args
+    ///    
+    /// * code - A customized code as a string or code object. (default: "250 Ok")
+    ///
+    /// # Errors
+    ///
+    /// * The object passed as parameter was not a code object.
+    /// * The string passed as parameter failed to be parsed into a valid code.
     ///
     /// # Effective smtp stage
     ///
@@ -214,81 +149,37 @@ mod state {
     ///         rule "resume rules" || print("evaluation resumed!");
     ///     ]
     /// }
+    ///
+    /// #{
+    ///     mail: [
+    ///         rule "send a custom code with a code object" || {
+    ///             accept(code(220, "Ok"))
+    ///         }
+    ///     ],
+    /// }
+    ///
+    /// #{
+    ///     mail: [
+    ///         rule "send a custom code with a string" || {
+    ///             accept("220 Ok")
+    ///         }
+    ///     ],
+    /// }
     /// ```
+    ///
+    /// # rhai-autodocs:index:2
     #[must_use]
     pub const fn accept() -> Status {
         Status::Accept(ReplyOrCodeID::Left(CodeID::Ok))
     }
 
-    /// Tell the rule engine to accept the incoming transaction for the current stage.
-    /// This means that all rules following the one `accept` is called in the current stage
-    /// will be ignored.
-    ///
-    /// # Args
-    ///
-    /// * `code` - A custom code using a `code` object to send to the client.
-    ///
-    /// # Error
-    ///
-    /// * The given parameter was not a code object.
-    ///
-    /// # Effective smtp stage
-    ///
-    /// all of them.
-    ///
-    /// # Example
-    ///
-    /// ```ignore
-    /// #{
-    ///     connect: [
-    ///         // "ignored checks" will be ignored because the previous rule returned accept.
-    ///         rule "accept" || state::accept(code(220, "Ok")),
-    ///         action "ignore checks" || print("this will be ignored because the previous rule used state::accept()."),
-    ///     ],
-    ///
-    ///     mail: [
-    ///         // rule evaluation is resumed in the next stage.
-    ///         rule "resume rules" || print("evaluation resumed!");
-    ///     ]
-    /// }
-    /// ```
+    #[doc(hidden)]
     #[rhai_fn(name = "accept", return_raw, pure)]
     pub fn accept_with_code(code: &mut SharedObject) -> EngineResult<Status> {
         reply_or_code_id_from_object(code).map(Status::Accept)
     }
 
-    /// Tell the rule engine to accept the incoming transaction for the current stage.
-    /// This means that all rules following the one `accept` is called in the current stage
-    /// will be ignored.
-    ///
-    /// # Args
-    ///
-    /// * `code` - A custom code as a string to send to the client.
-    ///
-    /// # Error
-    ///
-    /// * Could not parse the parameter as a valid SMTP reply code.
-    ///
-    /// # Effective smtp stage
-    ///
-    /// all of them.
-    ///
-    /// # Example
-    ///
-    /// ```ignore
-    /// #{
-    ///     connect: [
-    ///         // "ignored checks" will be ignored because the previous rule returned accept.
-    ///         rule "accept" || state::accept(code(220, "Ok")),
-    ///         action "ignore checks" || print("this will be ignored because the previous rule used state::accept()."),
-    ///     ],
-    ///
-    ///     mail: [
-    ///         // rule evaluation is resumed in the next stage.
-    ///         rule "resume rules" || print("evaluation resumed!");
-    ///     ]
-    /// }
-    /// ```
+    #[doc(hidden)]
     #[rhai_fn(name = "accept", return_raw)]
     pub fn accept_with_string(code: &str) -> EngineResult<Status> {
         reply_or_code_id_from_string(code).map(Status::Accept)
@@ -312,15 +203,23 @@ mod state {
     ///     ],
     /// }
     /// ```
+    ///
+    /// # rhai-autodocs:index:3
     #[must_use]
     pub const fn next() -> Status {
         Status::Next
     }
 
-    /// Stop rules evaluation and/or send an error code to the client.
-    /// The code sent is `554 - permanent problems with the remote server`.
+    /// Stop rules evaluation and send an error code to the client.
     ///
-    /// To use a custom code, see `deny(code)`.
+    /// # Args
+    ///    
+    /// * code - A customized code as a string or code object. (default: "554 permanent problems with the remote server")
+    ///
+    /// # Errors
+    ///
+    /// * The object passed as parameter was not a code object.
+    /// * The string passed as parameter failed to be parsed into a valid code.
     ///
     /// # Effective smtp stage
     ///
@@ -342,81 +241,38 @@ mod state {
     ///        },
     ///     ],
     /// }
+    ///
+    /// #{
+    ///     mail: [
+    ///         rule "send a custom code with a code object" || {
+    ///             deny(code(421, "Service not available"))
+    ///         }
+    ///     ],
+    /// }
+    ///
+    /// #{
+    ///     mail: [
+    ///         rule "send a custom code with a string" || {
+    ///             deny("450 mailbox unavailable")
+    ///         }
+    ///     ],
+    /// }
     /// ```
+    ///
+    /// # rhai-autodocs:index:4
     #[must_use]
     #[rhai_fn(global)]
     pub const fn deny() -> Status {
         Status::Deny(ReplyOrCodeID::Left(CodeID::Denied))
     }
 
-    /// Stop rules evaluation and/or send an error code to the client.
-    ///
-    /// # Args
-    ///
-    /// * `code` - A custom code using a `code` object to send to the client.
-    ///            See `code()` for more information.
-    ///
-    /// # Error
-    ///
-    /// * The given parameter was not a code object.
-    ///
-    /// # Effective smtp stage
-    ///
-    /// all of them.
-    ///
-    /// # Example
-    ///
-    /// ```ignore
-    /// #{
-    ///     rcpt: [
-    ///         rule "check for satan" || {
-    ///            // The client is denied if a recipient's domain matches satan.org,
-    ///            // this is a blacklist, sort-of.
-    ///            if ctx::rcpt().domain == "satan.org" {
-    ///                state::deny(code(554, "permanent problems with the remote server"))
-    ///            } else {
-    ///                state::next()
-    ///            }
-    ///        },
-    ///     ],
-    /// }
-    /// ```
+    #[doc(hidden)]
     #[rhai_fn(name = "deny", return_raw, pure)]
     pub fn deny_with_code(code: &mut SharedObject) -> EngineResult<Status> {
         reply_or_code_id_from_object(code).map(Status::Deny)
     }
 
-    /// Stop rules evaluation and/or send an error code to the client.
-    ///
-    /// # Args
-    ///
-    /// * `code` - A custom code as a string to send to the client.
-    ///
-    /// # Error
-    ///
-    /// * Could not parse the parameter as a valid SMTP reply code.
-    ///
-    /// # Effective smtp stage
-    ///
-    /// all of them.
-    ///
-    /// # Example
-    ///
-    /// ```ignore
-    /// #{
-    ///     rcpt: [
-    ///         rule "check for satan" || {
-    ///            // The client is denied if a recipient's domain matches satan.org,
-    ///            // this is a blacklist, sort-of.
-    ///            if ctx::rcpt().domain == "satan.org" {
-    ///                state::deny("554 permanent problems with the remote server")
-    ///            } else {
-    ///                state::next()
-    ///            }
-    ///        },
-    ///     ],
-    /// }
-    /// ```
+    #[doc(hidden)]
     #[rhai_fn(name = "deny", return_raw)]
     pub fn deny_with_string(code: &str) -> EngineResult<Status> {
         reply_or_code_id_from_string(code).map(Status::Deny)
@@ -455,9 +311,116 @@ mod state {
     ///     ],
     /// }
     /// ```
+    ///
+    /// # rhai-autodocs:index:5
     #[must_use]
     #[rhai_fn(name = "quarantine")]
     pub fn quarantine_str(queue: &str) -> Status {
         Status::Quarantine(queue.to_string())
+    }
+
+    /// Check if two statuses are equal.
+    ///
+    /// # Effective smtp stage
+    ///
+    /// all of them.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// #{
+    ///     connect: [
+    ///         action "check status equality" || {
+    ///             deny() == deny(); // returns true.
+    ///             faccept() == next(); // returns false.
+    ///         }
+    ///     ],
+    /// }
+    /// ```
+    ///
+    /// # rhai-autodocs:index:6
+    #[rhai_fn(global, name = "==", pure)]
+    pub fn eq_status_operator(status_1: &mut Status, status_2: Status) -> bool {
+        *status_1 == status_2
+    }
+
+    /// Check if two statuses are not equal.
+    ///
+    /// # Effective smtp stage
+    ///
+    /// all of them.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// #{
+    ///     connect: [
+    ///         action "check status not equal" || {
+    ///             deny() != deny(); // returns false.
+    ///             faccept() != next(); // returns true.
+    ///         }
+    ///     ],
+    /// }
+    /// ```
+    ///
+    /// # rhai-autodocs:index:7
+    #[rhai_fn(global, name = "!=", pure)]
+    pub fn neq_status_operator(status_1: &mut Status, status_2: Status) -> bool {
+        !(*status_1 == status_2)
+    }
+
+    /// Convert a status to a string.
+    /// Enables string interpolation.
+    ///
+    /// # Effective smtp stage
+    ///
+    /// all of them.
+    ///
+    /// # Example
+    ///
+    /// ```text,ignore
+    /// #{
+    ///     connect: [
+    ///         rule "status to string" || {
+    ///             let status = next();
+    ///             // `.to_string` is called automatically here.
+    ///             log("info", `converting my status to a string: ${status}`);
+    ///             status
+    ///         }
+    ///     ],
+    /// }
+    /// ```
+    ///
+    /// # rhai-autodocs:index:8
+    #[rhai_fn(global, pure)]
+    pub fn to_string(status: &mut Status) -> String {
+        status.as_ref().to_string()
+    }
+
+    /// Convert a status to a debug string
+    /// Enables string interpolation.
+    ///
+    /// # Effective smtp stage
+    ///
+    /// all of them.
+    ///
+    /// # Example
+    ///
+    /// ```text,ignore
+    /// #{
+    ///     connect: [
+    ///         rule "status to string" || {
+    ///             let status = next();
+    ///             log("info", `converting my status to a string: ${status.to_debug()}`);
+    ///             status
+    ///         }
+    ///     ],
+    /// }
+    /// ```
+    ///
+    /// # rhai-autodocs:index:9
+    #[rhai_fn(global, pure)]
+    pub fn to_debug(status: &mut Status) -> String {
+        status.as_ref().to_string()
     }
 }

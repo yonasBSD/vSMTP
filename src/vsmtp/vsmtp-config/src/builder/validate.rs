@@ -125,7 +125,7 @@ mod tests {
         let config = Config::builder()
             .with_current_version()
             .without_path()
-            .with_debug_server_info()
+            .with_server_name("testserver.com".parse::<vsmtp_common::Domain>().unwrap())
             .with_default_system()
             .with_ipv4_localhost()
             .with_default_logs_settings()

@@ -33,15 +33,15 @@ mod dns {
 
     /// Performs a dual-stack DNS lookup for the given hostname.
     ///
-    /// ### Args
+    /// # Args
     ///
     /// * `host` - A valid hostname to search.
     ///
-    /// ### Return
+    /// # Return
     ///
     /// * `array` - an array of IPs. The array is empty if no IPs were found for the host.
     ///
-    /// ### Effective smtp stage
+    /// # Effective smtp stage
     ///
     /// All of them.
     ///
@@ -50,7 +50,7 @@ mod dns {
     /// * Root resolver was not found.
     /// * Lookup failed.
     ///
-    /// ### Examples
+    /// # Examples
     ///
     /// ```
     /// # vsmtp_test::vsl::run(
@@ -68,48 +68,13 @@ mod dns {
     /// }
     /// # "#)?.build()));
     /// ```
+    ///
+    /// # rhai-autodocs:index:1
     #[rhai_fn(name = "lookup", return_raw)]
     pub fn lookup(ncc: NativeCallContext, name: &str) -> EngineResult<rhai::Array> {
         super::Impl::lookup(&get_global!(ncc, srv)?, name)
     }
 
-    /// Performs a dual-stack DNS lookup for the given hostname.
-    ///
-    /// ### Args
-    ///
-    /// * `host` - A valid hostname to search.
-    ///
-    /// ### Return
-    ///
-    /// * `array` - an array of IPs. The array is empty if no IPs were found for the host.
-    ///
-    /// ### Effective smtp stage
-    ///
-    /// All of them.
-    ///
-    /// # Errors
-    ///
-    /// * Root resolver was not found.
-    /// * Lookup failed.
-    ///
-    /// ### Examples
-    ///
-    /// ```
-    /// # vsmtp_test::vsl::run(
-    /// # |builder| Ok(builder.add_root_filter_rules(r#"
-    /// #{
-    ///   preq: [
-    ///     action "lookup recipients" || {
-    ///       let domain = fqdn("gmail.com");
-    ///       let ips = dns::lookup(domain);
-    ///
-    ///       print(`ips found for ${domain}`);
-    ///       for ip in ips { print(`- ${ip}`); }
-    ///     },
-    ///   ],
-    /// }
-    /// # "#)?.build()));
-    /// ```
     #[doc(hidden)]
     #[rhai_fn(name = "lookup", return_raw)]
     pub fn lookup_obj(ncc: NativeCallContext, name: SharedObject) -> EngineResult<rhai::Array> {
@@ -118,15 +83,15 @@ mod dns {
 
     /// Performs a reverse lookup for the given IP.
     ///
-    /// ### Args
+    /// # Args
     ///
     /// * `ip` - The IP to query.
     ///
-    /// ### Return
+    /// # Return
     ///
     /// * `array` - an array of FQDNs. The array is empty if nothing was found.
     ///
-    /// ### Effective smtp stage
+    /// # Effective smtp stage
     ///
     /// All of them.
     ///
@@ -135,7 +100,7 @@ mod dns {
     /// * Failed to convert the `ip` parameter from a string into an IP.
     /// * Reverse lookup failed.
     ///
-    /// ### Examples
+    /// # Examples
     ///
     /// ```
     /// # let states = vsmtp_test::vsl::run(
@@ -153,48 +118,13 @@ mod dns {
     /// #  r#"250 client ip: 127.0.0.1 -> ["localhost."]"#.parse().unwrap(),
     /// # )));
     /// ```
+    ///
+    /// # rhai-autodocs:index:2
     #[rhai_fn(name = "rlookup", return_raw)]
     pub fn rlookup(ncc: NativeCallContext, name: &str) -> EngineResult<rhai::Array> {
         super::Impl::rlookup(&get_global!(ncc, srv)?, name)
     }
 
-    /// Performs a reverse lookup for the given IP.
-    ///
-    /// ### Args
-    ///
-    /// * `ip` - The IP to query.
-    ///
-    /// ### Return
-    ///
-    /// * `array` - an array of FQDNs. The array is empty if nothing was found.
-    ///
-    /// ### Effective smtp stage
-    ///
-    /// All of them.
-    ///
-    /// # Errors
-    ///
-    /// * Failed to convert the `ip` parameter from a string into an IP.
-    /// * Reverse lookup failed.
-    ///
-    /// ### Examples
-    ///
-    /// ```
-    /// # let states = vsmtp_test::vsl::run(
-    /// # |builder| Ok(builder.add_root_filter_rules(r#"
-    /// #{
-    ///   connect: [
-    ///     rule "rlookup" || {
-    ///       state::accept(`250 client ip: ${"127.0.0.1"} -> ${dns::rlookup("127.0.0.1")}`);
-    ///     }
-    ///   ],
-    /// }
-    /// # "#)?.build()));
-    /// # use vsmtp_common::{status::Status, CodeID, Reply, ReplyCode::Code};
-    /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::Connect].2, Status::Accept(either::Right(
-    /// #  r#"250 client ip: 127.0.0.1 -> ["localhost."]"#.parse().unwrap(),
-    /// # )));
-    /// ```
     #[doc(hidden)]
     #[rhai_fn(name = "rlookup", return_raw)]
     pub fn rlookup_obj(ncc: NativeCallContext, name: SharedObject) -> EngineResult<rhai::Array> {

@@ -15,7 +15,7 @@
  *
 */
 
-use crate::{transfer::SmtpConnection, ReplyOrCodeID};
+use crate::ReplyOrCodeID;
 
 // NOTE: only in this crate and not the rule-engine one because of the [`Context::skipped`] field.
 /// Status of the mail context treated by the rule engine.
@@ -53,10 +53,32 @@ pub enum Status {
 impl Status {
     /// Should the evaluation of the rules finish ?
     #[must_use]
+    #[inline]
     pub const fn is_finished(&self) -> bool {
         matches!(
             self,
             Self::Faccept(_) | Self::Deny(_) | Self::Quarantine(_) | Self::Delegated(_)
         )
+    }
+}
+
+/// a transport using the smtp protocol.
+/// (mostly a new type over `lettre::SmtpTransport` to implement debug
+/// and make switching transport easy if needed)
+#[derive(Clone)]
+pub struct SmtpConnection(pub alloc::sync::Arc<std::sync::Mutex<lettre::SmtpTransport>>);
+
+impl Eq for SmtpConnection {}
+impl PartialEq for SmtpConnection {
+    #[inline]
+    fn eq(&self, _: &Self) -> bool {
+        false
+    }
+}
+
+impl core::fmt::Debug for SmtpConnection {
+    #[inline]
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_tuple("SmtpTransport").finish()
     }
 }

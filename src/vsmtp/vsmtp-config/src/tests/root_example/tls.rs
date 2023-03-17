@@ -33,7 +33,7 @@ fn parse() {
             .with_version_str(&format!(">={}, <3.0.0", env!("CARGO_PKG_VERSION")))
             .unwrap()
             .with_path(path_to_config)
-            .with_server_name("testserver.com")
+            .with_server_name("testserver.com".parse::<vsmtp_common::Domain>().unwrap())
             .with_default_system()
             .with_ipv4_localhost()
             .with_default_logs_settings()

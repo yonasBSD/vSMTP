@@ -38,12 +38,23 @@ pub enum ReplyCode {
     },
 }
 
+impl From<lettre::transport::smtp::response::Code> for ReplyCode {
+    #[inline]
+    fn from(value: lettre::transport::smtp::response::Code) -> Self {
+        #[allow(clippy::expect_used)]
+        Self::Code {
+            code: value.to_string().parse().expect("code format is valid"),
+        }
+    }
+}
+
 const ENHANCED: i32 = 0;
 const SIMPLE: i32 = 1;
 
 impl ReplyCode {
     ///
     #[must_use]
+    #[inline]
     pub fn is_error(&self) -> bool {
         match self {
             Self::Code { code, .. } | Self::Enhanced { code, .. } => code / 100 >= 4,
@@ -52,6 +63,7 @@ impl ReplyCode {
 
     /// Return the underlying value of the reply code
     #[must_use]
+    #[inline]
     pub fn value(&self) -> u16 {
         match self {
             Self::Code { code, .. } | Self::Enhanced { code, .. } => *code,
@@ -60,6 +72,7 @@ impl ReplyCode {
 
     /// Return the enhanced value of the reply code
     #[must_use]
+    #[inline]
     pub fn details(&self) -> Option<&str> {
         match self {
             Self::Enhanced { enhanced, .. } => Some(enhanced),
@@ -79,6 +92,7 @@ impl ReplyCode {
                     enhanced.next()?.ok()?,
                 );
 
+                #[allow(clippy::unreachable)]
                 Some(Self::Enhanced {
                     code: match Self::try_parse(SIMPLE, &[code])? {
                         Self::Code { code, .. } => code,
@@ -101,6 +115,7 @@ impl ReplyCode {
                 // FIXME: do not need to_string().len(), make a get_length() method
                 let code_len = code.to_string().len();
 
+                #[allow(clippy::string_slice, clippy::indexing_slicing)]
                 return Ok((code, s[code_len..].to_string()));
             }
         }
@@ -110,6 +125,7 @@ impl ReplyCode {
 }
 
 impl std::fmt::Display for ReplyCode {
+    #[inline]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Code { code } => f.write_fmt(format_args!("{code}")),
@@ -134,7 +150,7 @@ mod tests {
         "504 5.5.4",
         (&ReplyCode::Enhanced {
             code: 504,
-            enhanced: "5.5.4".to_string(),
+            enhanced: "5.5.4".to_owned(),
         },
         ""),
         "504 5.5.4",
@@ -143,7 +159,7 @@ mod tests {
         "250-2.0.0",
         (&ReplyCode::Enhanced {
             code: 250,
-            enhanced: "2.0.0".to_string(),
+            enhanced: "2.0.0".to_owned(),
         },
         ""),
         "250 2.0.0",
@@ -157,7 +173,7 @@ mod tests {
         "504 5.5.4 ",
         (&ReplyCode::Enhanced {
             code: 504,
-            enhanced: "5.5.4".to_string(),
+            enhanced: "5.5.4".to_owned(),
         },
         " "),
         "504 5.5.4",
@@ -166,7 +182,7 @@ mod tests {
         "250-2.0.0 ",
         (&ReplyCode::Enhanced {
             code: 250,
-            enhanced: "2.0.0".to_string(),
+            enhanced: "2.0.0".to_owned(),
         },
         " "),
         "250 2.0.0",

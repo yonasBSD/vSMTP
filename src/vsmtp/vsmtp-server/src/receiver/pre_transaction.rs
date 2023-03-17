@@ -15,16 +15,21 @@
  *
 */
 
-use crate::{Handler, OnMail};
+use crate::Handler;
 use tokio_rustls::rustls;
 use vsmtp_common::{auth::Credentials, status::Status, ClientName, CodeID, Reply};
+use vsmtp_mail_parser::MailParser;
 use vsmtp_protocol::{
     AcceptArgs, AuthArgs, AuthError, CallbackWrap, ConnectionKind, EhloArgs, HeloArgs,
     ReceiverContext,
 };
 use vsmtp_rule_engine::{ExecutionStage, RuleEngine, RuleState};
 
-impl<M: OnMail + Send> Handler<M> {
+impl<Parser, ParserFactory> Handler<Parser, ParserFactory>
+where
+    Parser: MailParser + Send + Sync,
+    ParserFactory: Fn() -> Parser + Send + Sync,
+{
     pub(super) fn generic_helo(
         &mut self,
         ctx: &mut ReceiverContext,
@@ -64,19 +69,6 @@ impl<M: OnMail + Send> Handler<M> {
         ctx: &mut ReceiverContext,
         args: &AcceptArgs,
     ) -> Reply {
-        self.state
-            .context()
-            .write()
-            .expect("state poisoned")
-            .to_connect(
-                args.client_addr,
-                args.server_addr,
-                self.config.server.name.parse().unwrap(),
-                args.timestamp,
-                args.uuid,
-            )
-            .expect("bad state");
-
         if self
             .rule_engine
             .get_delegation_directive_bound_to_address(args.server_addr)

@@ -27,19 +27,19 @@ pub use unix::*;
 mod unix {
     /// Check if a user exists on this server.
     ///
-    /// ### Args
+    /// # Args
     ///
     /// * `name` - the name of the user.
     ///
-    /// ### Return
+    /// # Return
     ///
     /// * `bool` - true if the user exists, false otherwise.
     ///
-    /// ### Effective smtp stage
+    /// # Effective smtp stage
     ///
     /// All of them.
     ///
-    /// ### Examples
+    /// # Examples
     ///
     /// ```
     /// # let states = vsmtp_test::vsl::run(
@@ -53,43 +53,17 @@ mod unix {
     /// }
     /// # "#)?.build()));
     /// ```
+    ///
+    /// # rhai-autodocs:index:1
     #[must_use]
     #[rhai_fn(global, name = "user_exist")]
     pub fn user_exist(name: &str) -> bool {
         super::Impl::user_exist(name)
     }
 
-    /// Check if a user exists on this server.
-    ///
-    /// ### Args
-    ///
-    /// * `name` - the name of the user.
-    ///
-    /// ### Return
-    ///
-    /// * `bool` - true if the user exists, false otherwise.
-    ///
-    /// ### Effective smtp stage
-    ///
-    /// All of them.
-    ///
-    /// ### Examples
-    ///
-    /// ```
-    /// # let states = vsmtp_test::vsl::run(
-    /// # |builder| Ok(builder.add_root_filter_rules(r#"
-    /// if user_exist(identifier("john")) {
-    ///     print("john user found on the system.");
-    ///     # throw "a john user seems to exist on this system.";
-    /// } else {
-    ///     print("john user does not exist.");
-    ///     # return #{};
-    /// }
-    /// # "#)?.build()));
-    /// ```
+    #[cfg(all(feature = "unix", feature = "objects"))]
     #[must_use]
     #[doc(hidden)]
-    #[cfg(all(feature = "unix", feature = "objects"))]
     #[rhai_fn(global, name = "user_exist")]
     pub fn user_exist_obj(name: crate::objects::SharedObject) -> bool {
         super::Impl::user_exist(&name.to_string())
@@ -97,15 +71,15 @@ mod unix {
 
     /// Get the hostname of this machine.
     ///
-    /// ### Return
+    /// # Return
     ///
     /// * `string` - the host name of the machine.
     ///
-    /// ### Effective smtp stage
+    /// # Effective smtp stage
     ///
     /// All of them.
     ///
-    /// ### Examples
+    /// # Examples
     ///
     /// ```
     /// # let states = vsmtp_test::vsl::run(
@@ -114,6 +88,8 @@ mod unix {
     /// # return #{};
     /// # "#)?.build()));
     /// ```
+    ///
+    /// # rhai-autodocs:index:2
     #[rhai_fn(global, return_raw)]
     pub fn hostname() -> Result<String, Box<rhai::EvalAltResult>> {
         hostname::get()
@@ -161,45 +137,13 @@ mod unix {
     /// #       return #{};
     /// # "#)?.build()));
     /// ```
+    ///
+    /// # rhai-autodocs:index:3
     #[rhai_fn(global, name = "env")]
     pub fn env_str(variable: &str) -> rhai::Dynamic {
         std::env::var(variable).map_or(rhai::Dynamic::UNIT, std::convert::Into::into)
     }
 
-    /// Fetch an environment variable from the current process.
-    ///
-    /// # Args
-    ///
-    /// * `variable` - the variable to fetch.
-    ///
-    /// # Returns
-    ///
-    /// * `string` - the value of the fetched variable.
-    /// * `()`     - when the variable is not set,  when the variable contains the sign character (=) or the NUL character,
-    /// or that the variable does not contain valid Unicode.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # let states = vsmtp_test::vsl::run(
-    /// # |builder| Ok(builder.add_root_filter_rules(r#"
-    /// // get the HOME environment variable.
-    /// let home = unix::env(identifier("HOME"));
-    ///
-    /// #       if home == () {
-    /// #           throw `error: home variable not found: ${home}`;
-    /// #       }
-    ///
-    /// // "VSMTP=ENV" is malformed, this will return the unit type '()'.
-    /// let invalid = unix::env(identifier("VSMTP=ENV"));
-    ///
-    /// #       if invalid != () {
-    /// #           throw `error: malformed variable was accepted: ${invalid}`;
-    /// #       }
-    ///
-    /// #       return #{};
-    /// # "#)?.build()));
-    /// ```
     #[doc(hidden)]
     #[cfg(all(feature = "unix", feature = "objects"))]
     #[rhai_fn(global, name = "env", pure)]

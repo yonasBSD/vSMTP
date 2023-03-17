@@ -27,6 +27,7 @@ pub struct Reply {
 }
 
 impl serde::Serialize for Reply {
+    #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -36,6 +37,7 @@ impl serde::Serialize for Reply {
 }
 
 impl<'de> serde::Deserialize<'de> for Reply {
+    #[inline]
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -118,6 +120,7 @@ impl<'de> serde::Deserialize<'de> for Reply {
 impl Reply {
     ///
     #[must_use]
+    #[inline]
     pub const fn code(&self) -> &ReplyCode {
         &self.code
     }
@@ -132,10 +135,10 @@ impl Reply {
             .collect::<Vec<_>>();
 
         let len = output.len();
-        for i in output.iter_mut().take(len - 1) {
+        for i in output.iter_mut().take(len.saturating_sub(1)) {
             i.replace_range(3..4, "-");
         }
-        if let Some(s) = output.get_mut(len - 1) {
+        if let Some(s) = output.get_mut(len.saturating_sub(1)) {
             s.replace_range(3..4, " ");
         }
 
@@ -149,6 +152,7 @@ impl Reply {
     }
 
     /// Return the reply received, with no [`ReplyCode`], no ending CRLF
+    #[inline]
     pub fn lines(&self) -> impl Iterator<Item = &String> {
         self.text.iter()
     }
@@ -169,6 +173,7 @@ impl Reply {
     ///   ].concat()
     /// );
     /// ```
+    #[inline]
     pub fn extended(mut self, other: &Self) -> Self {
         self.text.extend(other.text.iter().cloned());
         let reply = Self {
@@ -192,6 +197,8 @@ impl Reply {
 impl std::str::FromStr for Reply {
     type Err = anyhow::Error;
 
+    #[inline]
+    #[allow(clippy::panic_in_result_fn)]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let x = s
             .split("\r\n")
@@ -241,12 +248,14 @@ impl std::str::FromStr for Reply {
 }
 
 impl std::fmt::Display for Reply {
+    #[inline]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.folded)
     }
 }
 
 impl AsRef<str> for Reply {
+    #[inline]
     fn as_ref(&self) -> &str {
         &self.folded
     }
@@ -261,42 +270,42 @@ mod tests {
         &Reply {
             code: ReplyCode::Code { code: 501 },
             text: vec![String::new()],
-            folded: "501 \r\n".to_string(),
+            folded: "501 \r\n".to_owned(),
         }
     )]
     #[case(
         &Reply {
             code: ReplyCode::Code { code: 220,},
-            text: vec!["this is a custom code.".to_string()],
-            folded: "220 this is a custom code.\r\n".to_string(),
+            text: vec!["this is a custom code.".to_owned()],
+            folded: "220 this is a custom code.\r\n".to_owned(),
         }
     )]
     #[case(
         &Reply {
-            code: ReplyCode::Enhanced { code: 504, enhanced: "5.5.4".to_string() },
+            code: ReplyCode::Enhanced { code: 504, enhanced: "5.5.4".to_owned() },
             text: vec![String::new()],
-            folded: "504 5.5.4 \r\n".to_string(),
+            folded: "504 5.5.4 \r\n".to_owned(),
         }
     )]
     #[case(
         &Reply {
-            code: ReplyCode::Enhanced { code: 451, enhanced: "5.7.3".to_string() },
-            text: vec!["STARTTLS is required to send mail".to_string()],
-            folded: "451 5.7.3 STARTTLS is required to send mail\r\n".to_string(),
+            code: ReplyCode::Enhanced { code: 451, enhanced: "5.7.3".to_owned() },
+            text: vec!["STARTTLS is required to send mail".to_owned()],
+            folded: "451 5.7.3 STARTTLS is required to send mail\r\n".to_owned(),
         }
     )]
     #[case(
         &Reply {
             code: ReplyCode::Code { code: 250, },
             text: vec![
-                "mydomain.tld".to_string(),
-                "PIPELINING".to_string(),
-                "8BITMIME".to_string(),
-                "AUTH PLAIN LOGIN".to_string(),
-                "XCLIENT NAME HELO".to_string(),
-                "XFORWARD NAME ADDR PROTO HELO".to_string(),
-                "ENHANCEDSTATUSCODES".to_string(),
-                "DSN".to_string(),
+                "mydomain.tld".to_owned(),
+                "PIPELINING".to_owned(),
+                "8BITMIME".to_owned(),
+                "AUTH PLAIN LOGIN".to_owned(),
+                "XCLIENT NAME HELO".to_owned(),
+                "XFORWARD NAME ADDR PROTO HELO".to_owned(),
+                "ENHANCEDSTATUSCODES".to_owned(),
+                "DSN".to_owned(),
                 String::new(),
             ],
             folded: concat!(
@@ -309,41 +318,41 @@ mod tests {
                 "250-ENHANCEDSTATUSCODES\r\n",
                 "250-DSN\r\n",
                 "250 \r\n",
-            ).to_string(),
+            ).to_owned(),
         }
     )]
     #[case(
         &Reply {
             code: ReplyCode::Enhanced {
                 code: 220,
-                enhanced: "2.0.0".to_string(),
+                enhanced: "2.0.0".to_owned(),
             },
             text: vec![
-                "this is a long message, a very very long message ...".to_string(),
-                " carriage return will be properly added automatically.".to_string(),
+                "this is a long message, a very very long message ...".to_owned(),
+                " carriage return will be properly added automatically.".to_owned(),
             ],
             folded: concat!(
                 "220-2.0.0 this is a long message, a very very long message ...\r\n",
                 "220 2.0.0  carriage return will be properly added automatically.\r\n",
-            ).to_string(),
+            ).to_owned(),
         }
     )]
     #[case(
         &Reply {
             code: ReplyCode::Enhanced {
                 code: 220,
-                enhanced: "2.0.0".to_string(),
+                enhanced: "2.0.0".to_owned(),
             },
             text: vec![
-                "this is a long message, a very very long message ... carriage return".to_string(),
-                " will be properly added automatically. Made by vSMTP mail transfer a".to_string(),
-                "gent\nCopyright (C) 2022 viridIT SAS".to_string(),
+                "this is a long message, a very very long message ... carriage return".to_owned(),
+                " will be properly added automatically. Made by vSMTP mail transfer a".to_owned(),
+                "gent\nCopyright (C) 2022 viridIT SAS".to_owned(),
             ],
             folded: concat!(
                 "220-2.0.0 this is a long message, a very very long message ... carriage return\r\n",
                 "220-2.0.0  will be properly added automatically. Made by vSMTP mail transfer a\r\n",
                 "220 2.0.0 gent\nCopyright (C) 2022 viridIT SAS\r\n",
-            ).to_string(),
+            ).to_owned(),
         }
     )]
     fn parse_reply(#[case] expected: &Reply) {
@@ -354,8 +363,6 @@ mod tests {
 
         let output = input.parse::<Reply>().unwrap();
         pretty_assertions::assert_eq!(output, *expected);
-
-        dbg!(expected.code().value(), expected.code.details());
 
         let fold = output.fold();
         pretty_assertions::assert_eq!(input, fold);

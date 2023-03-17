@@ -106,7 +106,6 @@ mod transport {
     /// #   let transport = std::sync::Arc::new(
     /// #     vsmtp_delivery::Forward::new(
     /// #       target.parse().unwrap(),
-    /// #       std::sync::Arc::new(vsmtp_test::config::local_test())
     /// #     )
     /// #   );
     /// #   let delivery = states[&vsmtp_rule_engine::ExecutionStage::RcptTo].0.delivery().unwrap();
@@ -116,6 +115,64 @@ mod transport {
     /// #   assert!(bound.iter().map(|(r, _)| r).any(|r| *r == *addr));
     /// # }
     /// ```
+    ///
+    /// Or with url:
+    ///
+    /// ```
+    /// # let rules = r#"
+    /// #{
+    ///     rcpt: [
+    /// #      action "rm default value" || {
+    /// #        envelop::rm_rcpt("recipient@testserver.com");
+    /// #        envelop::add_rcpt("my.address@foo.com");
+    /// #      },
+    ///       action "set forward" || {
+    ///         let user = "root@domain.tld";
+    ///         let pass = "xxxxxx";
+    ///         let host = "smtp.domain.tld";
+    ///         let port = 25;
+    ///         transport::forward_all(`smtp://${user}:${pass}@${host}:${port}?tls=opportunistic`);
+    ///       },
+    ///    ]
+    /// }
+    /// # "#;
+    /// #
+    /// # let states = vsmtp_test::vsl::run(|builder| Ok(builder
+    /// #   .add_root_filter_rules("#{}")?
+    /// #      .add_domain_rules("testserver.com".parse().unwrap())
+    /// #        .with_incoming(rules)?
+    /// #        .with_outgoing(rules)?
+    /// #        .with_internal(rules)?
+    /// #      .build()
+    /// #   .build())
+    /// # );
+    /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::RcptTo].2, vsmtp_common::status::Status::Next);
+    /// # use vsmtp_common::Address;
+    /// # let bound = states[&vsmtp_rule_engine::ExecutionStage::RcptTo].0.delivery().unwrap().get(
+    /// # &vsmtp_common::transport::WrapperSerde::Ready(std::sync::Arc::new(
+    /// #   vsmtp_delivery::Forward::new(
+    /// #     vsmtp_delivery::SenderParameters {
+    /// #       host: vsmtp_common::Target::Domain("smtp.domain.tld".parse().unwrap()),
+    /// #       hello_name: None,
+    /// #       port: 25,
+    /// #       credentials: Some(("root@domain.tld".to_string(), "xxxxxx".to_string())),
+    /// #       tls: vsmtp_delivery::TlsPolicy::StarttlsOpportunistic,
+    /// #     }
+    /// #   )
+    /// # ))
+    /// # ).unwrap();
+    /// # for (addr, expected_addr) in states[&vsmtp_rule_engine::ExecutionStage::RcptTo].0.forward_paths().unwrap().iter().zip([
+    /// #     "my.address@foo.com",
+    /// # ]) {
+    /// #   assert_eq!(
+    /// #     *addr,
+    /// #     Address::new_unchecked(expected_addr.to_string())
+    /// #   );
+    /// #   assert!(bound.iter().map(|(r, _)| r).any(|r| *r == *addr));
+    /// # }
+    /// ```
+    ///
+    /// # rhai-autodocs:index:1
     #[rhai_fn(name = "forward", return_raw)]
     pub fn forward(ncc: NativeCallContext, rcpt: &str, forward: &str) -> EngineResult<()> {
         let params =
@@ -126,8 +183,7 @@ mod transport {
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())?;
 
         let ctx = get_global!(ncc, ctx)?;
-        let srv = get_global!(ncc, srv)?;
-        let transport = std::sync::Arc::new(Forward::new(params, srv.config.clone()));
+        let transport = std::sync::Arc::new(Forward::new(params));
         let mut guard = ctx.write().expect("mutex poisoned");
         guard
             .set_transport_for_one(&rcpt, transport)
@@ -148,14 +204,10 @@ mod transport {
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())?;
 
         let ctx = get_global!(ncc, ctx)?;
-        let srv = get_global!(ncc, srv)?;
 
         let mut guard = ctx.write().expect("mutex poisoned");
         guard
-            .set_transport_for_one(
-                &rcpt,
-                std::sync::Arc::new(Forward::new(params, srv.config.clone())),
-            )
+            .set_transport_for_one(&rcpt, std::sync::Arc::new(Forward::new(params)))
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())
     }
 
@@ -172,13 +224,9 @@ mod transport {
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())?;
 
         let ctx = get_global!(ncc, ctx)?;
-        let srv = get_global!(ncc, srv)?;
         let mut guard = ctx.write().expect("mutex poisoned");
         guard
-            .set_transport_for_one(
-                &rcpt,
-                std::sync::Arc::new(Forward::new(params, srv.config.clone())),
-            )
+            .set_transport_for_one(&rcpt, std::sync::Arc::new(Forward::new(params)))
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())
     }
 
@@ -195,13 +243,9 @@ mod transport {
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())?;
 
         let ctx = get_global!(ncc, ctx)?;
-        let srv = get_global!(ncc, srv)?;
         let mut guard = ctx.write().expect("mutex poisoned");
         guard
-            .set_transport_for_one(
-                &rcpt,
-                std::sync::Arc::new(Forward::new(params, srv.config.clone())),
-            )
+            .set_transport_for_one(&rcpt, std::sync::Arc::new(Forward::new(params)))
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())
     }
 
@@ -256,7 +300,6 @@ mod transport {
     /// # &vsmtp_common::transport::WrapperSerde::Ready(std::sync::Arc::new(
     /// #   vsmtp_delivery::Forward::new(
     /// #     "127.0.0.1".parse().unwrap(),
-    /// #     std::sync::Arc::new(vsmtp_test::config::local_test())
     /// #   )
     /// # ))
     /// # ).unwrap();
@@ -271,6 +314,8 @@ mod transport {
     /// #   assert!(bound.iter().map(|(r, _)| r).any(|r| *r == *addr));
     /// # }
     /// ```
+    ///
+    /// # rhai-autodocs:index:2
     #[rhai_fn(name = "forward_all", return_raw)]
     pub fn forward_all(ncc: NativeCallContext, forward: &str) -> EngineResult<()> {
         let params =
@@ -278,8 +323,7 @@ mod transport {
                 .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())?;
 
         let ctx = get_global!(ncc, ctx)?;
-        let srv = get_global!(ncc, srv)?;
-        let transport = std::sync::Arc::new(Forward::new(params, srv.config.clone()));
+        let transport = std::sync::Arc::new(Forward::new(params));
 
         let mut guard = ctx.write().expect("mutex poisoned");
         guard
@@ -294,13 +338,9 @@ mod transport {
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())?;
 
         let ctx = get_global!(ncc, ctx)?;
-        let srv = get_global!(ncc, srv)?;
         let mut guard = ctx.write().expect("mutex poisoned");
         guard
-            .set_transport_foreach(std::sync::Arc::new(Forward::new(
-                params,
-                srv.config.clone(),
-            )))
+            .set_transport_foreach(std::sync::Arc::new(Forward::new(params)))
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())
     }
 
@@ -382,6 +422,8 @@ mod transport {
     /// #   assert!(bound.iter().map(|(r, _)| r).any(|r| *r == *addr));
     /// # }
     /// ```
+    ///
+    /// # rhai-autodocs:index:3
     #[rhai_fn(name = "deliver", return_raw)]
     pub fn deliver(ncc: NativeCallContext, rcpt: &str) -> EngineResult<()> {
         let rcpt = <Address as std::str::FromStr>::from_str(rcpt)
@@ -487,6 +529,8 @@ mod transport {
     /// #   assert!(bound.iter().map(|(r, _)| r).any(|r| *r == *addr));
     /// # }
     /// ```
+    ///
+    /// # rhai-autodocs:index:4
     #[rhai_fn(return_raw)]
     pub fn deliver_all(ncc: NativeCallContext) -> EngineResult<()> {
         let ctx = get_global!(ncc, ctx)?;
@@ -568,6 +612,8 @@ mod transport {
     /// #   assert!(bound.iter().map(|(r, _)| r).any(|r| *r == *addr));
     /// # }
     /// ```
+    ///
+    /// # rhai-autodocs:index:5
     #[rhai_fn(name = "mbox", return_raw)]
     pub fn mbox(ncc: NativeCallContext, rcpt: &str) -> EngineResult<()> {
         let rcpt = <Address as std::str::FromStr>::from_str(rcpt)
@@ -668,6 +714,8 @@ mod transport {
     /// #   assert!(bound.iter().map(|(r, _)| r).any(|r| *r == *addr));
     /// # }
     /// ```
+    ///
+    /// # rhai-autodocs:index:6
     #[rhai_fn(return_raw)]
     pub fn mbox_all(ncc: NativeCallContext) -> EngineResult<()> {
         let ctx = get_global!(ncc, ctx)?;
@@ -749,6 +797,8 @@ mod transport {
     /// #   assert!(bound.iter().map(|(r, _)| r).any(|r| *r == *addr));
     /// # }
     /// ```
+    ///
+    /// # rhai-autodocs:index:7
     #[rhai_fn(name = "maildir", return_raw)]
     pub fn maildir(ncc: NativeCallContext, rcpt: &str) -> EngineResult<()> {
         let rcpt = <Address as std::str::FromStr>::from_str(rcpt)
@@ -851,6 +901,8 @@ mod transport {
     /// #   assert!(bound.iter().map(|(r, _)| r).any(|r| *r == *addr));
     /// # }
     /// ```
+    ///
+    /// # rhai-autodocs:index:8
     #[rhai_fn(return_raw)]
     pub fn maildir_all(ncc: NativeCallContext) -> EngineResult<()> {
         let ctx = get_global!(ncc, ctx)?;

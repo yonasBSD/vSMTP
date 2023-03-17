@@ -32,6 +32,7 @@ pub enum Target {
 }
 
 impl Default for Target {
+    #[inline]
     fn default() -> Self {
         Self::Domain(Domain::default())
     }
@@ -40,6 +41,7 @@ impl Default for Target {
 impl std::str::FromStr for Target {
     type Err = anyhow::Error;
 
+    #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         s.find('%').map_or_else(
             || {
@@ -63,6 +65,7 @@ impl std::str::FromStr for Target {
 }
 
 impl std::fmt::Display for Target {
+    #[inline]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Domain(domain) => write!(f, "{domain}"),

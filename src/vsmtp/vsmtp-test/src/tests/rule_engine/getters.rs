@@ -17,9 +17,9 @@
 
 use crate::run_test;
 use crate::tests::protocol::auth::unsafe_auth_config;
-use vqueue::GenericQueueManager;
 use vsmtp_common::addr;
 use vsmtp_common::ContextFinished;
+use vsmtp_mail_parser::MessageBody;
 
 run_test! {
     fn getters,
@@ -48,56 +48,38 @@ run_test! {
         "221 Service closing transmission channel\r\n"
     ],
     config = unsafe_auth_config(),
-    mail_handler = {
-        #[derive(Default)]
-        struct MailHandler;
+    mail_handler = |ctx: ContextFinished, _: MessageBody| {
+        assert_eq!(
+            Some(addr!("john.doe@example.com")),
+            ctx.mail_from.reverse_path
+        );
 
-        #[async_trait::async_trait]
-        impl vsmtp_server::OnMail for MailHandler {
-            async fn on_mail(
-                &mut self,
-                ctx: Box<ContextFinished>,
-                _:  vsmtp_mail_parser::MessageBody,
-                _: std::sync::Arc<dyn GenericQueueManager>,
-            ) -> vsmtp_common::CodeID {
-
-                assert_eq!(
-                    Some(addr!("john.doe@example.com")),
-                    ctx.mail_from.reverse_path
-                );
-
-                if matches!(&ctx.rcpt_to.transaction_type,
-                    vsmtp_common::TransactionType::Outgoing { domain }
-                        if *domain == "example.com".parse::<vsmtp_common::Domain>().unwrap()) {
-                    assert!(ctx.rcpt_to.delivery
-                        .values()
-                        .flatten()
-                        .map(|(addr, _)| addr)
-                        .cloned()
-                        .eq([
-                            addr!("add4@example.com"),
-                            addr!("replace4@example.com"),
-                        ])
-                    );
-                } else {
-                    assert!(ctx.rcpt_to.delivery
-                        .values()
-                        .flatten()
-                        .map(|(addr, _)| addr)
-                        .cloned()
-                        .eq([
-                            addr!("test@example.com"),
-                            addr!("add4@example.com"),
-                            addr!("replace4@example.com"),
-                        ])
-                    );
-                }
-
-                vsmtp_common::CodeID::Ok
-            }
+        if matches!(&ctx.rcpt_to.transaction_type,
+            vsmtp_common::TransactionType::Outgoing { domain }
+                if *domain == "example.com".parse::<vsmtp_common::Domain>().unwrap()) {
+            assert!(ctx.rcpt_to.delivery
+                .values()
+                .flatten()
+                .map(|(addr, _)| addr)
+                .cloned()
+                .eq([
+                    addr!("add4@example.com"),
+                    addr!("replace4@example.com"),
+                ])
+            );
+        } else {
+            assert!(ctx.rcpt_to.delivery
+                .values()
+                .flatten()
+                .map(|(addr, _)| addr)
+                .cloned()
+                .eq([
+                    addr!("test@example.com"),
+                    addr!("add4@example.com"),
+                    addr!("replace4@example.com"),
+                ])
+            );
         }
-
-        MailHandler
     },
     hierarchy_builder = |builder| {
         Ok(

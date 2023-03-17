@@ -419,7 +419,6 @@ pub fn get_mime_header(name: &str, value: &str) -> MimeHeader {
         // split every element of args by the "=" token (if there are any parameters).
         // inserts all resulting key / value pair into new_args.
         args: args_iter
-            .into_iter()
             .filter_map(|arg| {
                 let mut split = arg.splitn(2, '=');
                 match (split.next(), split.next()) {

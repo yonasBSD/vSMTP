@@ -89,12 +89,6 @@ impl Builder<WantsPath> {
 impl Builder<WantsServer> {
     ///
     #[must_use]
-    pub fn with_debug_server_info(self) -> Builder<WantsServerSystem> {
-        self.with_server_name("debug.com")
-    }
-
-    ///
-    #[must_use]
     pub fn with_hostname(self) -> Builder<WantsServerSystem> {
         self.with_hostname_and_client_count_max(FieldServer::default_client_count_max())
     }
@@ -105,12 +99,12 @@ impl Builder<WantsServer> {
         self,
         client_count_max: i64,
     ) -> Builder<WantsServerSystem> {
-        self.with_server_name_and_client_count(&FieldServer::hostname(), client_count_max)
+        self.with_server_name_and_client_count(FieldServer::hostname(), client_count_max)
     }
 
     ///
     #[must_use]
-    pub fn with_server_name(self, domain: &str) -> Builder<WantsServerSystem> {
+    pub fn with_server_name(self, domain: impl Into<Domain>) -> Builder<WantsServerSystem> {
         self.with_server_name_and_client_count(domain, FieldServer::default_client_count_max())
     }
 
@@ -118,13 +112,13 @@ impl Builder<WantsServer> {
     #[must_use]
     pub fn with_server_name_and_client_count(
         self,
-        name: &str,
+        name: impl Into<Domain>,
         client_count_max: i64,
     ) -> Builder<WantsServerSystem> {
         Builder::<WantsServerSystem> {
             state: WantsServerSystem {
                 parent: self.state,
-                name: name.to_string(),
+                name: name.into(),
                 client_count_max,
                 message_size_limit: FieldServer::default_message_size_limit(),
             },
@@ -356,6 +350,7 @@ impl Builder<WantsServerTLSConfig> {
                         rustls::ProtocolVersion::TLSv1_3,
                     )],
                     cipher_suite: FieldServerTls::default_cipher_suite(),
+                    default: None,
                 }),
             },
         })
@@ -712,25 +707,21 @@ impl Builder<WantsServerVirtual> {
                 entry.domain.clone(),
                 match (entry.tls.as_ref(), entry.dns) {
                     (None, None) => FieldServerVirtual {
-                        is_default: false,
                         tls: None,
                         dns: None,
                         dkim: None,
                     },
                     (None, Some(dns_config)) => FieldServerVirtual {
-                        is_default: false,
                         tls: None,
                         dns: Some(dns_config),
                         dkim: None,
                     },
                     (Some((certificate, private_key)), None) => FieldServerVirtual {
-                        is_default: false,
                         tls: Some(FieldServerVirtualTls::from_path(certificate, private_key)?),
                         dns: None,
                         dkim: None,
                     },
                     (Some((certificate, private_key)), Some(dns_config)) => FieldServerVirtual {
-                        is_default: false,
                         tls: Some(FieldServerVirtualTls::from_path(certificate, private_key)?),
                         dns: Some(dns_config),
                         dkim: None,

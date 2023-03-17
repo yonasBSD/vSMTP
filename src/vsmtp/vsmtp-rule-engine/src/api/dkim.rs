@@ -23,99 +23,59 @@ use rhai::plugin::{
     mem, Dynamic, FnAccess, FnNamespace, ImmutableString, Module, NativeCallContext,
     PluginFunction, RhaiResult, TypeId,
 };
-use vsmtp_auth::dkim::{
-    sign, verify, Canonicalization, PrivateKey, PublicKey, Signature, VerificationResult,
-    VerifierError,
-};
+use vsmtp_auth::dkim as backend;
 use vsmtp_common::Domain;
 use vsmtp_mail_parser::MessageBody;
 
 pub use dkim::*;
 
-#[derive(Debug)]
-struct SignatureParams {
+/// Parameters used by the [`sign`] function.
+#[derive(Debug, serde::Deserialize)]
+pub struct SignatureParams {
     sdid: Option<String>,
     selector: String,
-    private_key: std::sync::Arc<PrivateKey>,
+    #[serde(deserialize_with = "deserialize_private_key")]
+    private_key: std::sync::Arc<backend::PrivateKey>,
     headers_field: Option<Vec<String>>,
-    canonicalization: Option<Canonicalization>,
+    #[serde(deserialize_with = "deserialize_canonicalization")]
+    canonicalization: Option<backend::Canonicalization>,
 }
 
-impl TryFrom<rhai::Map> for SignatureParams {
-    type Error = Box<rhai::EvalAltResult>;
+fn deserialize_private_key<'de, D>(
+    deserializer: D,
+) -> Result<std::sync::Arc<backend::PrivateKey>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let private_key = <rhai::Dynamic as serde::Deserialize>::deserialize(deserializer)?;
 
-    fn try_from(value: rhai::Map) -> Result<Self, Self::Error> {
-        let mut sdid = None;
-        let mut selector = None;
-        let mut private_key = None;
-        let mut headers_field = None;
-        let mut canonicalization = None;
+    private_key
+        .try_cast::<rhai::Shared<backend::PrivateKey>>()
+        .ok_or_else(|| serde::de::Error::custom("failed to parse private key"))
+}
 
-        for (key, value) in value {
-            let value_type_name = value.type_name();
-            match key.as_ref() {
-                "sdid" => {
-                    sdid = Some(value.into_string()?);
-                }
-                "selector" => {
-                    selector = Some(value.into_string()?);
-                }
-                "private_key" => {
-                    private_key = Some(value.try_cast::<rhai::Shared<PrivateKey>>().ok_or_else(
-                        || {
-                            Box::new(rhai::EvalAltResult::ErrorMismatchDataType(
-                                "Arc<PrivateKey>".to_string(),
-                                value_type_name.to_string(),
-                                rhai::Position::NONE,
-                            ))
-                        },
-                    )?);
-                }
-                "headers_field" => {
-                    headers_field = Some(
-                        value
-                            .into_array()?
-                            .into_iter()
-                            .map(rhai::Dynamic::into_string)
-                            .collect::<Result<Vec<_>, _>>()?,
-                    );
-                }
-                "canonicalization" => {
-                    canonicalization = Some(value.into_string()?.parse().map_err(|_| {
-                        Box::new(rhai::EvalAltResult::ErrorMismatchDataType(
-                            "Canonicalization".to_string(),
-                            value_type_name.to_string(),
-                            rhai::Position::NONE,
-                        ))
-                    })?);
-                }
-                otherwise => {
-                    return Err(Box::new(rhai::EvalAltResult::ErrorPropertyNotFound(
-                        otherwise.to_string(),
-                        rhai::Position::NONE,
-                    )))
-                }
-            }
-        }
+fn deserialize_canonicalization<'de, D>(
+    deserializer: D,
+) -> Result<Option<backend::Canonicalization>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let canonicalization = <rhai::Dynamic as serde::Deserialize>::deserialize(deserializer)?;
 
-        Ok(Self {
-            sdid,
-            selector: selector.ok_or_else(|| {
-                Box::new(rhai::EvalAltResult::ErrorParsing(
-                    rhai::ParseErrorType::VariableUndefined("selector".to_string()),
-                    rhai::Position::NONE,
-                ))
-            })?,
-            private_key: private_key.ok_or_else(|| {
-                Box::new(rhai::EvalAltResult::ErrorParsing(
-                    rhai::ParseErrorType::VariableUndefined("private_key".to_string()),
-                    rhai::Position::NONE,
-                ))
-            })?,
-            headers_field,
-            canonicalization,
-        })
+    if canonicalization.is_unit() {
+        return Ok(None);
     }
+
+    canonicalization
+        .into_string()
+        .map_err(|t| {
+            serde::de::Error::custom(format!(
+                "dkim canonicalization parameter is not a string (got {t})"
+            ))
+        })?
+        .parse()
+        .map(Some)
+        .map_err(|_| serde::de::Error::custom("failed to parse canonicalization"))
 }
 
 /// Generate and verify DKIM signatures.
@@ -123,6 +83,8 @@ impl TryFrom<rhai::Map> for SignatureParams {
 #[rhai::plugin::export_module]
 mod dkim {
     /// Has the `ctx()` a DKIM signature verification result ?
+    ///
+    /// # rhai-autodocs:index:1
     #[rhai_fn(name = "has_result", return_raw)]
     pub fn has_result(ncc: NativeCallContext) -> EngineResult<bool> {
         super::Impl::has_dkim_result(&get_global!(ncc, ctx)?)
@@ -130,6 +92,8 @@ mod dkim {
 
     /// Return the DKIM signature verification result in the `ctx()` or
     /// an error if no result is found.
+    ///
+    /// # rhai-autodocs:index:2
     #[rhai_fn(name = "result", return_raw)]
     pub fn result(ncc: NativeCallContext) -> EngineResult<rhai::Map> {
         super::Impl::dkim_result(&get_global!(ncc, ctx)?)
@@ -139,12 +103,16 @@ mod dkim {
     ///
     /// # Error
     /// * The `status` field is missing in the DKIM verification results.
+    ///
+    /// # rhai-autodocs:index:3
     #[rhai_fn(return_raw)]
     pub fn store(ncc: NativeCallContext, result: rhai::Map) -> EngineResult<()> {
         super::Impl::store(&get_global!(ncc, ctx)?, &result)
     }
 
     /// Get the list of DKIM private keys associated with this sdid
+    ///
+    /// # rhai-autodocs:index:4
     #[rhai_fn(return_raw)]
     pub fn get_private_keys(ncc: NativeCallContext, sdid: &str) -> EngineResult<rhai::Array> {
         let server = get_global!(ncc, srv)?;
@@ -168,15 +136,19 @@ mod dkim {
         Ok(r#virtual.unwrap_or_default())
     }
 
-    /// return the `sdid` property of the [`Signature`]
+    /// return the `sdid` property of the [`backend::Signature`]
+    ///
+    /// # rhai-autodocs:index:5
     #[rhai_fn(global, get = "sdid", pure)]
-    pub fn sdid(signature: &mut Signature) -> String {
+    pub fn sdid(signature: &mut backend::Signature) -> String {
         signature.sdid.clone()
     }
 
-    /// return the `auid` property of the [`Signature`]
+    /// return the `auid` property of the [`backend::Signature`]
+    ///
+    /// # rhai-autodocs:index:6
     #[rhai_fn(global, get = "auid", pure)]
-    pub fn auid(signature: &mut Signature) -> String {
+    pub fn auid(signature: &mut backend::Signature) -> String {
         signature.auid.clone()
     }
 
@@ -343,6 +315,8 @@ mod dkim {
     /// # use vsmtp_rule_engine::ExecutionStage;
     /// # assert_eq!(states[&ExecutionStage::PreQ].2, Status::Accept(either::Left(CodeID::Ok)));
     /// ```
+    ///
+    /// # rhai-autodocs:index:7
     #[rhai_fn(return_raw)]
     pub fn verify(ncc: NativeCallContext) -> EngineResult<rhai::Map> {
         let ctx = get_global!(ncc, ctx)?;
@@ -380,11 +354,12 @@ mod dkim {
     ///
     /// # Args
     ///
-    /// * `selector` - the DNS selector to expose the public key & for the verifier
-    /// * `private_key` - the private key to sign the mail,
-    ///     associated with the public key in the `selector._domainkey.sdid` DNS record
-    /// * `headers_field` - list of headers to sign
-    /// * `canonicalization` - the canonicalization algorithm to use (ex: "simple/relaxed")
+    /// * `selector`         - the DNS selector to expose the public key & for the verifier
+    /// * `private_key`      - the private key to sign the mail,
+    ///                        associated with the public key in the `selector._domainkey.sdid`
+    ///                        DNS record.
+    /// * `headers_field`    - list of headers to sign.
+    /// * `canonicalization` - the canonicalization algorithm to use. (ex: "simple/relaxed")
     ///
     /// # Effective smtp stage
     ///
@@ -392,8 +367,8 @@ mod dkim {
     ///
     /// # Example
     ///
-    /// ```text
-    /// #{
+    /// ```
+    /// # let rules = r#"#{
     ///   preq: [
     ///     action "sign dkim" || {
     ///       for private_key in dkim::get_private_keys("testserver.com") {
@@ -414,16 +389,32 @@ mod dkim {
     ///            canonicalization:    "simple/relaxed"
     ///         });
     ///       }
-    ///     }
+    ///     },
+    /// #   rule "trailing" || state::accept(),
     ///   ]
     /// }
+    /// # "#;
+    ///
+    /// # let states = vsmtp_test::vsl::run(|builder| Ok(builder
+    /// #   .add_root_filter_rules("#{}")?
+    /// #      .add_domain_rules("testserver.com".parse().unwrap())
+    /// #        .with_incoming(rules)?
+    /// #        .with_outgoing(rules)?
+    /// #        .with_internal(rules)?
+    /// #      .build()
+    /// #   .build()));
+    /// # use vsmtp_common::{status::Status, CodeID};
+    /// # use vsmtp_rule_engine::ExecutionStage;
+    /// # assert_eq!(states[&ExecutionStage::PreQ].2, Status::Accept(either::Left(CodeID::Ok)));
     /// ```
+    ///
+    /// # rhai-autodocs:index:8
     #[rhai_fn(name = "sign", return_raw)]
     pub fn sign(ncc: NativeCallContext, params: rhai::Map) -> EngineResult<()> {
         let signature = vsl_generic_ok!(super::Impl::generate_signature(
             &*vsl_guard_ok!(get_global!(ncc, msg)?.read()),
             &*vsl_guard_ok!(get_global!(ncc, ctx)?.read()),
-            SignatureParams::try_from(params)?,
+            rhai::serde::from_dynamic::<SignatureParams>(&params.into())?
         ));
 
         crate::api::message::prepend_header(ncc, "DKIM-Signature", &signature)
@@ -457,14 +448,14 @@ pub enum DkimErrors {
     #[error("the parsing of the signature failed: `{inner}`")]
     SignatureParsingFailed {
         ///
-        inner: <Signature as std::str::FromStr>::Err,
+        inner: <backend::Signature as std::str::FromStr>::Err,
     },
     ///
     #[strum(message = "neutral", detailed_message = "key_parsing_failed")]
     #[error("the parsing of the public key failed: `{inner}`")]
     KeyParsingFailed {
         ///
-        inner: <PublicKey as std::str::FromStr>::Err,
+        inner: <backend::PublicKey as std::str::FromStr>::Err,
     },
     ///
     #[strum(message = "neutral", detailed_message = "invalid_argument")]
@@ -492,7 +483,7 @@ pub enum DkimErrors {
     #[error("the signature does not match: `{inner}`")]
     SignatureMismatch {
         ///
-        inner: VerifierError,
+        inner: backend::VerifierError,
     },
 }
 
@@ -540,27 +531,27 @@ impl Impl {
     }
 
     #[tracing::instrument(ret, err)]
-    pub fn parse_signature(input: &str) -> Result<Signature, DkimErrors> {
-        <Signature as std::str::FromStr>::from_str(input)
+    pub fn parse_signature(input: &str) -> Result<backend::Signature, DkimErrors> {
+        <backend::Signature as std::str::FromStr>::from_str(input)
             .map_err(|inner| DkimErrors::SignatureParsingFailed { inner })
     }
 
     #[tracing::instrument(ret, err)]
     fn verify(
         message: &MessageBody,
-        signature: &Signature,
-        key: &PublicKey,
+        signature: &backend::Signature,
+        key: &backend::PublicKey,
     ) -> Result<(), DkimErrors> {
-        verify(signature, message.inner(), key)
+        backend::verify(signature, message.inner(), key)
             .map_err(|inner| DkimErrors::SignatureMismatch { inner })
     }
 
     #[tracing::instrument(skip(server), ret, err)]
     fn get_public_key(
         server: &Server,
-        signature: &Signature,
+        signature: &backend::Signature,
         on_multiple_key_records: &str,
-    ) -> Result<Vec<PublicKey>, DkimErrors> {
+    ) -> Result<Vec<backend::PublicKey>, DkimErrors> {
         const VALID_POLICY: [&str; 2] = ["first", "cycle"];
         if !VALID_POLICY.contains(&on_multiple_key_records) {
             return Err(DkimErrors::InvalidArgument {
@@ -590,10 +581,10 @@ impl Impl {
 
         let keys = txt_record
             .into_iter()
-            .map(|i| <PublicKey as std::str::FromStr>::from_str(&i.to_string()));
+            .map(|i| <backend::PublicKey as std::str::FromStr>::from_str(&i.to_string()));
 
         let keys = keys
-            .collect::<Result<Vec<_>, <PublicKey as std::str::FromStr>::Err>>()
+            .collect::<Result<Vec<_>, <backend::PublicKey as std::str::FromStr>::Err>>()
             .map_err(|inner| DkimErrors::KeyParsingFailed { inner })?;
 
         Ok(if on_multiple_key_records == "first" {
@@ -609,7 +600,7 @@ impl Impl {
         ctx: &vsmtp_common::Context,
         params: SignatureParams,
     ) -> Result<String, DkimErrors> {
-        let signature = sign(
+        let signature = backend::sign(
             message.inner(),
             &params.private_key,
             params.sdid.unwrap_or_else(|| ctx.server_name().to_string()),
@@ -632,7 +623,7 @@ impl Impl {
     }
 
     pub fn store(ctx: &Context, result: &rhai::Map) -> EngineResult<()> {
-        let result = VerificationResult {
+        let result = backend::VerificationResult {
             status: result
                 .get("status")
                 .ok_or_else::<Box<rhai::EvalAltResult>, _>(|| {

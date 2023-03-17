@@ -42,12 +42,12 @@ features = ["unix"]
 [dependencies]
 
 anyhow = { version = "1.0.69", default-features = false, features = ["std"] }
-tracing-subscriber = { version = "0.3.16", default-features = false, features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.16", default-features = false, features = ["std", "smallvec", "env-filter"] }
 tracing = { version = "0.1.37", default-features = false, features = ["std", "attributes", "release_max_level_info"] }
 
 users = { version = "0.11.0", default-features = false }
 base64 = { version = "0.21.0", default-features = false, features = ["std"] }
-serde = { version = "1.0.152", default-features = false, features = ["std", "derive"] }
+serde = { version = "1.0.156", default-features = false, features = ["std", "derive"] }
 humantime-serde = { version = "1.1.1", default-features = false }
 strum = { version = "0.24.1", default-features = false, features = ["std", "derive"] }
 ring-compat = { version = "0.6.0", default-features = false, features = ["std", "alloc", "digest", "signature"] }
@@ -58,7 +58,7 @@ rustls-pemfile = { version = "1.0.2", default-features = false }
 pem = { version = "1.1.1", default-features = false, features = [
   # "serde" # TODO
 ] }
-rsa = { version = "0.8.1", default-features = false, features = [
+rsa = { version = "0.8.2", default-features = false, features = [
   "std",
   "pem",
   # "serde" # TODO
@@ -71,10 +71,10 @@ trust-dns-resolver = { version = "0.22.0", default-features = false, features = 
   "tokio-runtime",
 ] }
 
-semver = { version = "1.0.16", default-features = false, features = ["std", "serde"] }
-serde_json = { version = "1.0.93", default-features = false, features = ["std"] }
-serde_with = { version = "2.2.0", default-features = false, features = ["std", "macros"] }
-serde_path_to_error = "0.1.9"
+semver = { version = "1.0.17", default-features = false, features = ["std", "serde"] }
+serde_json = { version = "1.0.94", default-features = false, features = ["std"] }
+serde_with = { version = "2.3.1", default-features = false, features = ["std", "macros"] }
+serde_path_to_error = "0.1.10"
 
 rhai = { version = "1.12.0", features = ["sync", "serde"] }
 

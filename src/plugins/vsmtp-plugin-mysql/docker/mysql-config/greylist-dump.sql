@@ -1,6 +1,7 @@
-CREATE DATABASE IF NOT EXISTS greylist;
+DROP DATABASE IF EXISTS greylist;
+CREATE DATABASE greylist;
 
-CREATE TABLE IF NOT EXISTS greylist.sender(
+CREATE TABLE greylist.sender(
     address varchar(500) NOT null primary key,
     user varchar(500) NOT null,
     domain varchar(500) NOT null
