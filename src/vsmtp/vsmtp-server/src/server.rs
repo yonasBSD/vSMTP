@@ -271,7 +271,7 @@ impl Server {
             delivery_sender,
             args.client_addr,
             args.server_addr,
-            config.server.name.parse().unwrap(),
+            config.server.name.clone(),
             args.timestamp,
             args.uuid,
         );

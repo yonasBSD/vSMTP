@@ -59,7 +59,7 @@ pub mod field {
         /// Used with the response [`CodeID::Greetings`], and [`CodeID::Helo`],
         /// and [`CodeID::EhloPain`], and [`CodeID::EhloSecured`].
         #[serde(default = "FieldServer::hostname")]
-        pub name: String,
+        pub name: Domain,
         /// Maximum number of client served at the same time.
         ///
         /// The client will be rejected if the server is full.
@@ -324,11 +324,6 @@ pub mod field {
     #[derive(Debug, Default, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
     #[serde(deny_unknown_fields)]
     pub struct FieldServerVirtual {
-        /// Is this domain considered the default one by vSMTP.
-        ///
-        /// Implying using this domain's parameters for connection not providing SNI.
-        #[serde(default)]
-        pub is_default: bool,
         /// see [`FieldServerVirtualTls`]
         pub tls: Option<FieldServerVirtualTls>,
         /// see [`FieldServerDNS`]
@@ -340,10 +335,7 @@ pub mod field {
 
     /// The TLS parameter for the **OUTGOING SIDE** of the virtual entry.
     #[derive(Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
-    #[serde(deny_unknown_fields)]
     pub struct FieldServerVirtualTls {
-        /// TLS protocol supported
-        pub protocol_version: Vec<vsmtp_common::ProtocolVersion>,
         /// Certificate chain to use for the TLS connection.
         /// (the first certificate should certify KEYFILE, the last should be a root CA)
         pub certificate: SecretFile<Vec<rustls::Certificate>>,
@@ -361,7 +353,6 @@ pub mod field {
     }
 
     /// The TLS parameter for the **INCOMING SIDE** of the server (common with the virtual entry).
-    // TODO: should use [`FieldServerVirtualTls`] flattened ?
     #[derive(Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
     #[serde(deny_unknown_fields)]
     pub struct FieldServerTls {
@@ -378,6 +369,12 @@ pub mod field {
         /// TLS cipher suite supported
         #[serde(default = "FieldServerTls::default_cipher_suite")]
         pub cipher_suite: Vec<vsmtp_common::CipherSuite>,
+        /// This field is used to handle incoming TLS connections not using SNI or using an unknown SNI.
+        ///
+        /// * if none (default),    will deny the connection
+        /// * if some,              will used these values
+        #[serde(default, flatten)]
+        pub default: Option<FieldServerVirtualTls>,
     }
 
     /// Configuration of the client's error handling.

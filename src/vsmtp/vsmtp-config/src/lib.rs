@@ -94,6 +94,7 @@ pub use config::{field, Config};
 pub use rustls_helper::get_rustls_config;
 
 use builder::{Builder, WantsVersion};
+use vsmtp_common::Domain;
 
 impl Config {
     /// Create an instance of [`Builder`].
@@ -260,48 +261,24 @@ impl Config {
                     continue;
                 }
 
-                let pre_symlink_domain = entry.file_name().to_string_lossy().to_string();
-
-                let symlink_domain = if file_type.is_symlink() {
-                    Some(
-                        std::fs::read_link(entry.path())?
-                            .file_name()
-                            .ok_or_else(|| anyhow::anyhow!("error symlink to root is invalid"))?
-                            .to_string_lossy()
-                            .to_string(),
-                    )
-                } else {
-                    None
+                let Some(Ok(domain_name)) = entry
+                    .path()
+                    .file_name()
+                    .map(|filename| filename.to_string_lossy().to_string())
+                    .as_deref()
+                    .map(<Domain as std::str::FromStr>::from_str) else {
+                    continue;
                 };
 
-                let domain_name = symlink_domain
-                    .clone()
-                    .unwrap_or_else(|| pre_symlink_domain.clone())
-                    .parse()?;
-
-                if let Some(v) = self.server.r#virtual.get_mut(&domain_name) {
-                    if pre_symlink_domain == "default" {
-                        v.is_default = true;
+                match Self::get_one_domain_config(&entry.path(), engine) {
+                    Ok(domain_config) => self.server.r#virtual.insert(domain_name, domain_config),
+                    Err(e) => {
+                        eprintln!(
+                            "Could not get configuration for the '{domain_name}' domain because: {e}..",
+                        );
+                        anyhow::bail!(e);
                     }
-                } else {
-                    let domain_config = match Self::get_one_domain_config(&entry.path(), engine) {
-                        Ok(domain_config) => domain_config,
-                        Err(e) => {
-                            eprintln!(
-                                "Could not get configuration for the '{domain_name}' domain because: {e}.."
-                            );
-                            anyhow::bail!(e);
-                        }
-                    };
-
-                    self.server.r#virtual.insert(
-                        domain_name,
-                        FieldServerVirtual {
-                            is_default: domain_config.is_default || pre_symlink_domain == "default",
-                            ..domain_config
-                        },
-                    );
-                }
+                };
             }
         }
 

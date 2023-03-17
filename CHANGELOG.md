@@ -107,6 +107,8 @@ export const directory = ldap::connect(#{
 }
 ```
 
+* `config.server.tls.certificate` & `config.server.tls.private_key` (optional) used when a SNI is not provided or not found among the virtuals server
+
 ### Modified
 
 * vSMTP loads `/etc/vsmtp/vsmtp.vsl` by default if `-c` flag is missing, and stops if no configuration could be found in this path. (#1020)
@@ -120,6 +122,11 @@ export const directory = ldap::connect(#{
 
 * `action` completely ignores it's return value. (#1024)
 * `spf::check` can be used from the `mail` stage. (#1027)
+
+## Removed
+
+* the `is_default` properties in the `on_domain_config()`
+* the assignation of a default vritual server using a symlink named `default`
 
 ## [2.1.1] - 2023-02-10
 

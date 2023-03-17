@@ -55,7 +55,6 @@ run_test! {
       config.server.r#virtual.insert(
           "testserver.com".parse().unwrap(),
           FieldServerVirtual {
-              is_default: false,
               tls: Some(
                   FieldServerVirtualTls::from_path(
                       "src/template/certs/certificate.crt",
@@ -105,7 +104,6 @@ async fn domain_not_defined() {
         config.server.r#virtual.insert(
             "testserver.com".parse().unwrap(),
             FieldServerVirtual {
-                is_default: false,
                 tls: Some(
                     FieldServerVirtualTls::from_path(
                         "src/template/certs/certificate.crt",
@@ -142,7 +140,6 @@ async fn domain_not_defined_with_default() {
         config.server.r#virtual.insert(
             "testserver.com".parse().unwrap(),
             FieldServerVirtual {
-                is_default: true,
                 tls: Some(
                     FieldServerVirtualTls::from_path(
                         "src/template/certs/certificate.crt",
@@ -189,7 +186,6 @@ run_test! {
       config.server.r#virtual.insert(
           "testserver.com".parse().unwrap(),
           FieldServerVirtual {
-              is_default: false,
               tls: Some(
                   FieldServerVirtualTls::from_path(
                       "src/template/certs/certificate.crt",

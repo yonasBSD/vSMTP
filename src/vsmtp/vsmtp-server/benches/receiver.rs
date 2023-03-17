@@ -26,7 +26,7 @@ fn get_test_config() -> std::sync::Arc<Config> {
             .with_version_str("<1.0.0")
             .unwrap()
             .without_path()
-            .with_server_name("testserver.com")
+            .with_server_name("testserver.com".parse::<vsmtp_common::Domain>().unwrap())
             .with_user_group_and_default_system("root", "root")
             .unwrap()
             .with_ipv4_localhost()

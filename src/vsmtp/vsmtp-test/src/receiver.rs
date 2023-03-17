@@ -196,7 +196,7 @@ macro_rules! run_test {
                 delivery_channel.0.clone(),
                 client_addr,
                 server_addr,
-                config.server.name.parse().unwrap(),
+                config.server.name.clone(),
                 time::OffsetDateTime::now_utc(),
                 uuid::Uuid::new_v4()
             );
