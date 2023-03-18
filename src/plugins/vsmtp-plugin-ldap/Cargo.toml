@@ -23,7 +23,7 @@ crate-type = ["cdylib"]
 
 [build-dependencies]
 rhai-autodocs = "0.1.5"
-rhai = { version = "1.12.0", features = ["unchecked", "sync", "internals", "no_closure", "metadata"] }
+rhai = { version = "=1.13.0", features = ["unchecked", "sync", "internals", "no_closure", "metadata"] }
 serde = { version = "1.0.156", default-features = false, features = ["std", "derive"] }
 humantime-serde = { version = "1.1.1", default-features = false }
 ldap3 = { version = "0.11.1", default-features = false, features = ["sync", "tls-rustls"] }
@@ -32,7 +32,7 @@ rustls = { version = "0.20.8", default-features = false, features = ["tls12", "l
 rustls-pemfile = { version = "1.0.2", default-features = false }
 
 [dependencies]
-rhai = { version = "1.12.0", features = ["unchecked", "sync", "internals", "no_closure", "metadata"] }
+rhai = { version = "=1.13.0", features = ["unchecked", "sync", "internals", "no_closure", "metadata"] }
 serde = { version = "1.0.156", default-features = false, features = ["std", "derive"] }
 humantime-serde = { version = "1.1.1", default-features = false }
 ldap3 = { version = "0.11.1", default-features = false, features = ["sync", "tls-rustls"] }
