@@ -32,6 +32,7 @@ impl<'a> Builder<'a> {
     ///
     /// # Errors
     /// * Failed to compile default scripts.
+    #[must_use]
     pub fn new(engine: &'a rhai::Engine) -> Self {
         Self {
             engine,

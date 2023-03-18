@@ -275,9 +275,9 @@ pub mod ldap {
     /// export const directory = ldap::connect(#{
     ///     url: "ldap://ds.example.com:1389 ",
     /// });
+    /// ```
     ///
     /// # rhai-autodocs:index:1
-    /// ```    
     #[rhai_fn(return_raw)]
     pub fn connect(parameters: rhai::Map) -> Result<Ldap, Box<rhai::EvalAltResult>> {
         let parameters = rhai::serde::from_dynamic::<super::LdapParameters>(&parameters.into())?;

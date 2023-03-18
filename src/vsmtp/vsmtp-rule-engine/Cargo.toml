@@ -57,8 +57,8 @@ version = "=2.1.1"
 path = "../vsmtp-plugin-vsl"
 
 [dependencies]
-rhai-dylib = { version = "0.1.5", features = ["sync"] }
-rhai = { version = "1.12.0", features = ["unchecked", "sync", "internals", "no_closure", "metadata"] }
+rhai-dylib = { version = "=0.1.6", features = ["sync"] }
+rhai = { version = "=1.13.0", features = ["unchecked", "sync", "internals", "no_closure", "metadata"] }
 tracing = { version = "0.1.37", default-features = false, features = ["std", "attributes", "release_max_level_info"] }
 
 anyhow = { version = "1.0.69", default-features = false, features = ["std"] }
