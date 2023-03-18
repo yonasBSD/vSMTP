@@ -28,7 +28,7 @@ crate-type = ["cdylib"]
 pre-release-commit-message = "chore: Release {{crate_name}} version {{version}}"
 
 [dependencies]
-rhai = { version = "1.12.0", features = ["unchecked", "sync", "internals", "no_closure", "metadata"] }
+rhai = { version = "=1.13.0", features = ["unchecked", "sync", "internals", "no_closure", "metadata"] }
 serde = { version = "1.0.156", default-features = false, features = ["std", "derive"] }
 humantime-serde = { version = "1.1.1", default-features = false }
 memcache = { version = "0.17.0", default-features = false }
@@ -36,7 +36,7 @@ r2d2 = { version = "0.8.10", default-features = false }
 
 [build-dependencies]
 rhai-autodocs = "0.1.5"
-rhai = { version = "1.12.0", features = ["unchecked", "sync", "internals", "no_closure", "metadata"] }
+rhai = { version = "=1.13.0", features = ["unchecked", "sync", "internals", "no_closure", "metadata"] }
 serde = { version = "1.0.156", default-features = false, features = ["std", "derive"] }
 humantime-serde = { version = "1.1.1", default-features = false }
 memcache = { version = "0.17.0", default-features = false }
