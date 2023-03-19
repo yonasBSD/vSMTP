@@ -46,7 +46,7 @@ version = "=2.1.2"
 path = "../../vqueue"
 
 [dependencies.vsmtp-protocol]
-version = "=2.1.1"
+version = "=2.1.2"
 path = "../vsmtp-protocol"
 
 [dependencies.vsmtp-delivery]
