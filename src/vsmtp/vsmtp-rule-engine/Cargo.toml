@@ -41,7 +41,7 @@ version = "=2.1.2"
 path = "../vsmtp-mail-parser"
 
 [dependencies.vsmtp-auth]
-version = "=2.1.1"
+version = "=2.1.2"
 path = "../vsmtp-auth"
 
 [dependencies.vsmtp-delivery]
