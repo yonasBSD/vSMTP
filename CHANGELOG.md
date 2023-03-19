@@ -13,6 +13,8 @@ release. They will however *never* happen in a patch release.
 
 ## [Unreleased] - ReleaseDate
 
+## [2.2.0] - 2023-03-19
+
 ## [2.1.2] - 2023-03-19
 
 ### BREAKING CHANGES
