@@ -4043,7 +4043,7 @@ dependencies = [
 
 [[package]]
 name = "vsmtp"
-version = "2.1.1"
+version = "2.1.2"
 dependencies = [
  "anyhow",
  "clap 4.1.10",
