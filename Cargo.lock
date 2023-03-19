@@ -4235,7 +4235,7 @@ dependencies = [
 
 [[package]]
 name = "vsmtp-plugin-memcached"
-version = "2.1.2"
+version = "2.2.0"
 dependencies = [
  "env_logger",
  "humantime-serde",
