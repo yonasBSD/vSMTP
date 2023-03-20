@@ -15,13 +15,14 @@
  *
 */
 
+#[cfg(feature = "syslog")]
+use crate::config::field::SyslogSocket;
 use crate::{
     config::field::{
         FieldApp, FieldAppLogs, FieldAppVSL, FieldQueueDelivery, FieldQueueWorking, FieldServer,
         FieldServerDNS, FieldServerInterfaces, FieldServerLogs, FieldServerQueues, FieldServerSMTP,
         FieldServerSMTPAuth, FieldServerSMTPError, FieldServerSMTPTimeoutClient, FieldServerSystem,
         FieldServerSystemThreadPool, FieldServerTls, FieldServerVirtual, ResolverOptsWrapper,
-        SyslogSocket,
     },
     Config,
 };
@@ -236,7 +237,10 @@ impl Default for FieldServerLogs {
         Self {
             filename: Self::default_filename(),
             level: Self::default_level(),
-            system: None,
+            #[cfg(any(feature = "journald", feature = "syslog"))]
+            sys_level: Self::default_sys_level(),
+            #[cfg(feature = "syslog")]
+            syslog: SyslogSocket::default(),
         }
     }
 }
@@ -249,13 +253,15 @@ impl FieldServerLogs {
     pub(crate) fn default_level() -> Vec<tracing_subscriber::filter::Directive> {
         vec!["warn".parse().expect("hardcoded value is valid")]
     }
+
+    #[cfg(any(feature = "journald", feature = "syslog"))]
+    pub(crate) fn default_sys_level() -> tracing::Level {
+        tracing::Level::INFO
+    }
 }
 
+#[cfg(feature = "syslog")]
 impl SyslogSocket {
-    pub(crate) fn default_udp_local() -> std::net::SocketAddr {
-        "127.0.0.1:0".parse().expect("valid")
-    }
-
     pub(crate) fn default_udp_server() -> std::net::SocketAddr {
         "127.0.0.1:514".parse().expect("valid")
     }
@@ -265,9 +271,12 @@ impl SyslogSocket {
     }
 }
 
+#[cfg(feature = "syslog")]
 impl Default for SyslogSocket {
     fn default() -> Self {
-        Self::Unix { path: None }
+        Self::Unix {
+            path: "/dev/log".into(),
+        }
     }
 }
 

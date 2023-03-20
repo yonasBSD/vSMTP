@@ -74,7 +74,10 @@ impl Builder<WantsValidate> {
                 logs: FieldServerLogs {
                     filename: srv_logs.filename,
                     level: srv_logs.level,
-                    system: None,
+                    #[cfg(any(feature = "journald", feature = "syslog"))]
+                    sys_level: FieldServerLogs::default_sys_level(),
+                    #[cfg(feature = "syslog")]
+                    syslog: crate::field::SyslogSocket::default(),
                 },
                 queues: FieldServerQueues {
                     dirpath: srv_delivery.dirpath,

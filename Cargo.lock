@@ -24,6 +24,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "addr2line"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a76fd60b23679b7d19bd066031410fb7e458ccc5e958eb5c325888ce4baedc97"
+dependencies = [
+ "gimli",
+]
+
+[[package]]
 name = "adler"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -112,7 +121,7 @@ dependencies = [
  "num-traits",
  "rusticata-macros",
  "thiserror",
- "time",
+ "time 0.3.20",
 ]
 
 [[package]]
@@ -231,6 +240,21 @@ dependencies = [
  "rustversion",
  "tower-layer",
  "tower-service",
+]
+
+[[package]]
+name = "backtrace"
+version = "0.3.67"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "233d376d6d185f2a3093e58f283f60f880315b6c60075b01f36b3b85154564ca"
+dependencies = [
+ "addr2line",
+ "cc",
+ "cfg-if",
+ "libc",
+ "miniz_oxide",
+ "object",
+ "rustc-demangle",
 ]
 
 [[package]]
@@ -439,9 +463,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4e3c5919066adf22df73762e50cffcde3a758f2a848b113b586d1f86728b673b"
 dependencies = [
  "iana-time-zone",
+ "js-sys",
  "num-integer",
  "num-traits",
  "serde",
+ "time 0.1.45",
+ "wasm-bindgen",
  "winapi",
 ]
 
@@ -1126,15 +1153,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "error-chain"
-version = "0.12.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d2f06b9cac1506ece98fe3231e3cc9c4410ec3d5b1f24ae1c8946f0742cdefc"
-dependencies = [
- "version_check",
-]
-
-[[package]]
 name = "fastrand"
 version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1377,8 +1395,14 @@ checksum = "c05aeb6a22b8f62540c194aac980f2115af067bfe15a0734d7277a768d396b31"
 dependencies = [
  "cfg-if",
  "libc",
- "wasi",
+ "wasi 0.11.0+wasi-snapshot-preview1",
 ]
+
+[[package]]
+name = "gimli"
+version = "0.27.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ad0a93d233ebf96623465aad4046a8d3aa4da22d4f4beba5388838c8a434bbb4"
 
 [[package]]
 name = "glob"
@@ -1963,6 +1987,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f9275e0933cf8bb20f008924c0cb07a0692fe54d8064996520bf998de9eb79aa"
 
 [[package]]
+name = "local-ip-address"
+version = "0.4.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9eab7f092fb08006040e656c2adce6670e6a516bea831a8b2b3d0fb24d4488f5"
+dependencies = [
+ "libc",
+ "neli",
+ "thiserror",
+ "windows-sys 0.42.0",
+]
+
+[[package]]
 name = "lock_api"
 version = "0.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2083,7 +2119,7 @@ checksum = "5b9d9a46eff5b4ff64b45a9e316a6d1e0bc719ef429cbec4dc630684212bfdf9"
 dependencies = [
  "libc",
  "log",
- "wasi",
+ "wasi 0.11.0+wasi-snapshot-preview1",
  "windows-sys 0.45.0",
 ]
 
@@ -2149,7 +2185,7 @@ dependencies = [
  "smallvec",
  "subprocess",
  "thiserror",
- "time",
+ "time 0.3.20",
  "uuid",
 ]
 
@@ -2160,6 +2196,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ad9c443cce91fc3e12f017290db75dde490d685cdaaf508d7159d7cf41f0eb2b"
 dependencies = [
  "winapi",
+]
+
+[[package]]
+name = "neli"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9053554eb5dcb7e10d9cdab1206965bde870eed5d0d341532ca035e3ba221508"
+dependencies = [
+ "byteorder",
+ "libc",
 ]
 
 [[package]]
@@ -2252,12 +2298,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "num_threads"
-version = "0.1.6"
+name = "object"
+version = "0.30.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2819ce041d2ee131036f4fc9d6ae7ae125a3a40e97ba64d04fe799ad9dabbb44"
+checksum = "ea86265d3d3dcb6a27fc51bd29a4bf387fae9d2986b823079d4986af253eb439"
 dependencies = [
- "libc",
+ "memchr",
 ]
 
 [[package]]
@@ -2939,6 +2985,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustc-demangle"
+version = "0.1.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7ef03e0a2b150c7a90d01faf6254c9c48a41e95fb2a8c2ac1c6f0d2b9aefc342"
+
+[[package]]
 name = "rustc-hash"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3181,7 +3233,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with_macros",
- "time",
+ "time 0.3.20",
 ]
 
 [[package]]
@@ -3425,19 +3477,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "syslog"
-version = "6.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "978044cc68150ad5e40083c9f6a725e6fd02d7ba1bcf691ec2ff0d66c0b41acc"
-dependencies = [
- "error-chain",
- "hostname",
- "libc",
- "log",
- "time",
-]
-
-[[package]]
 name = "tap"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3514,13 +3553,22 @@ dependencies = [
 
 [[package]]
 name = "time"
+version = "0.1.45"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1b797afad3f312d1c66a56d11d0316f916356d11bd158fbc6ca6389ff6bf805a"
+dependencies = [
+ "libc",
+ "wasi 0.10.0+wasi-snapshot-preview1",
+ "winapi",
+]
+
+[[package]]
+name = "time"
 version = "0.3.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cd0cbfecb4d19b5ea75bb31ad904eb5b9fa13f21079c3b92017ebdf4999a5890"
 dependencies = [
  "itoa",
- "libc",
- "num_threads",
  "serde",
  "time-core",
  "time-macros",
@@ -3743,7 +3791,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "09d48f71a791638519505cefafe162606f706c25592e4bde4d97600c0195312e"
 dependencies = [
  "crossbeam-channel",
- "time",
+ "time 0.3.20",
  "tracing-subscriber",
 ]
 
@@ -3798,6 +3846,22 @@ dependencies = [
  "lazy_static",
  "log",
  "tracing-core",
+]
+
+[[package]]
+name = "tracing-rfc-5424"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9bf4f714de9028944a67b76aa580330bf66ce0cc02bf07fe75ccfd14c99f7ed"
+dependencies = [
+ "backtrace",
+ "bytes",
+ "chrono",
+ "hostname",
+ "local-ip-address",
+ "tracing",
+ "tracing-core",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -4031,7 +4095,7 @@ dependencies = [
  "serde_json",
  "strum",
  "tempfile",
- "time",
+ "time 0.3.20",
  "tokio",
  "tracing",
  "uuid",
@@ -4046,6 +4110,7 @@ name = "vsmtp"
 version = "2.2.0"
 dependencies = [
  "anyhow",
+ "cfg-if",
  "clap 4.1.10",
  "console-subscriber",
  "diff",
@@ -4055,10 +4120,10 @@ dependencies = [
  "humantime",
  "rhai-autodocs",
  "serde_json",
- "syslog",
  "tracing",
  "tracing-appender",
  "tracing-journald",
+ "tracing-rfc-5424",
  "tracing-subscriber",
  "vsmtp-common",
  "vsmtp-config",
@@ -4116,7 +4181,7 @@ dependencies = [
  "serde_with",
  "strum",
  "thiserror",
- "time",
+ "time 0.3.20",
  "tokio",
  "tracing",
  "trust-dns-resolver",
@@ -4177,7 +4242,7 @@ dependencies = [
  "strum",
  "test-log",
  "thiserror",
- "time",
+ "time 0.3.20",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -4248,7 +4313,7 @@ dependencies = [
  "rustls-pemfile",
  "serde",
  "test-log",
- "time",
+ "time 0.3.20",
  "tokio",
  "tokio-rustls",
  "tokio-stream",
@@ -4313,7 +4378,7 @@ dependencies = [
  "serde_with",
  "strum",
  "thiserror",
- "time",
+ "time 0.3.20",
  "tokio",
  "tokio-rustls",
  "tokio-stream",
@@ -4345,7 +4410,7 @@ dependencies = [
  "strum",
  "tempfile",
  "thiserror",
- "time",
+ "time 0.3.20",
  "tokio",
  "tracing",
  "trust-dns-resolver",
@@ -4388,7 +4453,7 @@ dependencies = [
  "strum",
  "test-log",
  "thiserror",
- "time",
+ "time 0.3.20",
  "tokio",
  "tokio-rustls",
  "tokio-stream",
@@ -4425,7 +4490,7 @@ dependencies = [
  "rustls-pemfile",
  "serde_json",
  "test-log",
- "time",
+ "time 0.3.20",
  "tokio",
  "tokio-rustls",
  "tokio-stream",
@@ -4470,6 +4535,12 @@ dependencies = [
  "log",
  "try-lock",
 ]
+
+[[package]]
+name = "wasi"
+version = "0.10.0+wasi-snapshot-preview1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a143597ca7c7793eff794def352d41792a93c481eb1042423ff7ff72ba2c31f"
 
 [[package]]
 name = "wasi"
@@ -4754,7 +4825,7 @@ dependencies = [
  "oid-registry",
  "rusticata-macros",
  "thiserror",
- "time",
+ "time 0.3.20",
 ]
 
 [[package]]
