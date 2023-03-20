@@ -1,9 +1,11 @@
 vsmtp (x.y.z) UNRELEASED; urgency=low
 
+vsmtp (2.2.0) UNRELEASED; urgency=low
+
   [ Updated by ltabis ]
 
   * BREAKING CHANGES
-* * the `spf::check` function takes a map of parameters. (#1079)
+    * the `spf::check` function takes a map of parameters. (#1079)
   * Added
     * `transport::forward` parameters can be passed as url. (#1018)
     * LDAP plugin. (#928)
