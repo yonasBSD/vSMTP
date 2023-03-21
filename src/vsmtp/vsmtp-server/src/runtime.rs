@@ -14,7 +14,7 @@
  * this program. If not, see https://www.gnu.org/licenses/.
  *
 */
-use crate::{delivery, processing, ProcessMessage, Server};
+use crate::{delivery, scheduler, working, Server};
 use anyhow::Context;
 use vsmtp_common::transport::{AbstractTransport, DeserializerFn, DESERIALIZER_SYMBOL_NAME};
 use vsmtp_config::{Config, DnsResolvers};
@@ -148,9 +148,9 @@ pub fn start_runtime(
 
     let mut error_handler = tokio::sync::mpsc::channel::<()>(3);
 
-    let (delivery_channel, working_channel) = (
-        tokio::sync::mpsc::channel::<ProcessMessage>(config.server.queues.delivery.channel_size),
-        tokio::sync::mpsc::channel::<ProcessMessage>(config.server.queues.working.channel_size),
+    let (emitter, working_rx, delivery_rx) = scheduler::init(
+        config.server.queues.working.channel_size,
+        config.server.queues.delivery.channel_size,
     );
 
     let queue_manager = <vqueue::fs::QueueManager as vqueue::GenericQueueManager>::init(
@@ -176,20 +176,20 @@ pub fn start_runtime(
             config.clone(),
             rule_engine.clone(),
             queue_manager.clone(),
-            delivery_channel.1,
+            delivery_rx,
         ),
         timeout,
     )?;
 
     let _tasks_processing = init_runtime(
         error_handler.0.clone(),
-        "processing",
+        "working",
         config.server.system.thread_pool.processing,
-        processing::start(
+        working::start(
             rule_engine.clone(),
             queue_manager.clone(),
-            working_channel.1,
-            delivery_channel.0.clone(),
+            emitter.clone(),
+            working_rx,
         ),
         timeout,
     )?;
@@ -203,8 +203,7 @@ pub fn start_runtime(
                 config.clone(),
                 rule_engine.clone(),
                 queue_manager.clone(),
-                working_channel.0.clone(),
-                delivery_channel.0.clone(),
+                emitter,
             ) {
                 Ok(server) => server,
                 Err(error) => {

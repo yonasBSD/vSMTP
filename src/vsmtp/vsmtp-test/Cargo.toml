@@ -87,6 +87,8 @@ uuid = { version = "1.3.0", default-features = false, features = ["std", "v4", "
 
 [dev-dependencies]
 vsmtp-server = { path = "../vsmtp-server" }
+vsmtp-delivery = { path = "../vsmtp-delivery" }
+
 function_name = "0.3.0"
 pretty_assertions = "1.3.0"
 rstest = "0.16.0"

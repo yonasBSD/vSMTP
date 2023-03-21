@@ -146,19 +146,19 @@ where
             }
         }
 
+        let process_msg = if delegated {
+            ProcessMessage::delegated
+        } else {
+            ProcessMessage::new
+        }(message_uuid);
+
         let process = match &should_skip_working {
-            Some(false) => &self.working_sender,
-            Some(true) => &self.delivery_sender,
-            None => return None,
+            Some(false) => self.emitter.send_to_working(process_msg).await,
+            Some(true) => self.emitter.send_to_delivery(process_msg).await,
+            None => Ok(()),
         };
 
-        match process
-            .send(ProcessMessage {
-                message_uuid,
-                delegated,
-            })
-            .await
-        {
+        match process {
             Ok(()) => None,
             Err(_e) => Some(self.reply_in_config(CodeID::Denied)),
         }

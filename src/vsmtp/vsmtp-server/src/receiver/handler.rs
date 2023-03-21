@@ -14,7 +14,6 @@
  * this program. If not, see https://www.gnu.org/licenses/.
  *
 */
-use crate::ProcessMessage;
 use tokio_rustls::rustls;
 use vqueue::GenericQueueManager;
 use vsmtp_common::{
@@ -28,6 +27,8 @@ use vsmtp_protocol::{
     RcptToArgs, ReceiverContext,
 };
 use vsmtp_rule_engine::{ExecutionStage, RuleEngine, RuleState};
+
+use crate::scheduler;
 
 ///
 pub struct Handler<Parser, ParserFactory>
@@ -52,8 +53,7 @@ where
 
     pub(super) message_parser_factory: ParserFactory,
 
-    pub(super) working_sender: tokio::sync::mpsc::Sender<ProcessMessage>,
-    pub(super) delivery_sender: tokio::sync::mpsc::Sender<ProcessMessage>,
+    pub(super) emitter: std::sync::Arc<scheduler::Emitter>,
 }
 
 impl<Parser, ParserFactory> Handler<Parser, ParserFactory>
@@ -70,8 +70,7 @@ where
         rule_engine: std::sync::Arc<RuleEngine>,
         queue_manager: std::sync::Arc<dyn GenericQueueManager>,
         message_parser_factory: ParserFactory,
-        working_sender: tokio::sync::mpsc::Sender<ProcessMessage>,
-        delivery_sender: tokio::sync::mpsc::Sender<ProcessMessage>,
+        emitter: std::sync::Arc<scheduler::Emitter>,
         client_addr: std::net::SocketAddr,
         server_addr: std::net::SocketAddr,
         server_name: Domain,
@@ -93,8 +92,7 @@ where
             rule_engine,
             queue_manager,
             message_parser_factory,
-            working_sender,
-            delivery_sender,
+            emitter,
         }
     }
 }

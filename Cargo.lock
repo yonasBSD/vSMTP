@@ -4507,6 +4507,7 @@ dependencies = [
  "vqueue",
  "vsmtp-common",
  "vsmtp-config",
+ "vsmtp-delivery",
  "vsmtp-mail-parser",
  "vsmtp-protocol",
  "vsmtp-rule-engine",
