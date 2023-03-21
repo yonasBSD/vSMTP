@@ -106,6 +106,15 @@ pub fn init_logs(args: &Args, config: &vsmtp_config::Config) -> anyhow::Result<(
     #[cfg(feature = "tokio_console")]
     let subscriber = subscriber.with(console_subscriber::spawn());
 
+    #[cfg(feature = "telemetry")]
+    let subscriber = subscriber.with(
+        tracing_opentelemetry::layer().with_tracer(
+            opentelemetry_jaeger::new_agent_pipeline()
+                .with_service_name("vsmtp")
+                .install_simple()?,
+        ),
+    );
+
     let subscriber = subscriber
         .with(file_writer!(
             &config.server.logs.filename,

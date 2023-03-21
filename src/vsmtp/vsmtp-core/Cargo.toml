@@ -46,12 +46,19 @@ pre-release-replacements = [
 #! Customize the build with the following [features flags](https://doc.rust-lang.org/cargo/reference/features.html):
 default = []
 
-#! Logging system
+#! ## Logging system
 
-journald = ["tracing-journald", "vsmtp-config/journald"]
-syslog = ["tracing-rfc-5424", "vsmtp-config/syslog"]
+## Enable the tracing layer implemtation for the [`journald`](https://docs.rs/tracing-journald) backend.
+##
+## * build the project using `cargo build --features journald`.
+journald = ["dep:tracing-journald", "vsmtp-config/journald"]
 
-#! ## Debugging
+## Enable the tracing layer implemtation for the [`syslog`](https://docs.rs/tracing-rfc-5424) backend.
+##
+## * build the project using `cargo build --features syslog`.
+syslog = ["dep:tracing-rfc-5424", "vsmtp-config/syslog"]
+
+#! ## Debugging & Monitoring
 
 ## Enable the [`console-subscriber`](https://docs.rs/console-subscriber) layer to collect and aggregate the runtime's
 ## [`tracing`](https://docs.rs/tracing) data, and use a gRPC server to exports telemetry to clients.
@@ -60,6 +67,12 @@ syslog = ["tracing-rfc-5424", "vsmtp-config/syslog"]
 ## * add `tokio=trace,runtime=trace` to the log level.
 ## * run [`tokio-console`](https://docs.rs/tokio-console).
 tokio_console = ["dep:console-subscriber"]
+
+## Enable the [`tracing-opentelemetry`](https://docs.rs/tracing-opentelemetry) layer,
+## and the [`opentelemetry-jaeger`](https://docs.rs/opentelemetry-jaeger) exporter.
+##
+## * `cargo build --features telemetry`
+telemetry = ["dep:tracing-opentelemetry", "dep:opentelemetry", "dep:opentelemetry-jaeger"]
 
 #! ## Documentation
 
@@ -102,6 +115,13 @@ tracing-appender = { version = "0.2.2", default-features = false }
 tracing-journald = { version = "0.3.0", optional = true, default-features = false }
 tracing-rfc-5424 = { version = "0.1.0", optional = true, default-features = false }
 console-subscriber = { version = "0.1.7", optional = true, default-features = false }
+
+tracing-opentelemetry = { version = "0.18.0", optional = true, default-features = false, features = [
+    "tracing-log",
+    "metrics",
+] }
+opentelemetry = { version = "0.18.0", optional = true, default-features = false, features = ["trace", "metrics"] }
+opentelemetry-jaeger = { version = "0.17.0", optional = true, default-features = false, features = ["rt-tokio"] }
 
 document-features = { version = "0.2.7", optional = true }
 
