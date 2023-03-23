@@ -77,7 +77,6 @@ mod transport {
     ///     ],
     /// }
     /// # "#;
-    /// #
     /// # let states = vsmtp_test::vsl::run(|builder| Ok(builder
     /// #   .add_root_filter_rules("#{}")?
     /// #      .add_domain_rules("testserver.com".parse().unwrap())
@@ -88,9 +87,7 @@ mod transport {
     /// #   .build())
     /// # );
     /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::RcptTo].2, vsmtp_common::status::Status::Next);
-    /// #
     /// # let config = vsmtp_test::config::local_test();
-    /// #
     /// # use vsmtp_common::{Address, Target};
     /// # let forward_paths = states[&vsmtp_rule_engine::ExecutionStage::RcptTo].0.forward_paths().unwrap();
     /// # for (addr, (addr_expected, target)) in forward_paths.iter().zip([
@@ -136,7 +133,6 @@ mod transport {
     ///    ]
     /// }
     /// # "#;
-    /// #
     /// # let states = vsmtp_test::vsl::run(|builder| Ok(builder
     /// #   .add_root_filter_rules("#{}")?
     /// #      .add_domain_rules("testserver.com".parse().unwrap())
@@ -745,6 +741,7 @@ mod transport {
     /// All of them.
     ///
     /// # Examples
+    ///
     /// ```ignore
     /// #{
     ///     delivery: [
