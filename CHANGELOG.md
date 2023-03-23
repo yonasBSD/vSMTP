@@ -13,6 +13,22 @@ release. They will however *never* happen in a patch release.
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+* add telemetry cargo feature to vsmtp to export telemetry using opentelemetry and jaeger. (only exporter supported for now) (#1086)
+
+```sh
+cargo build --features telemetry
+```
+
+### Changed
+
+* `journald` and `syslog` are not enabled by default, they are enabled by building vsmtp with their respective feature flags. However, when shipped in packages, `journald` is always enabled. (#1081)
+
+```sh
+cargo build --features journald,syslog
+```
+
 ## [2.2.0] - 2023-03-19
 
 ### BREAKING CHANGES
