@@ -165,6 +165,7 @@ vSMTP can be extended via plugins. Here are some already available:
 - [MySQL](https://vsmtp.rs/ref/vSL/api/fn::global::mysql.html)
 - [Memcached](https://vsmtp.rs/ref/vSL/api/fn::global::memcached.html)
 - [Ldap](https://vsmtp.rs/ref/vSL/api/fn::global::ldap.html)
+- Redis (Premium plugin)
 - CSV files
 
 Check the [Plugins chapter](https://vsmtp.rs/plugins/plugins.html) from the [book] for more details.
