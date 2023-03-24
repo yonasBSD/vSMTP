@@ -294,13 +294,12 @@ impl RuleEngine {
             }};
         }
 
-        let delegation_header = rule_state
+        let header = rule_state
             .message()
             .read()
             .expect("Mutex poisoned")
-            .get_header("X-VSMTP-DELEGATION");
-
-        let header = delegation_header.ok_or_else(|| err!("500 Delegation header not found"))?;
+            .get_header("X-VSMTP-DELEGATION")
+            .ok_or_else(|| err!("500 Delegation header not found"))?;
         let header = vsmtp_mail_parser::get_mime_header("X-VSMTP-DELEGATION", &header);
 
         tracing::debug!(%header, "Got header for delegation");

@@ -178,7 +178,7 @@ mod transport {
         let rcpt = <Address as std::str::FromStr>::from_str(rcpt)
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())?;
 
-        let ctx = get_global!(ncc, ctx)?;
+        let ctx = get_global!(ncc, ctx);
         let transport = std::sync::Arc::new(Forward::new(params));
         let mut guard = ctx.write().expect("mutex poisoned");
         guard
@@ -199,7 +199,7 @@ mod transport {
         let rcpt = <Address as std::str::FromStr>::from_str(&rcpt.to_string())
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())?;
 
-        let ctx = get_global!(ncc, ctx)?;
+        let ctx = get_global!(ncc, ctx);
 
         let mut guard = ctx.write().expect("mutex poisoned");
         guard
@@ -219,7 +219,7 @@ mod transport {
         let rcpt = <Address as std::str::FromStr>::from_str(rcpt)
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())?;
 
-        let ctx = get_global!(ncc, ctx)?;
+        let ctx = get_global!(ncc, ctx);
         let mut guard = ctx.write().expect("mutex poisoned");
         guard
             .set_transport_for_one(&rcpt, std::sync::Arc::new(Forward::new(params)))
@@ -238,7 +238,7 @@ mod transport {
         let rcpt = <Address as std::str::FromStr>::from_str(&rcpt.to_string())
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())?;
 
-        let ctx = get_global!(ncc, ctx)?;
+        let ctx = get_global!(ncc, ctx);
         let mut guard = ctx.write().expect("mutex poisoned");
         guard
             .set_transport_for_one(&rcpt, std::sync::Arc::new(Forward::new(params)))
@@ -318,7 +318,7 @@ mod transport {
             <SenderParameters as std::str::FromStr>::from_str(forward)
                 .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())?;
 
-        let ctx = get_global!(ncc, ctx)?;
+        let ctx = get_global!(ncc, ctx);
         let transport = std::sync::Arc::new(Forward::new(params));
 
         let mut guard = ctx.write().expect("mutex poisoned");
@@ -333,7 +333,7 @@ mod transport {
         let params = <SenderParameters as std::str::FromStr>::from_str(&forward.to_string())
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())?;
 
-        let ctx = get_global!(ncc, ctx)?;
+        let ctx = get_global!(ncc, ctx);
         let mut guard = ctx.write().expect("mutex poisoned");
         guard
             .set_transport_foreach(std::sync::Arc::new(Forward::new(params)))
@@ -425,8 +425,8 @@ mod transport {
         let rcpt = <Address as std::str::FromStr>::from_str(rcpt)
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())?;
 
-        let ctx = get_global!(ncc, ctx)?;
-        let srv = get_global!(ncc, srv)?;
+        let ctx = get_global!(ncc, ctx);
+        let srv = get_global!(ncc, srv);
         let mut guard = ctx.write().expect("mutex poisoned");
         guard
             .set_transport_for_one(
@@ -445,8 +445,8 @@ mod transport {
         let rcpt = <Address as std::str::FromStr>::from_str(&rcpt.to_string())
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())?;
 
-        let ctx = get_global!(ncc, ctx)?;
-        let srv = get_global!(ncc, srv)?;
+        let ctx = get_global!(ncc, ctx);
+        let srv = get_global!(ncc, srv);
 
         let mut guard = ctx.write().expect("mutex poisoned");
         guard
@@ -529,8 +529,8 @@ mod transport {
     /// # rhai-autodocs:index:4
     #[rhai_fn(return_raw)]
     pub fn deliver_all(ncc: NativeCallContext) -> EngineResult<()> {
-        let ctx = get_global!(ncc, ctx)?;
-        let srv = get_global!(ncc, srv)?;
+        let ctx = get_global!(ncc, ctx);
+        let srv = get_global!(ncc, srv);
 
         let mut guard = ctx.write().expect("mutex poisoned");
         guard
@@ -615,8 +615,8 @@ mod transport {
         let rcpt = <Address as std::str::FromStr>::from_str(rcpt)
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())?;
 
-        let ctx = get_global!(ncc, ctx)?;
-        let grp = get_global!(ncc, srv)?
+        let ctx = get_global!(ncc, ctx);
+        let grp = get_global!(ncc, srv)
             .config
             .server
             .system
@@ -635,8 +635,8 @@ mod transport {
         let rcpt = <Address as std::str::FromStr>::from_str(&rcpt.to_string())
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())?;
 
-        let ctx = get_global!(ncc, ctx)?;
-        let grp = get_global!(ncc, srv)?
+        let ctx = get_global!(ncc, ctx);
+        let grp = get_global!(ncc, srv)
             .config
             .server
             .system
@@ -714,8 +714,8 @@ mod transport {
     /// # rhai-autodocs:index:6
     #[rhai_fn(return_raw)]
     pub fn mbox_all(ncc: NativeCallContext) -> EngineResult<()> {
-        let ctx = get_global!(ncc, ctx)?;
-        let grp = get_global!(ncc, srv)?
+        let ctx = get_global!(ncc, ctx);
+        let grp = get_global!(ncc, srv)
             .config
             .server
             .system
@@ -801,8 +801,8 @@ mod transport {
         let rcpt = <Address as std::str::FromStr>::from_str(rcpt)
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())?;
 
-        let ctx = get_global!(ncc, ctx)?;
-        let grp = get_global!(ncc, srv)?
+        let ctx = get_global!(ncc, ctx);
+        let grp = get_global!(ncc, srv)
             .config
             .server
             .system
@@ -821,8 +821,8 @@ mod transport {
         let rcpt = <Address as std::str::FromStr>::from_str(&rcpt.to_string())
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())?;
 
-        let ctx = get_global!(ncc, ctx)?;
-        let grp = get_global!(ncc, srv)?
+        let ctx = get_global!(ncc, ctx);
+        let grp = get_global!(ncc, srv)
             .config
             .server
             .system
@@ -902,8 +902,8 @@ mod transport {
     /// # rhai-autodocs:index:8
     #[rhai_fn(return_raw)]
     pub fn maildir_all(ncc: NativeCallContext) -> EngineResult<()> {
-        let ctx = get_global!(ncc, ctx)?;
-        let grp = get_global!(ncc, srv)?
+        let ctx = get_global!(ncc, ctx);
+        let grp = get_global!(ncc, srv)
             .config
             .server
             .system

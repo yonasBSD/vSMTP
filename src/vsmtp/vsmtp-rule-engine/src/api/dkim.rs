@@ -87,7 +87,7 @@ mod dkim {
     /// # rhai-autodocs:index:1
     #[rhai_fn(name = "has_result", return_raw)]
     pub fn has_result(ncc: NativeCallContext) -> EngineResult<bool> {
-        super::Impl::has_dkim_result(&get_global!(ncc, ctx)?)
+        super::Impl::has_dkim_result(&get_global!(ncc, ctx))
     }
 
     /// Return the DKIM signature verification result in the `ctx()` or
@@ -96,7 +96,7 @@ mod dkim {
     /// # rhai-autodocs:index:2
     #[rhai_fn(name = "result", return_raw)]
     pub fn result(ncc: NativeCallContext) -> EngineResult<rhai::Map> {
-        super::Impl::dkim_result(&get_global!(ncc, ctx)?)
+        super::Impl::dkim_result(&get_global!(ncc, ctx))
     }
 
     /// Store the result produced by the DKIM signature verification in the `ctx()`.
@@ -107,7 +107,7 @@ mod dkim {
     /// # rhai-autodocs:index:3
     #[rhai_fn(return_raw)]
     pub fn store(ncc: NativeCallContext, result: rhai::Map) -> EngineResult<()> {
-        super::Impl::store(&get_global!(ncc, ctx)?, &result)
+        super::Impl::store(&get_global!(ncc, ctx), &result)
     }
 
     /// Get the list of DKIM private keys associated with this sdid
@@ -115,7 +115,7 @@ mod dkim {
     /// # rhai-autodocs:index:4
     #[rhai_fn(return_raw)]
     pub fn get_private_keys(ncc: NativeCallContext, sdid: &str) -> EngineResult<rhai::Array> {
-        let server = get_global!(ncc, srv)?;
+        let server = get_global!(ncc, srv);
         let r#virtual = server
             .config
             .server
@@ -319,12 +319,12 @@ mod dkim {
     /// # rhai-autodocs:index:7
     #[rhai_fn(return_raw)]
     pub fn verify(ncc: NativeCallContext) -> EngineResult<rhai::Map> {
-        let ctx = get_global!(ncc, ctx)?;
-        let msg = get_global!(ncc, msg)?;
+        let ctx = get_global!(ncc, ctx);
+        let msg = get_global!(ncc, msg);
         let result = super::Impl::verify_inner(
             &ctx,
             &msg,
-            &get_global!(ncc, srv)?,
+            &get_global!(ncc, srv),
             5,
             // the dns query may result in multiple public key, the registry with invalid format are ignored.
             // among ["first_one", "cycle"]
@@ -345,7 +345,7 @@ mod dkim {
                 .unwrap_or_default()
         );
 
-        crate::api::message::Impl::prepend_header(&msg, "Authentication-Results", &header_value)?;
+        crate::api::message::Impl::prepend_header(&msg, "Authentication-Results", &header_value);
 
         Ok(result)
     }
@@ -412,8 +412,8 @@ mod dkim {
     #[rhai_fn(name = "sign", return_raw)]
     pub fn sign(ncc: NativeCallContext, params: rhai::Map) -> EngineResult<()> {
         let signature = vsl_generic_ok!(super::Impl::generate_signature(
-            &*vsl_guard_ok!(get_global!(ncc, msg)?.read()),
-            &*vsl_guard_ok!(get_global!(ncc, ctx)?.read()),
+            &vsl_guard_ok!(get_global!(ncc, msg).read()),
+            &vsl_guard_ok!(get_global!(ncc, ctx).read()),
             rhai::serde::from_dynamic::<SignatureParams>(&params.into())?
         ));
 
@@ -671,7 +671,7 @@ impl Impl {
 
         let mut last_error: Option<String> = None;
 
-        let mut header = crate::api::message::Impl::get_header_untouched(msg, "DKIM-Signature")?;
+        let mut header = crate::api::message::Impl::get_header_untouched(msg, "DKIM-Signature");
         header.truncate(nbr_headers);
 
         for input in header {
@@ -695,7 +695,7 @@ impl Impl {
             // }
 
             for key in &Self::get_public_key(srv, &signature, on_multiple_key_records)? {
-                if let Err(error) = Self::verify(&*vsl_guard_ok!(msg.read()), &signature, key) {
+                if let Err(error) = Self::verify(&vsl_guard_ok!(msg.read()), &signature, key) {
                     tracing::warn!(%error, "DKIM signature verification failed");
                     last_error = Some(Self::get_dkim_error_status(&error));
                     continue;

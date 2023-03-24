@@ -50,8 +50,8 @@ mod dmarc {
     /// # rhai-autodocs:index:1
     #[rhai_fn(name = "check", return_raw)]
     pub fn check(ncc: NativeCallContext) -> EngineResult<vsmtp_common::status::Status> {
-        let msg = get_global!(ncc, msg)?;
-        let srv = get_global!(ncc, srv)?;
+        let msg = get_global!(ncc, msg);
+        let srv = get_global!(ncc, srv);
 
         let rfc5322_from = super::parse_rfc5322_from(&msg)?;
         let rfc5322_from = rfc5322_from.domain();
@@ -59,7 +59,7 @@ mod dmarc {
 
         // tracing::warn!(%error, "DMARC record not found:");
         // return rule_state::next();
-        let ctx = get_global!(ncc, ctx)?;
+        let ctx = get_global!(ncc, ctx);
 
         let dkim = crate::api::dkim::Impl::verify_inner(
             &ctx, &msg, &srv, // TODO: only take `d == rfc5322_from`
@@ -112,7 +112,7 @@ mod dmarc {
                 header,
                 if dmarc_pass { "pass" } else { "fail" }
             ),
-        )?;
+        );
 
         Ok(if dmarc_pass {
             state::next()

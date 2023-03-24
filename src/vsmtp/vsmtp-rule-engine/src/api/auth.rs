@@ -46,7 +46,7 @@ mod auth {
     /// # rhai-autodocs:index:1
     #[rhai_fn(name = "unix_users", return_raw)]
     pub fn unix_users(ncc: NativeCallContext) -> EngineResult<Status> {
-        let ctx = get_global!(ncc, ctx)?;
+        let ctx = get_global!(ncc, ctx);
         let ctx = vsl_guard_ok!(ctx.read());
 
         match &ctx
@@ -96,9 +96,7 @@ mod auth {
     /// # rhai-autodocs:index:2
     #[rhai_fn(name = "is_authenticated", return_raw)]
     pub fn is_authenticated(ncc: NativeCallContext) -> EngineResult<bool> {
-        Ok(vsl_guard_ok!(get_global!(ncc, ctx)?.read())
-            .auth()
-            .is_some())
+        Ok(vsl_guard_ok!(get_global!(ncc, ctx).read()).auth().is_some())
     }
 
     /// Get authentication credentials from the client.
@@ -127,7 +125,7 @@ mod auth {
     /// # rhai-autodocs:index:3
     #[rhai_fn(name = "credentials", return_raw)]
     pub fn credentials(ncc: NativeCallContext) -> EngineResult<Credentials> {
-        vsl_guard_ok!(get_global!(ncc, ctx)?.read())
+        vsl_guard_ok!(get_global!(ncc, ctx).read())
             .auth()
             .as_ref()
             .and_then(|auth| auth.credentials.clone())

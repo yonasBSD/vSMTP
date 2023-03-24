@@ -72,7 +72,7 @@ mod dns {
     /// # rhai-autodocs:index:1
     #[rhai_fn(name = "lookup", return_raw)]
     pub fn lookup(ncc: NativeCallContext, name: &str) -> EngineResult<rhai::Array> {
-        super::Impl::lookup(&get_global!(ncc, srv)?, name)
+        super::Impl::lookup(&get_global!(ncc, srv), name)
     }
 
     #[doc(hidden)]
@@ -122,7 +122,7 @@ mod dns {
     /// # rhai-autodocs:index:2
     #[rhai_fn(name = "rlookup", return_raw)]
     pub fn rlookup(ncc: NativeCallContext, name: &str) -> EngineResult<rhai::Array> {
-        super::Impl::rlookup(&get_global!(ncc, srv)?, name)
+        super::Impl::rlookup(&get_global!(ncc, srv), name)
     }
 
     #[doc(hidden)]

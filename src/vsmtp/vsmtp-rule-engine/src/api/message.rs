@@ -94,7 +94,7 @@ mod message {
     /// # rhai-autodocs:index:2
     #[rhai_fn(name = "has_header", return_raw)]
     pub fn has_header(ncc: NativeCallContext, header: &str) -> EngineResult<bool> {
-        Ok(vsl_guard_ok!(get_global!(ncc, msg)?.read())
+        Ok(vsl_guard_ok!(get_global!(ncc, msg).read())
             .get_header(header)
             .is_some())
     }
@@ -157,7 +157,7 @@ mod message {
     /// # rhai-autodocs:index:3
     #[rhai_fn(name = "count_header", return_raw)]
     pub fn count_header(ncc: NativeCallContext, header: &str) -> EngineResult<rhai::INT> {
-        super::Impl::count_header(&get_global!(ncc, msg)?, header)
+        super::Impl::count_header(&get_global!(ncc, msg), header)
     }
 
     #[doc(hidden)]
@@ -166,7 +166,7 @@ mod message {
         ncc: NativeCallContext,
         header: SharedObject,
     ) -> EngineResult<rhai::INT> {
-        super::Impl::count_header(&get_global!(ncc, msg)?, &header.to_string())
+        super::Impl::count_header(&get_global!(ncc, msg), &header.to_string())
     }
 
     /// Get a specific header from the incoming message.
@@ -227,7 +227,7 @@ mod message {
     /// # rhai-autodocs:index:4
     #[rhai_fn(name = "get_header", return_raw)]
     pub fn get_header(ncc: NativeCallContext, header: &str) -> EngineResult<String> {
-        Ok(vsl_guard_ok!(get_global!(ncc, msg)?.read())
+        Ok(vsl_guard_ok!(get_global!(ncc, msg).read())
             .get_header(header)
             .unwrap_or_default())
     }
@@ -281,7 +281,7 @@ mod message {
     /// # rhai-autodocs:index:5
     #[rhai_fn(name = "get_all_headers", return_raw)]
     pub fn get_all_headers(ncc: NativeCallContext) -> EngineResult<rhai::Array> {
-        Ok(vsl_guard_ok!(get_global!(ncc, msg)?.read())
+        Ok(vsl_guard_ok!(get_global!(ncc, msg).read())
             .inner()
             .raw_headers()
             .iter()
@@ -292,7 +292,7 @@ mod message {
     #[doc(hidden)]
     #[rhai_fn(name = "get_all_headers", return_raw)]
     pub fn get_all_headers_str(ncc: NativeCallContext, name: &str) -> EngineResult<rhai::Array> {
-        super::Impl::get_all_headers(&get_global!(ncc, msg)?, name)
+        Ok(super::Impl::get_all_headers(&get_global!(ncc, msg), name))
     }
 
     #[doc(hidden)]
@@ -301,7 +301,10 @@ mod message {
         ncc: NativeCallContext,
         name: SharedObject,
     ) -> EngineResult<rhai::Array> {
-        super::Impl::get_all_headers(&get_global!(ncc, msg)?, &name.to_string())
+        Ok(super::Impl::get_all_headers(
+            &get_global!(ncc, msg),
+            &name.to_string(),
+        ))
     }
 
     /// Get a list of all headers of a specific name with it's name and value
@@ -348,7 +351,10 @@ mod message {
     /// # rhai-autodocs:index:6
     #[rhai_fn(return_raw)]
     pub fn get_header_untouched(ncc: NativeCallContext, name: &str) -> EngineResult<rhai::Array> {
-        super::Impl::get_header_untouched(&get_global!(ncc, msg)?, name)
+        Ok(super::Impl::get_header_untouched(
+            &get_global!(ncc, msg),
+            name,
+        ))
     }
 
     /// Add a new header **at the end** of the header list in the message.
@@ -402,7 +408,8 @@ mod message {
     /// # rhai-autodocs:index:7
     #[rhai_fn(name = "append_header", return_raw)]
     pub fn append_header(ncc: NativeCallContext, header: &str, value: &str) -> EngineResult<()> {
-        super::Impl::append_header(&get_global!(ncc, msg)?, &header, &value)
+        super::Impl::append_header(&get_global!(ncc, msg), &header, &value);
+        Ok(())
     }
 
     #[doc(hidden)]
@@ -412,7 +419,8 @@ mod message {
         header: &str,
         value: SharedObject,
     ) -> EngineResult<()> {
-        super::Impl::append_header(&get_global!(ncc, msg)?, &header, &value.to_string())
+        super::Impl::append_header(&get_global!(ncc, msg), &header, &value.to_string());
+        Ok(())
     }
 
     /// Add a new header on top all other headers in the message.
@@ -466,7 +474,8 @@ mod message {
     /// # rhai-autodocs:index:8
     #[rhai_fn(name = "prepend_header", return_raw)]
     pub fn prepend_header(ncc: NativeCallContext, header: &str, value: &str) -> EngineResult<()> {
-        super::Impl::prepend_header(&get_global!(ncc, msg)?, header, value)
+        super::Impl::prepend_header(&get_global!(ncc, msg), header, value);
+        Ok(())
     }
 
     #[doc(hidden)]
@@ -476,7 +485,8 @@ mod message {
         header: &str,
         value: SharedObject,
     ) -> EngineResult<()> {
-        super::Impl::prepend_header(&get_global!(ncc, msg)?, header, &value.to_string())
+        super::Impl::prepend_header(&get_global!(ncc, msg), header, &value.to_string());
+        Ok(())
     }
 
     /// Replace an existing header value by a new value, or append a new header
@@ -532,7 +542,8 @@ mod message {
     /// # rhai-autodocs:index:9
     #[rhai_fn(name = "set_header", return_raw)]
     pub fn set_header(ncc: NativeCallContext, header: &str, value: &str) -> EngineResult<()> {
-        super::Impl::set_header(&get_global!(ncc, msg)?, header, value)
+        super::Impl::set_header(&get_global!(ncc, msg), header, value);
+        Ok(())
     }
 
     #[doc(hidden)]
@@ -542,7 +553,8 @@ mod message {
         header: &str,
         value: SharedObject,
     ) -> EngineResult<()> {
-        super::Impl::set_header(&get_global!(ncc, msg)?, header, &value.to_string())
+        super::Impl::set_header(&get_global!(ncc, msg), header, &value.to_string());
+        Ok(())
     }
 
     /// Replace an existing header name by a new value.
@@ -604,7 +616,8 @@ mod message {
     /// # rhai-autodocs:index:10
     #[rhai_fn(name = "rename_header", return_raw)]
     pub fn rename_header(ncc: NativeCallContext, old: &str, new: &str) -> EngineResult<()> {
-        super::Impl::rename_header(&get_global!(ncc, msg)?, old, new)
+        super::Impl::rename_header(&get_global!(ncc, msg), old, new);
+        Ok(())
     }
 
     #[doc(hidden)]
@@ -614,7 +627,8 @@ mod message {
         old: &str,
         new: SharedObject,
     ) -> EngineResult<()> {
-        super::Impl::rename_header(&get_global!(ncc, msg)?, old, &new.to_string())
+        super::Impl::rename_header(&get_global!(ncc, msg), old, &new.to_string());
+        Ok(())
     }
 
     #[doc(hidden)]
@@ -624,7 +638,8 @@ mod message {
         old: SharedObject,
         new: &str,
     ) -> EngineResult<()> {
-        super::Impl::rename_header(&get_global!(ncc, msg)?, &old.to_string(), new)
+        super::Impl::rename_header(&get_global!(ncc, msg), &old.to_string(), new);
+        Ok(())
     }
 
     #[doc(hidden)]
@@ -634,7 +649,8 @@ mod message {
         old: SharedObject,
         new: SharedObject,
     ) -> EngineResult<()> {
-        super::Impl::rename_header(&get_global!(ncc, msg)?, &old.to_string(), &new.to_string())
+        super::Impl::rename_header(&get_global!(ncc, msg), &old.to_string(), &new.to_string());
+        Ok(())
     }
 
     /// Get a copy of the whole email as a string.
@@ -659,7 +675,7 @@ mod message {
     /// # rhai-autodocs:index:11
     #[rhai_fn(name = "mail", return_raw)]
     pub fn mail(ncc: NativeCallContext) -> EngineResult<String> {
-        Ok(vsl_guard_ok!(get_global!(ncc, msg)?.read())
+        Ok(vsl_guard_ok!(get_global!(ncc, msg).read())
             .inner()
             .to_string())
     }
@@ -721,13 +737,16 @@ mod message {
     /// # rhai-autodocs:index:12
     #[rhai_fn(name = "rm_header", return_raw)]
     pub fn remove_header(ncc: NativeCallContext, header: &str) -> EngineResult<bool> {
-        super::Impl::remove_header(&get_global!(ncc, msg)?, header)
+        Ok(super::Impl::remove_header(&get_global!(ncc, msg), header))
     }
 
     #[doc(hidden)]
     #[rhai_fn(name = "rm_header", return_raw)]
     pub fn remove_header_obj(ncc: NativeCallContext, header: SharedObject) -> EngineResult<bool> {
-        super::Impl::remove_header(&get_global!(ncc, msg)?, &header.to_string())
+        Ok(super::Impl::remove_header(
+            &get_global!(ncc, msg),
+            &header.to_string(),
+        ))
     }
 
     /// Change the sender's address in the `From` header of the message.
@@ -759,7 +778,7 @@ mod message {
         ncc: NativeCallContext,
         new_addr: &str,
     ) -> EngineResult<()> {
-        super::Impl::rewrite_mail_from_message(&get_global!(ncc, msg)?, new_addr)
+        super::Impl::rewrite_mail_from_message(&get_global!(ncc, msg), new_addr)
     }
 
     #[doc(hidden)]
@@ -768,7 +787,7 @@ mod message {
         ncc: NativeCallContext,
         new_addr: SharedObject,
     ) -> EngineResult<()> {
-        super::Impl::rewrite_mail_from_message(&get_global!(ncc, msg)?, &new_addr.to_string())
+        super::Impl::rewrite_mail_from_message(&get_global!(ncc, msg), &new_addr.to_string())
     }
 
     /// Replace a recipient by an other in the `To` header of the message.
@@ -802,7 +821,7 @@ mod message {
         old_addr: &str,
         new_addr: &str,
     ) -> EngineResult<()> {
-        super::Impl::rewrite_rcpt_message(&get_global!(ncc, msg)?, old_addr, new_addr)
+        super::Impl::rewrite_rcpt_message(&get_global!(ncc, msg), old_addr, new_addr)
     }
 
     #[doc(hidden)]
@@ -812,7 +831,7 @@ mod message {
         old_addr: SharedObject,
         new_addr: &str,
     ) -> EngineResult<()> {
-        super::Impl::rewrite_rcpt_message(&get_global!(ncc, msg)?, &old_addr.to_string(), new_addr)
+        super::Impl::rewrite_rcpt_message(&get_global!(ncc, msg), &old_addr.to_string(), new_addr)
     }
 
     #[doc(hidden)]
@@ -822,7 +841,7 @@ mod message {
         old_addr: &str,
         new_addr: SharedObject,
     ) -> EngineResult<()> {
-        super::Impl::rewrite_rcpt_message(&get_global!(ncc, msg)?, old_addr, &new_addr.to_string())
+        super::Impl::rewrite_rcpt_message(&get_global!(ncc, msg), old_addr, &new_addr.to_string())
     }
 
     #[doc(hidden)]
@@ -833,7 +852,7 @@ mod message {
         new_addr: SharedObject,
     ) -> EngineResult<()> {
         super::Impl::rewrite_rcpt_message(
-            &get_global!(ncc, msg)?,
+            &get_global!(ncc, msg),
             &old_addr.to_string(),
             &new_addr.to_string(),
         )
@@ -865,7 +884,7 @@ mod message {
     /// # rhai-autodocs:index:15
     #[rhai_fn(name = "add_rcpt", return_raw)]
     pub fn add_rcpt_message_str(ncc: NativeCallContext, new_addr: &str) -> EngineResult<()> {
-        super::Impl::add_rcpt_message(&get_global!(ncc, msg)?, new_addr)
+        super::Impl::add_rcpt_message(&get_global!(ncc, msg), new_addr)
     }
 
     #[doc(hidden)]
@@ -874,7 +893,7 @@ mod message {
         ncc: NativeCallContext,
         new_addr: SharedObject,
     ) -> EngineResult<()> {
-        super::Impl::add_rcpt_message(&get_global!(ncc, msg)?, &new_addr.to_string())
+        super::Impl::add_rcpt_message(&get_global!(ncc, msg), &new_addr.to_string())
     }
 
     /// Remove a recipient from the `To` header of the message.
@@ -903,37 +922,37 @@ mod message {
     /// # rhai-autodocs:index:16
     #[rhai_fn(name = "rm_rcpt", return_raw)]
     pub fn remove_rcpt_message_str(ncc: NativeCallContext, addr: &str) -> EngineResult<()> {
-        super::Impl::remove_rcpt_message(&get_global!(ncc, msg)?, addr)
+        super::Impl::remove_rcpt_message(&get_global!(ncc, msg), addr)
     }
 
     #[doc(hidden)]
     #[rhai_fn(name = "rm_rcpt", return_raw)]
     pub fn remove_rcpt_message_obj(ncc: NativeCallContext, addr: SharedObject) -> EngineResult<()> {
-        super::Impl::remove_rcpt_message(&get_global!(ncc, msg)?, &addr.to_string())
+        super::Impl::remove_rcpt_message(&get_global!(ncc, msg), &addr.to_string())
     }
 }
 
 pub(super) struct Impl;
 
 impl Impl {
-    pub fn get_all_headers(message: &Message, name: &str) -> EngineResult<rhai::Array> {
-        Ok(vsl_guard_ok!(message.read())
+    pub fn get_all_headers(message: &Message, name: &str) -> rhai::Array {
+        vsl_guard_ok!(message.read())
             .inner()
             .headers()
             .into_iter()
             .filter(|(key, _)| key.eq_ignore_ascii_case(name))
             .map(|(_, value)| rhai::Dynamic::from(value))
-            .collect())
+            .collect()
     }
 
-    pub fn get_header_untouched(msg: &Message, name: &str) -> EngineResult<rhai::Array> {
-        Ok(vsl_guard_ok!(msg.read())
+    pub fn get_header_untouched(msg: &Message, name: &str) -> rhai::Array {
+        vsl_guard_ok!(msg.read())
             .inner()
             .headers()
             .iter()
             .filter(|(key, _)| key.eq_ignore_ascii_case(name))
             .map(|(key, value)| rhai::Dynamic::from(format!("{key}:{value}")))
-            .collect::<Vec<_>>())
+            .collect::<Vec<_>>()
     }
 
     pub fn count_header<T>(message: &Message, header: &T) -> EngineResult<rhai::INT>
@@ -946,47 +965,43 @@ impl Impl {
             .map_err::<Box<rhai::EvalAltResult>, _>(|_| "header count overflowed".into())
     }
 
-    pub fn append_header<T, U>(message: &Message, header: &T, value: &U) -> EngineResult<()>
+    pub fn append_header<T, U>(message: &Message, header: &T, value: &U)
     where
         T: AsRef<str> + ?Sized,
         U: AsRef<str> + ?Sized,
     {
         vsl_guard_ok!(message.write()).append_header(header.as_ref(), value.as_ref());
-        Ok(())
     }
 
-    pub fn prepend_header<T, U>(message: &Message, header: &T, value: &U) -> EngineResult<()>
+    pub fn prepend_header<T, U>(message: &Message, header: &T, value: &U)
     where
         T: AsRef<str> + ?Sized,
         U: AsRef<str> + ?Sized,
     {
         vsl_guard_ok!(message.write()).prepend_header(header.as_ref(), value.as_ref());
-        Ok(())
     }
 
-    pub fn set_header<T, U>(message: &Message, header: &T, value: &U) -> EngineResult<()>
+    pub fn set_header<T, U>(message: &Message, header: &T, value: &U)
     where
         T: AsRef<str> + ?Sized,
         U: AsRef<str> + ?Sized,
     {
         vsl_guard_ok!(message.write()).set_header(header.as_ref(), value.as_ref());
-        Ok(())
     }
 
-    pub fn rename_header<T, U>(message: &Message, old: &T, new: &U) -> EngineResult<()>
+    pub fn rename_header<T, U>(message: &Message, old: &T, new: &U)
     where
         T: AsRef<str> + ?Sized,
         U: AsRef<str> + ?Sized,
     {
         vsl_guard_ok!(message.write()).rename_header(old.as_ref(), new.as_ref());
-        Ok(())
     }
 
-    pub fn remove_header<T>(message: &Message, header: &T) -> EngineResult<bool>
+    pub fn remove_header<T>(message: &Message, header: &T) -> bool
     where
         T: AsRef<str> + ?Sized,
     {
-        Ok(vsl_guard_ok!(message.write()).remove_header(header.as_ref()))
+        vsl_guard_ok!(message.write()).remove_header(header.as_ref())
     }
 
     fn rewrite_mail_from_message(message: &Message, new_addr: &str) -> EngineResult<()> {

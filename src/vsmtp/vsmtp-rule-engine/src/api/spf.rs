@@ -15,15 +15,18 @@
  *
 */
 
-use crate::api::{
-    EngineResult, {Context, Server},
+use crate::{
+    api::{
+        EngineResult, {Context, Server},
+    },
+    error::RuntimeError,
 };
 use rhai::plugin::{
     mem, Dynamic, FnAccess, FnNamespace, Module, NativeCallContext, PluginFunction, RhaiResult,
     TypeId,
 };
 use vsmtp_auth::viaspf;
-use vsmtp_common::{ClientName, Stage};
+use vsmtp_common::ClientName;
 
 const AUTH_HEADER: &str = "Authentication-Results";
 const SPF_HEADER: &str = "Received-SPF";
@@ -171,10 +174,10 @@ mod spf {
     #[rhai_fn(name = "check", return_raw)]
     pub fn check_with_params(ncc: NativeCallContext, params: rhai::Map) -> EngineResult<Status> {
         let params = rhai::serde::from_dynamic::<SpfParameters>(&params.into())?;
-        let ctx = get_global!(ncc, ctx)?;
-        let srv = get_global!(ncc, srv)?;
+        let ctx = get_global!(ncc, ctx);
+        let srv = get_global!(ncc, srv);
         let query = super::check(&ctx, &srv)?;
-        let msg = get_global!(ncc, msg)?;
+        let msg = get_global!(ncc, msg);
 
         let (hostname, sender, client_ip) = {
             let ctx = vsl_guard_ok!(ctx.read());
@@ -200,7 +203,7 @@ mod spf {
                     sender.as_ref().map_or("null", |sender| sender.full()),
                     &client_ip,
                 ),
-            )?,
+            ),
             Headers::Auth => Impl::prepend_header(
                 &msg,
                 AUTH_HEADER,
@@ -210,7 +213,7 @@ mod spf {
                     sender.as_ref().map_or("null", |sender| sender.full()),
                     &client_ip,
                 ),
-            )?,
+            ),
             Headers::Both => {
                 Impl::prepend_header(
                     &msg,
@@ -221,7 +224,7 @@ mod spf {
                         sender.as_ref().map_or("null", |sender| sender.full()),
                         &client_ip,
                     ),
-                )?;
+                );
                 Impl::prepend_header(
                     &msg,
                     SPF_HEADER,
@@ -231,7 +234,7 @@ mod spf {
                         sender.as_ref().map_or("null", |sender| sender.full()),
                         &client_ip,
                     ),
-                )?;
+                );
             }
             Headers::None => {}
         };
@@ -295,8 +298,8 @@ mod spf {
     /// # rhai-autodocs:index:2
     #[rhai_fn(name = "check_raw", return_raw)]
     pub fn check_raw(ncc: NativeCallContext) -> EngineResult<rhai::Map> {
-        let ctx = get_global!(ncc, ctx)?;
-        let srv = get_global!(ncc, srv)?;
+        let ctx = get_global!(ncc, ctx);
+        let srv = get_global!(ncc, srv);
 
         super::check(&ctx, &srv).map(|spf| result_to_map(&spf))
     }
@@ -313,12 +316,12 @@ mod spf {
 pub fn check(ctx: &Context, srv: &Server) -> EngineResult<vsmtp_auth::spf::Result> {
     let (spf_sender, ip) = {
         let ctx = vsl_guard_ok!(ctx.read());
-        let mail_from = vsl_stage_ok!(ctx.reverse_path(), "spf::check", Stage::MailFrom);
+        let mail_from = ctx.reverse_path().map_err(Into::<RuntimeError>::into)?;
 
         let spf_sender = match mail_from {
             Some(mail_from) => vsl_generic_ok!(viaspf::Sender::from_address(mail_from.full())),
             None => {
-                let client_name = vsl_stage_ok!(ctx.client_name(), "spf::check", Stage::MailFrom);
+                let client_name = ctx.client_name().map_err(Into::<RuntimeError>::into)?;
                 match client_name {
                     ClientName::Domain(domain) => {
                         vsl_generic_ok!(viaspf::Sender::from_domain(&domain.to_string()))
@@ -343,11 +346,9 @@ pub fn check(ctx: &Context, srv: &Server) -> EngineResult<vsmtp_auth::spf::Resul
 
     let spf_result = block_on!(vsmtp_auth::spf::evaluate(&resolver, ip, &spf_sender));
 
-    vsl_stage_ok!(
-        vsl_guard_ok!(ctx.write()).set_spf(spf_result.clone()),
-        "spf::check",
-        Stage::MailFrom
-    );
+    vsl_guard_ok!(ctx.write())
+        .set_spf(spf_result.clone())
+        .map_err(Into::<RuntimeError>::into)?;
 
     Ok(spf_result)
 }

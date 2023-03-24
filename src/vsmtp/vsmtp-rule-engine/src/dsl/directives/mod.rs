@@ -140,7 +140,7 @@ impl Directive {
             Self::Action { pointer, .. } => {
                 // using `()` as a return value is not enough since any non-`()` return
                 // at the end of an action will result in an error.
-                let _ = rule_state.engine().call_fn::<rhai::Dynamic>(
+                let _: rhai::Dynamic = rule_state.engine().call_fn::<rhai::Dynamic>(
                     &mut rhai::Scope::new(),
                     ast,
                     pointer.fn_name(),

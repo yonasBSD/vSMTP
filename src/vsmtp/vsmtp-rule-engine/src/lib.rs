@@ -125,18 +125,23 @@ pub mod api {
     /// Utility functions.
     pub mod utils;
 
-    // TODO: add read/write variants and vsl_guard_ok macro.
     /// Fetch rule engine global variables by calling the rhai system functions.
+    ///
+    /// Missing global variables are not recoverable, and due to an error of implementation.
+    /// We make the thread panic, it is fine as long as we have enough tests and high coverage.
     #[macro_export]
     macro_rules! get_global {
         ($ncc:expr, ctx) => {
             $ncc.call_fn::<$crate::api::Context>("ctx", ())
+                .expect("`ctx` do not exist in the `ncc`")
         };
         ($ncc:expr, srv) => {
             $ncc.call_fn::<$crate::api::Server>("srv", ())
+                .expect("`srv` do not exist in the `ncc`")
         };
         ($ncc:expr, msg) => {
             $ncc.call_fn::<$crate::api::Message>("msg", ())
+                .expect("`msg` do not exist in the `ncc`")
         };
     }
 

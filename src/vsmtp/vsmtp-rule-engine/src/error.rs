@@ -85,8 +85,6 @@ impl From<CompilationError> for Box<rhai::EvalAltResult> {
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, thiserror::Error)]
 pub enum RuntimeError {
-    #[error("a lock guard is poisoned: `{source}`")]
-    PoisonedGuard { source: anyhow::Error },
     #[error("{0}")]
     MissingField(FieldAccessError),
     #[error("failed to parse the message body, `{source}`")]
@@ -149,16 +147,14 @@ macro_rules! vsl_generic_ok {
     };
 }
 
+/// Handle [`std::sync::RwLock`] and [`std::sync::Mutex`] error.
+///
+/// Poisoned lock are not recoverable, and due to an error of implementation.
+/// We make the thread panic, it is fine as long as we have enough tests and high coverage.
 #[macro_export]
-/// checks if the mutex is poisoned & return a rhai runtime error if it is.
 macro_rules! vsl_guard_ok {
     ($guard:expr) => {
-        $guard.map_err::<Box<rhai::EvalAltResult>, _>(|e| {
-            $crate::error::RuntimeError::PoisonedGuard {
-                source: anyhow::anyhow!("{e}"),
-            }
-            .into()
-        })?
+        $guard.expect("Mutex is poisoned within the implementation of a vsl function.")
     };
 }
 
@@ -175,19 +171,6 @@ macro_rules! vsl_conversion_ok {
         $result.map_err(|source| $crate::error::RuntimeError::TypeError {
             r#type: $type_,
             source,
-        })?
-    };
-}
-
-/// Asserts if a function has been executed during or after the desired stage.
-macro_rules! vsl_stage_ok {
-    ($result:expr, $function:expr, $expected:expr) => {
-        $result.map_err::<Box<rhai::EvalAltResult>, _>(|_| {
-            format!(
-                "`{}` vsl function executed before the `{}` stage",
-                $function, $expected
-            )
-            .into()
         })?
     };
 }
