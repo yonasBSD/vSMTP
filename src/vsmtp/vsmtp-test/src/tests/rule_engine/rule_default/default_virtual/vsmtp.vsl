@@ -11,8 +11,11 @@ fn on_config(config) {
         preempt_cipherlist: false,
         handshake_timeout: "20000ms",
         protocol_version: ["TLSv1.2", "TLSv1.3"],
-        certificate: "src/template/certs/certificate.crt",
-        private_key: "src/template/certs/private_key.rsa.key",
+
+        root: #{
+            certificate: "src/template/certs/certificate.crt",
+            private_key: "src/template/certs/private_key.rsa.key",
+        }
     };
 
     config.server.logs = #{

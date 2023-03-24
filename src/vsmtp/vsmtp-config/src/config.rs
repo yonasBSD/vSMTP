@@ -331,8 +331,8 @@ pub mod field {
         ///
         /// * if none (default),    will deny the connection
         /// * if some,              will used these values
-        #[serde(default, flatten)]
-        pub default: Option<FieldServerVirtualTls>,
+        #[serde(default)]
+        pub root: Option<FieldServerVirtualTls>,
     }
 
     /// Configuration of the client's error handling.
