@@ -32,4 +32,4 @@ vsmtp-plugin-vsl = { version = "=2.2.0", path = "../../vsmtp/vsmtp-plugin-vsl" }
 rhai = { version = "=1.13.0", features = ["unchecked", "sync", "internals", "no_closure", "metadata"] }
 csv = { version = "1.2.1", default-features = false }
 anyhow = { version = "1.0.69", default-features = false, features = ["std"] }
-serde = { version = "1.0.158", default-features = false, features = ["std", "derive"] }
+serde = { version = "1.0.159", default-features = false, features = ["std", "derive"] }
