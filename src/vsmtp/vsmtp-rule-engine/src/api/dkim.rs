@@ -160,44 +160,54 @@ mod dkim {
     /// ```
     /// // The message received.
     /// let msg = r#"
-    /// Received: from github.com (hubbernetes-node-54a15d2.ash1-iad.github.net [10.56.202.84])
-    /// 	by smtp.github.com (Postfix) with ESMTPA id 19FB45E0B6B
-    /// 	for <mlala@negabit.com>; Wed, 26 Oct 2022 14:30:51 -0700 (PDT)
     /// DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=github.com;
-    /// 	s=pf2014; t=1666819851;
-    /// 	bh=7gTTczemS/Aahap1SpEnunm4pAPNuUIg7fUzwEx0QUA=;
+    /// 	s=pf2023; t=1680072674;
+    /// 	bh=RprtMST4/9zuJ2sHMc/XzPU24+EpKHxKeMv9WGr9GGc=;
     /// 	h=Date:From:To:Subject:From;
-    /// 	b=eAufMk7uj4R+bO5Nr4DymffdGdbrJNza1+eykatgZED6tBBcMidkMiLSnP8FyVCS9
-    /// 	 /GSlXME6/YffAXg4JEBr2lN3PuLIf94S86U3VckuoQQQe1LPtHlnGW5ZwJgi6DjrzT
-    /// 	 klht/6Pn1w3a2jdNSDccWhk5qlSOQX9JKnE7UD58=
-    /// Date: Wed, 26 Oct 2022 14:30:51 -0700
-    /// From: Mathieu Lala <noreply@github.com>
+    /// 	b=ewM8CN8h+YIoodsw4j+PWNf2PzE9tgUpMqW877vIjGtCfn82Sl7m8EwVUAmiXbw1z
+    /// 	 KO3fBgM2YYOTAuDXEc46jgwEVQnWocfTnXvXMn1JsGLaRZX35w7X6ON1fPOoCm0CmN
+    /// 	 THodL0qR4oPEXCPItAysl9r7PKkhxGDrzBLXapVg=
+    /// Date: Tue, 28 Mar 2023 23:51:14 -0700
+    /// From: "dependabot[bot]" <noreply@github.com>
     /// To: mlala@negabit.com
-    /// Message-ID: <viridIT/vSMTP/push/refs/heads/test/rule-engine/000000-c6459a@github.com>
-    /// Subject: [viridIT/vSMTP] c6459a: test: add test on message
+    /// Message-ID: <viridIT/vSMTP/push/refs/heads/dependabot/cargo/clap-4.2.0/ff7841-e82e9d@github.com>
+    /// Subject: [viridIT/vSMTP] e82e9d: Build(deps): Bump clap from 4.1.11 to 4.2.0
     /// Mime-Version: 1.0
     /// Content-Type: text/plain;
     ///  charset=UTF-8
     /// Content-Transfer-Encoding: 7bit
     /// Approved: =?UTF-8?Q?hello_there_=F0=9F=91=8B?=
-    /// X-GitHub-Recipient-Address: mlala@negabit.com
-    /// X-Auto-Response-Suppress: All
     ///
-    ///   Branch: refs/heads/test/rule-engine
+    ///   Branch: refs/heads/dependabot/cargo/clap-4.2.0
     ///   Home:   https://github.com/viridIT/vSMTP
-    ///   Commit: c6459a4946395ba90182ce7181bdbc327994c038
-    ///       https://github.com/viridIT/vSMTP/commit/c6459a4946395ba90182ce7181bdbc327994c038
-    ///   Author: Mathieu Lala <m.lala@viridit.com>
-    ///   Date:   2022-10-26 (Wed, 26 Oct 2022)
+    ///   Commit: e82e9d9382dc44a296a889ee2ec7c6126e77d988
+    ///       https://github.com/viridIT/vSMTP/commit/e82e9d9382dc44a296a889ee2ec7c6126e77d988
+    ///   Author: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+    ///   Date:   2023-03-29 (Wed, 29 Mar 2023)
     ///
     ///   Changed paths:
-    ///     M src/vsmtp/vsmtp-rule-engine/src/api/message.rs
-    ///     M src/vsmtp/vsmtp-rule-engine/src/lib.rs
-    ///     M src/vsmtp/vsmtp-test/src/vsl.rs
+    ///     M Cargo.lock
+    ///     M src/vqueue/Cargo.toml
+    ///     M src/vsmtp/vsmtp-core/Cargo.toml
     ///
     ///   Log Message:
     ///   -----------
-    ///   test: add test on message
+    ///   Build(deps): Bump clap from 4.1.11 to 4.2.0
+    ///
+    /// Bumps [clap](https://github.com/clap-rs/clap) from 4.1.11 to 4.2.0.
+    /// - [Release notes](https://github.com/clap-rs/clap/releases)
+    /// - [Changelog](https://github.com/clap-rs/clap/blob/master/CHANGELOG.md)
+    /// - [Commits](https://github.com/clap-rs/clap/compare/v4.1.11...clap_complete-v4.2.0)
+    ///
+    /// ---
+    /// updated-dependencies:
+    /// - dependency-name: clap
+    ///   dependency-type: direct:production
+    ///   update-type: version-update:semver-minor
+    /// ...
+    ///
+    /// Signed-off-by: dependabot[bot] <support@github.com>
+    ///
     ///
     ///
     /// "#;
@@ -246,44 +256,54 @@ mod dkim {
     /// ```
     /// // The message received.
     /// let msg = r#"
-    /// Received: from github.com (hubbernetes-node-54a15d2.ash1-iad.github.net [10.56.202.84])
-    /// 	by smtp.github.com (Postfix) with ESMTPA id 19FB45E0B6B
-    /// 	for <mlala@negabit.com>; Wed, 26 Oct 2022 14:30:51 -0700 (PDT)
     /// DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=github.com;
-    /// 	s=pf2014; t=1666819851;
-    /// 	bh=7gTTczemS/Aahap1SpEnunm4pAPNuUIg7fUzwEx0QUA=;
+    /// 	s=pf2023; t=1680072674;
+    /// 	bh=RprtMST4/9zuJ2sHMc/XzPU24+EpKHxKeMv9WGr9GGc=;
     /// 	h=Date:From:To:Subject:From;
-    /// 	b=eAufMk7uj4R+bO5Nr4DymffdGdbrJNza1+eykatgZED6tBBcMidkMiLSnP8FyVCS9
-    /// 	 /GSlXME6/YffAXg4JEBr2lN3PuLIf94S86U3VckuoQQQe1LPtHlnGW5ZwJgi6DjrzT
-    /// 	 klht/6Pn1w3a2jdNSDccWhk5qlSOQX9JKnE7UD58=
-    /// Date: Wed, 26 Oct 2022 14:30:51 -0700
-    /// From: Mathieu Lala <noreply@github.com>
+    /// 	b=ewM8CN8h+YIoodsw4j+PWNf2PzE9tgUpMqW877vIjGtCfn82Sl7m8EwVUAmiXbw1z
+    /// 	 KO3fBgM2YYOTAuDXEc46jgwEVQnWocfTnXvXMn1JsGLaRZX35w7X6ON1fPOoCm0CmN
+    /// 	 THodL0qR4oPEXCPItAysl9r7PKkhxGDrzBLXapVg=
+    /// Date: Tue, 28 Mar 2023 23:51:14 -0700
+    /// From: "dependabot[bot]" <noreply@github.com>
     /// To: mlala@negabit.com
-    /// Message-ID: <viridIT/vSMTP/push/refs/heads/test/rule-engine/000000-c6459a@github.com>
-    /// Subject: Changing the header produce an invalid dkim verification
+    /// Message-ID: <viridIT/vSMTP/push/refs/heads/dependabot/cargo/clap-4.2.0/ff7841-e82e9d@github.com>
+    /// Subject: This is definitively not the Subject of the original message
     /// Mime-Version: 1.0
     /// Content-Type: text/plain;
     ///  charset=UTF-8
     /// Content-Transfer-Encoding: 7bit
     /// Approved: =?UTF-8?Q?hello_there_=F0=9F=91=8B?=
-    /// X-GitHub-Recipient-Address: mlala@negabit.com
-    /// X-Auto-Response-Suppress: All
     ///
-    ///   Branch: refs/heads/test/rule-engine
+    ///   Branch: refs/heads/dependabot/cargo/clap-4.2.0
     ///   Home:   https://github.com/viridIT/vSMTP
-    ///   Commit: c6459a4946395ba90182ce7181bdbc327994c038
-    ///       https://github.com/viridIT/vSMTP/commit/c6459a4946395ba90182ce7181bdbc327994c038
-    ///   Author: Mathieu Lala <m.lala@viridit.com>
-    ///   Date:   2022-10-26 (Wed, 26 Oct 2022)
+    ///   Commit: e82e9d9382dc44a296a889ee2ec7c6126e77d988
+    ///       https://github.com/viridIT/vSMTP/commit/e82e9d9382dc44a296a889ee2ec7c6126e77d988
+    ///   Author: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+    ///   Date:   2023-03-29 (Wed, 29 Mar 2023)
     ///
     ///   Changed paths:
-    ///     M src/vsmtp/vsmtp-rule-engine/src/api/message.rs
-    ///     M src/vsmtp/vsmtp-rule-engine/src/lib.rs
-    ///     M src/vsmtp/vsmtp-test/src/vsl.rs
+    ///     M Cargo.lock
+    ///     M src/vqueue/Cargo.toml
+    ///     M src/vsmtp/vsmtp-core/Cargo.toml
     ///
     ///   Log Message:
     ///   -----------
-    ///   test: add test on message
+    ///   Build(deps): Bump clap from 4.1.11 to 4.2.0
+    ///
+    /// Bumps [clap](https://github.com/clap-rs/clap) from 4.1.11 to 4.2.0.
+    /// - [Release notes](https://github.com/clap-rs/clap/releases)
+    /// - [Changelog](https://github.com/clap-rs/clap/blob/master/CHANGELOG.md)
+    /// - [Commits](https://github.com/clap-rs/clap/compare/v4.1.11...clap_complete-v4.2.0)
+    ///
+    /// ---
+    /// updated-dependencies:
+    /// - dependency-name: clap
+    ///   dependency-type: direct:production
+    ///   update-type: version-update:semver-minor
+    /// ...
+    ///
+    /// Signed-off-by: dependabot[bot] <support@github.com>
+    ///
     ///
     ///
     /// "#;
