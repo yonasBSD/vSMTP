@@ -246,9 +246,9 @@ mod dkim {
     /// #        .with_internal(rules)?
     /// #      .build()
     /// #   .build()), Some(msg));
-    /// # use vsmtp_common::{status::Status, CodeID};
+    /// # use vsmtp_common::{status::Status};
     /// # use vsmtp_rule_engine::ExecutionStage;
-    /// # assert_eq!(states[&ExecutionStage::PreQ].2, Status::Accept(either::Left(CodeID::Ok)));
+    /// # assert_eq!(states[&ExecutionStage::PreQ].2, Status::Accept("250 Ok".parse::<vsmtp_common::Reply>().unwrap()));
     /// ```
     ///
     /// Changing the header `Subject` will result in a dkim verification failure.
@@ -331,9 +331,9 @@ mod dkim {
     /// #        .with_internal(rules)?
     /// #      .build()
     /// #   .build()), Some(msg));
-    /// # use vsmtp_common::{status::Status, CodeID};
+    /// # use vsmtp_common::{status::Status};
     /// # use vsmtp_rule_engine::ExecutionStage;
-    /// # assert_eq!(states[&ExecutionStage::PreQ].2, Status::Accept(either::Left(CodeID::Ok)));
+    /// # assert_eq!(states[&ExecutionStage::PreQ].2, Status::Accept("250 Ok".parse::<vsmtp_common::Reply>().unwrap()));
     /// ```
     ///
     /// # rhai-autodocs:index:7
@@ -423,9 +423,9 @@ mod dkim {
     /// #        .with_internal(rules)?
     /// #      .build()
     /// #   .build()));
-    /// # use vsmtp_common::{status::Status, CodeID};
+    /// # use vsmtp_common::{status::Status};
     /// # use vsmtp_rule_engine::ExecutionStage;
-    /// # assert_eq!(states[&ExecutionStage::PreQ].2, Status::Accept(either::Left(CodeID::Ok)));
+    /// # assert_eq!(states[&ExecutionStage::PreQ].2, Status::Accept("250 Ok".parse::<vsmtp_common::Reply>().unwrap()));
     /// ```
     ///
     /// # rhai-autodocs:index:8

@@ -116,13 +116,13 @@ mod spf {
     /// #        .with_internal(rules)?
     /// #      .build()
     /// #   .build()));
-    /// # use vsmtp_common::{status::Status, CodeID};
+    /// # use vsmtp_common::{status::Status};
     /// # use vsmtp_rule_engine::ExecutionStage;
     /// # // NOTE: only testing parameter parsing here.
     /// # assert_eq!(states[&ExecutionStage::MailFrom].2,
-    /// #   Status::Deny(either::Right(
+    /// #   Status::Deny(
     /// #     "550 5.7.23 SPF validation failed\r\n".parse().unwrap(),
-    /// #   ))
+    /// #   )
     /// # );
     /// ```
     ///
@@ -154,13 +154,13 @@ mod spf {
     /// #        .with_internal(rules)?
     /// #      .build()
     /// #   .build()));
-    /// # use vsmtp_common::{status::Status, CodeID};
+    /// # use vsmtp_common::{status::Status};
     /// # use vsmtp_rule_engine::ExecutionStage;
     /// # // NOTE: only testing parameter parsing here.
     /// # assert_eq!(states[&ExecutionStage::MailFrom].2,
-    /// #   Status::Deny(either::Right(
+    /// #   Status::Deny(
     /// #     "550 5.7.23 SPF validation failed\r\n".parse().unwrap(),
-    /// #   ))
+    /// #   )
     /// # );
     /// ```
     ///

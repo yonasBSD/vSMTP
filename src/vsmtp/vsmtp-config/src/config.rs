@@ -14,7 +14,6 @@
  * this program. If not, see https://www.gnu.org/licenses/.
  *
 */
-use vsmtp_common::{auth::Mechanism, CodeID, Reply};
 
 /// This structure contains all the field to configure the server at the startup.
 ///
@@ -46,18 +45,14 @@ pub struct Config {
 /// The inner field of the `vSMTP`'s configuration.
 #[allow(clippy::module_name_repetitions)]
 pub mod field {
-    use super::{CodeID, Mechanism, Reply};
     use vsmtp_auth::dkim;
-    use vsmtp_common::Domain;
+    use vsmtp_common::{auth::Mechanism, Domain};
 
     /// This structure contains all the field to configure the server at the startup.
     #[derive(Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
     #[serde(deny_unknown_fields)]
     pub struct FieldServer {
         /// Name of the server.
-        ///
-        /// Used with the response [`CodeID::Greetings`], and [`CodeID::Helo`],
-        /// and [`CodeID::EhloPain`], and [`CodeID::EhloSecured`].
         #[serde(default = "FieldServer::hostname")]
         pub name: Domain,
         /// Maximum number of client served at the same time.
@@ -152,19 +147,19 @@ pub mod field {
         /// Number of thread used by the pool `receiver`.
         ///
         /// This pool receive the client connection and handle the SMTP transaction.
-        pub receiver: usize,
+        pub receiver: std::num::NonZeroUsize,
         /// Number of thread used by the pool `processing`.
         ///
         /// This pool forward the mails received by the `receiver` pool to the `delivery` pool.
         ///
-        /// The mails treated has been accepted with a code [`CodeID::Ok`].
+        /// The mails treated has been accepted with a reply "250 Ok".
         ///
         /// "Offline" modification are applied here.
-        pub processing: usize,
+        pub processing: std::num::NonZeroUsize,
         /// Number of thread used by the pool `delivery`.
         ///
         /// This pool send the mails to the recipient, and handle the delivery side.
-        pub delivery: usize,
+        pub delivery: std::num::NonZeroUsize,
     }
 
     /// Address served by `vSMTP`. Either ipv4 or ipv6.
@@ -318,7 +313,7 @@ pub mod field {
         /// Instead, choose the top ciphersuite in the server list which is supported by the client.
         #[serde(default)]
         pub preempt_cipherlist: bool,
-        /// Timeout for the TLS handshake. Sending a [`CodeID::Timeout`] to the client.
+        /// Timeout for the TLS handshake. Sending a timeout reply to the client.
         #[serde(with = "humantime_serde")]
         #[serde(default = "FieldServerTls::default_handshake_timeout")]
         pub handshake_timeout: std::time::Duration,
@@ -398,7 +393,7 @@ pub mod field {
     #[derive(Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
     #[serde(deny_unknown_fields)]
     pub struct FieldServerSMTP {
-        /// Maximum number of recipients received in the envelop, extra recipient will produce an [`CodeID::TooManyRecipients`].
+        /// Maximum number of recipients received in the envelop.
         #[serde(default = "FieldServerSMTP::default_rcpt_count_max")]
         pub rcpt_count_max: usize,
         /// SMTP's error policy.
@@ -407,10 +402,6 @@ pub mod field {
         /// SMTP's timeout policy.
         #[serde(default)]
         pub timeout_client: FieldServerSMTPTimeoutClient,
-        /// Dictionary of the reply sent by the server during the SMTP transaction.
-        #[serde(default)]
-        #[serde_as(as = "std::collections::BTreeMap<serde_with::DisplayFromStr, _>")]
-        pub codes: std::collections::BTreeMap<CodeID, Reply>,
         /// SMTP's authentication policy.
         // TODO: should not be an Option<> and should be under #[cfg(feature = "esmtpa")]
         pub auth: Option<FieldServerSMTPAuth>,

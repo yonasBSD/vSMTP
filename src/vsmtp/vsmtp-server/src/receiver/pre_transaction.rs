@@ -17,7 +17,11 @@
 
 use crate::Handler;
 use tokio_rustls::rustls;
-use vsmtp_common::{auth::Credentials, status::Status, ClientName, CodeID, Reply};
+use vsmtp_common::{
+    auth::{Credentials, Mechanism},
+    status::Status,
+    ClientName, Reply,
+};
 use vsmtp_mail_parser::MailParser;
 use vsmtp_protocol::{
     AcceptArgs, AuthArgs, AuthError, CallbackWrap, ConnectionKind, EhloArgs, HeloArgs,
@@ -30,40 +34,6 @@ where
     Parser: MailParser + Send + Sync,
     ParserFactory: Fn() -> Parser + Send + Sync,
 {
-    pub(super) fn generic_helo(
-        &mut self,
-        ctx: &mut ReceiverContext,
-        client_name: ClientName,
-        using_deprecated: bool,
-        default: CodeID,
-    ) -> Reply {
-        self.state
-            .context()
-            .write()
-            .expect("state poisoned")
-            .to_helo(client_name, using_deprecated)
-            .expect("bad state");
-
-        let e =
-            match self
-                .rule_engine
-                .run_when(&self.state, &mut self.skipped, ExecutionStage::Helo)
-            {
-                Status::Faccept(e) | Status::Accept(e) => e,
-                Status::Quarantine(_) | Status::Next | Status::DelegationResult => {
-                    either::Left(default)
-                }
-                Status::Deny(code) => {
-                    ctx.deny();
-                    code
-                }
-                // FIXME: user ran a delegate method before postq/delivery
-                Status::Delegated(_) => unreachable!(),
-            };
-
-        self.reply_or_code_in_config(e)
-    }
-
     pub(super) fn on_accept_inner(
         &mut self,
         ctx: &mut ReceiverContext,
@@ -82,19 +52,21 @@ where
             self.skipped = Some(Status::DelegationResult);
         }
 
-        let e =
+        let reply =
             match self
                 .rule_engine
                 .run_when(&self.state, &mut self.skipped, ExecutionStage::Connect)
             {
                 // FIXME: do we really want to let the end-user override the EHLO/HELO reply?
-                Status::Faccept(e) | Status::Accept(e) => e,
+                Status::Faccept(reply) | Status::Accept(reply) => reply,
                 Status::Quarantine(_) | Status::Next | Status::DelegationResult => {
-                    either::Left(CodeID::Greetings)
+                    format!("220 {} Service ready\r\n", self.config.server.name)
+                        .parse::<Reply>()
+                        .unwrap()
                 }
-                Status::Deny(code) => {
+                Status::Deny(reply) => {
                     ctx.deny();
-                    return self.reply_or_code_in_config(code);
+                    return reply;
                 }
                 // FIXME: user ran a delegate method before postq/delivery
                 Status::Delegated(_) => unreachable!(),
@@ -117,7 +89,7 @@ where
             return "100 ignored value\r\n".parse().unwrap();
         }
 
-        self.reply_or_code_in_config(e)
+        reply
     }
 
     pub(super) fn generate_sasl_callback_inner(&self) -> CallbackWrap {
@@ -135,12 +107,14 @@ where
         peer_certificates: Option<Vec<rustls::Certificate>>,
         alpn_protocol: Option<Vec<u8>>,
     ) -> Reply {
+        let server_name = sni.map(|sni| sni.parse().unwrap());
+
         self.state
             .context()
             .write()
             .expect("state poisoned")
             .to_secured(
-                sni.map(|sni| sni.parse().unwrap()),
+                server_name.clone(),
                 protocol_version,
                 cipher_suite,
                 peer_certificates,
@@ -148,28 +122,36 @@ where
             )
             .expect("bad state");
 
-        self.reply_in_config(CodeID::Greetings)
+        format!(
+            "220 {} Service ready\r\n",
+            server_name.unwrap_or_else(|| self.config.server.name.clone())
+        )
+        .parse::<Reply>()
+        .unwrap()
     }
 
     pub(super) fn on_starttls_inner(&mut self, ctx: &mut ReceiverContext) -> Reply {
-        let code = if self
+        if self
             .state
             .context()
             .read()
             .expect("state poisoned")
             .is_secured()
         {
-            CodeID::AlreadyUnderTLS
+            "554 5.5.1 Error: TLS already active\r\n"
+                .parse::<Reply>()
+                .unwrap()
         } else {
-            self.rustls_config
-                .as_ref()
-                .map_or(CodeID::TlsNotAvailable, |config| {
+            self.rustls_config.as_ref().map_or(
+                "454 TLS not available due to temporary reason\r\n"
+                    .parse::<Reply>()
+                    .unwrap(),
+                |config| {
                     ctx.upgrade_tls(config.clone(), std::time::Duration::from_secs(2));
-                    CodeID::TlsGoAhead
-                })
-        };
-
-        self.reply_in_config(code)
+                    "220 TLS go ahead\r\n".parse::<Reply>().unwrap()
+                },
+            )
+        }
     }
 
     pub(super) fn on_auth_inner(
@@ -187,14 +169,18 @@ where
                 && args.mechanism.must_be_under_tls()
                 && !auth.enable_dangerous_mechanism_in_clair
             {
-                return Some(self.reply_in_config(CodeID::AuthMechanismMustBeEncrypted));
+                return Some(
+                    "538 5.7.11 Encryption required for requested authentication mechanism\r\n"
+                        .parse::<Reply>()
+                        .unwrap(),
+                );
             }
 
             ctx.authenticate(args.mechanism, args.initial_response);
 
             None
         } else {
-            Some(self.reply_in_config(CodeID::Unimplemented))
+            Some("502 Command not implemented\r\n".parse::<Reply>().unwrap())
         }
     }
 
@@ -203,7 +189,7 @@ where
         ctx: &mut ReceiverContext,
         result: Result<(), AuthError>,
     ) -> Reply {
-        let code = match result {
+        match result {
             Ok(()) => {
                 self.state
                     .context()
@@ -213,12 +199,20 @@ where
                     .expect("bad state")
                     .authenticated = true;
 
-                CodeID::AuthSucceeded
+                "235 2.7.0 Authentication succeeded\r\n"
+                    .parse::<Reply>()
+                    .unwrap()
             }
-            Err(AuthError::ClientMustNotStart) => CodeID::AuthClientMustNotStart,
+            Err(AuthError::ClientMustNotStart) => {
+                "501 5.7.0 Client must not start with this mechanism\r\n"
+                    .parse::<Reply>()
+                    .unwrap()
+            }
             Err(AuthError::ValidationError(..)) => {
                 ctx.deny();
-                CodeID::AuthInvalidCredentials
+                "535 5.7.8 Authentication credentials invalid\r\n"
+                    .parse::<Reply>()
+                    .unwrap()
             }
             Err(AuthError::Canceled) => {
                 let state = self.state.context();
@@ -240,46 +234,146 @@ where
                     ctx.deny();
                 }
 
-                CodeID::AuthClientCanceled
+                "501 Authentication canceled by client\r\n"
+                    .parse::<Reply>()
+                    .unwrap()
             }
-            Err(AuthError::Base64 { .. }) => CodeID::AuthErrorDecode64,
+            Err(AuthError::Base64 { .. }) => "501 5.5.2 Invalid, not base64\r\n"
+                .parse::<Reply>()
+                .unwrap(),
             Err(AuthError::SessionError(e)) => {
                 tracing::warn!(%e, "auth error");
                 ctx.deny();
-                CodeID::AuthTempError
+                "454 4.7.0 Temporary authentication failure\r\n"
+                    .parse::<Reply>()
+                    .unwrap()
             }
             Err(AuthError::IO(e)) => todo!("{}", e),
             Err(AuthError::ConfigError(e)) => todo!("{}", e),
-        };
-        self.reply_in_config(code)
+        }
     }
 
     pub(super) fn on_helo_inner(&mut self, ctx: &mut ReceiverContext, args: HeloArgs) -> Reply {
-        self.generic_helo(
-            ctx,
-            ClientName::Domain(args.client_name),
-            true,
-            CodeID::Helo,
-        )
+        self.state
+            .context()
+            .write()
+            .expect("state poisoned")
+            .to_helo(ClientName::Domain(args.client_name), true)
+            .expect("bad state");
+
+        match self
+            .rule_engine
+            .run_when(&self.state, &mut self.skipped, ExecutionStage::Helo)
+        {
+            Status::Faccept(reply) | Status::Accept(reply) => reply,
+            Status::Quarantine(_) | Status::Next | Status::DelegationResult => {
+                "250 Ok\r\n".parse::<Reply>().unwrap()
+            }
+            Status::Deny(code) => {
+                ctx.deny();
+                code
+            }
+            // FIXME: user ran a delegate method before postq/delivery
+            Status::Delegated(_) => unreachable!(),
+        }
     }
 
     pub(super) fn on_ehlo_inner(&mut self, ctx: &mut ReceiverContext, args: EhloArgs) -> Reply {
-        self.generic_helo(
-            ctx,
-            args.client_name,
-            false,
-            if self
-                .state
-                .context()
-                .read()
-                .expect("state poisoned")
-                .is_secured()
-            {
-                CodeID::EhloSecured
-            } else {
-                CodeID::EhloPain
-            },
-        )
+        let vsl_ctx = self.state.context();
+
+        vsl_ctx
+            .write()
+            .expect("state poisoned")
+            .to_helo(args.client_name, false)
+            .expect("bad state");
+
+        match self
+            .rule_engine
+            .run_when(&self.state, &mut self.skipped, ExecutionStage::Helo)
+        {
+            Status::Faccept(reply) | Status::Accept(reply) => reply,
+            Status::Quarantine(_) | Status::Next | Status::DelegationResult => {
+                let ctx = vsl_ctx.read().expect("state poisoned");
+
+                let auth_mechanism_list: Option<(Vec<Mechanism>, Vec<Mechanism>)> = self
+                    .config
+                    .server
+                    .smtp
+                    .auth
+                    .as_ref()
+                    .map(|auth| auth.mechanisms.iter().partition(|m| m.must_be_under_tls()));
+
+                if ctx.is_secured() {
+                    [
+                        Some(format!("250-{}\r\n", ctx.server_name())),
+                        auth_mechanism_list.as_ref().map(|(must_be_secured, _)| {
+                            format!(
+                                "250-AUTH {}\r\n",
+                                must_be_secured
+                                    .iter()
+                                    .map(ToString::to_string)
+                                    .collect::<Vec<_>>()
+                                    .join(" ")
+                            )
+                        }),
+                        Some("250-8BITMIME\r\n".to_string()),
+                        Some("250 SMTPUTF8\r\n".to_string()),
+                    ]
+                    .into_iter()
+                    .flatten()
+                    .collect::<String>()
+                    .parse::<Reply>()
+                    .unwrap()
+                } else {
+                    [
+                        Some(format!("250-{}\r\n", &ctx.server_name())),
+                        auth_mechanism_list.as_ref().map(|(plain, secured)| {
+                            if self
+                                .config
+                                .server
+                                .smtp
+                                .auth
+                                .as_ref()
+                                .map_or(false, |auth| auth.enable_dangerous_mechanism_in_clair)
+                            {
+                                format!(
+                                    "250-AUTH {}\r\n",
+                                    &[secured.clone(), plain.clone()]
+                                        .concat()
+                                        .iter()
+                                        .map(ToString::to_string)
+                                        .collect::<Vec<_>>()
+                                        .join(" ")
+                                )
+                            } else {
+                                format!(
+                                    "250-AUTH {}\r\n",
+                                    secured
+                                        .iter()
+                                        .map(ToString::to_string)
+                                        .collect::<Vec<_>>()
+                                        .join(" ")
+                                )
+                            }
+                        }),
+                        Some("250-STARTTLS\r\n".to_string()),
+                        Some("250-8BITMIME\r\n".to_string()),
+                        Some("250 SMTPUTF8\r\n".to_string()),
+                    ]
+                    .into_iter()
+                    .flatten()
+                    .collect::<String>()
+                    .parse::<Reply>()
+                    .unwrap()
+                }
+            }
+            Status::Deny(code) => {
+                ctx.deny();
+                code
+            }
+            // FIXME: user ran a delegate method before postq/delivery
+            Status::Delegated(_) => unreachable!(),
+        }
     }
 }
 
@@ -295,7 +389,7 @@ pub enum ValidationError {
     #[error(
         "the rules at stage '{}' returned non '{}' status",
         ExecutionStage::Authenticate,
-        Status::Accept(either::Left(CodeID::Ok)).as_ref()
+        Status::Accept("250 Ok\r\n".parse::<Reply>().unwrap()).as_ref()
     )]
     NonAcceptCode,
 }

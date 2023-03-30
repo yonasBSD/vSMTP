@@ -19,7 +19,7 @@ use anyhow::Context;
 use tokio_rustls::rustls;
 use tokio_stream::StreamExt;
 use vqueue::GenericQueueManager;
-use vsmtp_common::CodeID;
+use vsmtp_common::Reply;
 use vsmtp_config::{get_rustls_config, Config};
 use vsmtp_mail_parser::BasicParser;
 use vsmtp_protocol::{AcceptArgs, ConnectionKind};
@@ -27,6 +27,8 @@ use vsmtp_rule_engine::RuleEngine;
 
 /// TCP/IP server
 pub struct Server {
+    conn_max_reach_reply: Reply,
+
     config: std::sync::Arc<Config>,
     tls_config: Option<std::sync::Arc<rustls::ServerConfig>>,
     rule_engine: std::sync::Arc<RuleEngine>,
@@ -86,6 +88,9 @@ impl Server {
         }
 
         Ok(Self {
+            conn_max_reach_reply: "554 Cannot process connection, closing\r\n"
+                .parse::<Reply>()
+                .expect("valid smtp reply"),
             tls_config: if let Some(smtps) = &config.server.tls {
                 Some(std::sync::Arc::new(get_rustls_config(
                     smtps,
@@ -123,14 +128,7 @@ impl Server {
 
             if let Err(error) = tokio::io::AsyncWriteExt::write_all(
                 &mut stream,
-                self.config
-                    .server
-                    .smtp
-                    .codes
-                    .get(&CodeID::ConnectionMaxReached)
-                    .expect("ill-formed configuration")
-                    .as_ref()
-                    .as_bytes(),
+                self.conn_max_reach_reply.as_ref().as_bytes(),
             )
             .await
             {

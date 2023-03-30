@@ -58,7 +58,6 @@ pub fn local_test() -> Config {
         .without_tls_support()
         .with_default_smtp_options()
         .with_default_smtp_error_handler()
-        .with_default_smtp_codes()
         .without_auth()
         .with_app_at_location("./tmp/app")
         .with_vsl(format!(
@@ -68,8 +67,7 @@ pub fn local_test() -> Config {
         .with_default_app_logs()
         .with_system_dns()
         .without_virtual_entries()
-        .validate()
-        .unwrap();
+        .validate();
     config.path = Some("src/vsmtp/vsmtp-test/src/config.rs".into());
     config
 }
@@ -91,7 +89,6 @@ pub fn with_tls() -> Config {
         .expect("")
         .with_default_smtp_options()
         .with_default_smtp_error_handler()
-        .with_default_smtp_codes()
         .without_auth()
         .with_app_at_location("./tmp/app")
         .with_vsl("./src/template/ignore_vsl/domain-enabled")
@@ -99,7 +96,6 @@ pub fn with_tls() -> Config {
         .with_system_dns()
         .without_virtual_entries()
         .validate()
-        .expect("")
 }
 
 ///

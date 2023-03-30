@@ -80,7 +80,6 @@ pub mod builder {
 
 mod config;
 mod default;
-mod ensure;
 mod rustls_helper;
 mod virtual_tls;
 
@@ -185,12 +184,10 @@ impl Config {
 
         let config = &mut serde_json::Deserializer::from_str(&raw_config);
 
-        let config = match serde_path_to_error::deserialize(config) {
+        let mut config: Self = match serde_path_to_error::deserialize(config) {
             Ok(config) => config,
             Err(error) => anyhow::bail!(Self::format_error(&error)?),
         };
-
-        let mut config = Self::ensure(config)?;
 
         let pkg_version = semver::Version::parse(env!("CARGO_PKG_VERSION"))?;
         if !config.version_requirement.matches(&pkg_version) {
@@ -207,18 +204,7 @@ impl Config {
     }
 
     fn default_json() -> anyhow::Result<rhai::Map> {
-        let mut config = Self::default_with_current_user_and_group();
-
-        config
-            .server
-            .smtp
-            .codes
-            .remove(&vsmtp_common::CodeID::EhloPain);
-        config
-            .server
-            .smtp
-            .codes
-            .remove(&vsmtp_common::CodeID::EhloSecured);
+        let config = Self::default_with_current_user_and_group();
 
         let mut config_json =
             rhai::Engine::new().parse_json(serde_json::to_string(&config)?, true)?;

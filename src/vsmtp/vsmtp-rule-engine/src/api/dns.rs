@@ -113,10 +113,10 @@ mod dns {
     ///   ],
     /// }
     /// # "#)?.build()));
-    /// # use vsmtp_common::{status::Status, CodeID, Reply, ReplyCode::Code};
-    /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::Connect].2, Status::Accept(either::Right(
+    /// # use vsmtp_common::{status::Status, Reply, ReplyCode::Code};
+    /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::Connect].2, Status::Accept(
     /// #  r#"250 client ip: 127.0.0.1 -> ["localhost."]"#.parse().unwrap(),
-    /// # )));
+    /// # ));
     /// ```
     ///
     /// # rhai-autodocs:index:2

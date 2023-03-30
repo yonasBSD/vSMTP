@@ -21,7 +21,7 @@ use vqueue::QueueID;
 use vsmtp_common::{
     status::{self, Status},
     transfer::{self, error::Rule},
-    CodeID, ContextFinished, Reply,
+    ContextFinished, Reply,
 };
 use vsmtp_mail_parser::{Mail, MailParser, MessageBody, ParserError, RawBody};
 use vsmtp_protocol::{Error, ReceiverContext};
@@ -84,19 +84,23 @@ where
     ) -> Option<Reply> {
         let (mut message_uuid, skipped) = (ctx.mail_from.message_uuid, ctx.connect.skipped.clone());
 
+        let denied = "554 permanent problems with the remote server\r\n"
+            .parse::<Reply>()
+            .unwrap();
+
         let (queue, should_skip_working, delegated) = match &skipped {
             Some(status @ status::Status::Quarantine(path)) => {
                 let quarantine = QueueID::Quarantine { name: path.into() };
                 match self.queue_manager.write_ctx(&quarantine, &ctx).await {
                     Ok(()) => (),
-                    Err(_e) => return Some(self.reply_in_config(CodeID::Denied)),
+                    Err(_e) => return Some(denied),
                 };
 
                 tracing::warn!(status = status.as_ref(), "Rules skipped.");
                 (None, None, false)
             }
             Some(status::Status::Delegated(_)) => {
-                return Some(self.reply_in_config(CodeID::Denied));
+                return Some(denied);
             }
             Some(status::Status::DelegationResult) => {
                 if let Some(old_message_id) =
@@ -111,7 +115,7 @@ where
                         match <uuid::Uuid as std::str::FromStr>::from_str(&old_message_id) {
                             Ok(uuid) => uuid,
                             Err(_e) => {
-                                return Some(self.reply_in_config(CodeID::Denied));
+                                return Some(denied);
                             }
                         }
                 }
@@ -134,14 +138,14 @@ where
 
         match self.queue_manager.write_msg(&message_uuid, &msg).await {
             Ok(()) => (),
-            Err(_e) => return Some(self.reply_in_config(CodeID::Denied)),
+            Err(_e) => return Some(denied),
         };
 
         if let Some(queue) = queue {
             match self.queue_manager.write_ctx(&queue, &ctx).await {
                 Ok(()) => (),
                 Err(_e) => {
-                    return Some(self.reply_in_config(CodeID::Denied));
+                    return Some(denied);
                 }
             }
         }
@@ -160,7 +164,7 @@ where
 
         match process {
             Ok(()) => None,
-            Err(_e) => Some(self.reply_in_config(CodeID::Denied)),
+            Err(_e) => Some(denied),
         }
     }
 
@@ -181,7 +185,11 @@ where
         let mail = match (self.message_parser_factory)().parse(stream).await {
             Ok(mail) => mail,
             Err(ParserError::BufferTooLong { .. }) => {
-                return Err(self.reply_in_config(CodeID::MessageSizeExceeded));
+                return Err(
+                    "552 4.3.1 Message size exceeds fixed maximum message size\r\n"
+                        .parse::<Reply>()
+                        .unwrap(),
+                );
             }
             Err(otherwise) => todo!("handle error cleanly {:?}", otherwise),
         };
@@ -216,15 +224,17 @@ where
                 .expect("has been set to finished");
 
             match status {
-                Status::Deny(code_or_reply) => {
+                Status::Deny(reply) => {
                     ctx.deny();
-                    Some((self.reply_or_code_in_config(code_or_reply), None))
+                    Some((reply, None))
                 }
                 Status::Delegated(_) => unreachable!(),
                 status => {
                     mail_ctx.connect.skipped = Some(status);
-                    //self.on_message_complete(mail_ctx, message).await
-                    Some((self.reply_in_config(CodeID::Ok), Some((mail_ctx, message))))
+                    Some((
+                        "250 Ok\r\n".parse::<Reply>().unwrap(),
+                        Some((mail_ctx, message)),
+                    ))
                 }
             }
         } else {
@@ -277,15 +287,17 @@ where
                 None
             } else {
                 match status {
-                    Status::Deny(code_or_reply) => {
+                    Status::Deny(reply) => {
                         ctx.deny();
-                        Some((self.reply_or_code_in_config(code_or_reply), None))
+                        Some((reply, None))
                     }
                     Status::Delegated(_) => unreachable!(),
                     status => {
                         mail_ctx.connect.skipped = Some(status);
-                        // self.on_message_complete(mail_ctx, message).await
-                        Some((self.reply_in_config(CodeID::Ok), Some((mail_ctx, message))))
+                        Some((
+                            "250 Ok\r\n".parse::<Reply>().unwrap(),
+                            Some((mail_ctx, message)),
+                        ))
                     }
                 }
             }

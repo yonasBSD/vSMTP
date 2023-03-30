@@ -171,7 +171,7 @@ pub fn start_runtime(
     let _tasks_delivery = init_runtime(
         error_handler.0.clone(),
         "delivery",
-        config.server.system.thread_pool.delivery,
+        config.server.system.thread_pool.delivery.get(),
         delivery::start(
             config.clone(),
             rule_engine.clone(),
@@ -184,7 +184,7 @@ pub fn start_runtime(
     let _tasks_processing = init_runtime(
         error_handler.0.clone(),
         "working",
-        config.server.system.thread_pool.processing,
+        config.server.system.thread_pool.processing.get(),
         working::start(
             rule_engine.clone(),
             queue_manager.clone(),
@@ -197,7 +197,7 @@ pub fn start_runtime(
     let _tasks_receiver = init_runtime(
         error_handler.0.clone(),
         "receiver",
-        config.server.system.thread_pool.receiver,
+        config.server.system.thread_pool.receiver.get(),
         async move {
             let server = match Server::new(
                 config.clone(),

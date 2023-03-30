@@ -87,8 +87,8 @@ mod message {
     /// #        .with_internal(rules)?
     /// #      .build()
     /// #   .build()), Some(msg));
-    /// # use vsmtp_common::{status::Status, CodeID};
-    /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::PreQ].2, Status::Accept(either::Left(CodeID::Ok)));
+    /// # use vsmtp_common::{status::Status};
+    /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::PreQ].2, Status::Accept("250 Ok".parse::<vsmtp_common::Reply>().unwrap()));
     /// ```
     ///
     /// # rhai-autodocs:index:2
@@ -148,10 +148,10 @@ mod message {
     /// #        .with_internal(rules)?
     /// #      .build()
     /// #   .build()), Some(msg));
-    /// # use vsmtp_common::{status::Status, CodeID, Reply, ReplyCode::Code};
-    /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::PreQ].2, Status::Accept(either::Right(
+    /// # use vsmtp_common::{status::Status, Reply, ReplyCode::Code};
+    /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::PreQ].2, Status::Accept(
     /// #  "250 count is 3 and 1\r\n".parse().unwrap()
-    /// # )));
+    /// # ));
     /// ```
     ///
     /// # rhai-autodocs:index:3
@@ -218,10 +218,10 @@ mod message {
     /// #        .with_internal(rules)?
     /// #      .build()
     /// #   .build()), Some(msg));
-    /// # use vsmtp_common::{status::Status, CodeID, Reply, ReplyCode::Code};
-    /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::PreQ].2, Status::Accept(either::Right(
+    /// # use vsmtp_common::{status::Status, Reply, ReplyCode::Code};
+    /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::PreQ].2, Status::Accept(
     /// #  "250 foo Unit test are cool\r\n".parse().unwrap()
-    /// # )));
+    /// # ));
     /// ```
     ///
     /// # rhai-autodocs:index:4
@@ -533,10 +533,10 @@ mod message {
     /// #        .with_internal(rules)?
     /// #      .build()
     /// #   .build()), Some(msg));
-    /// # use vsmtp_common::{status::Status, CodeID, Reply, ReplyCode::Code};
-    /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::PreQ].2, Status::Accept(either::Right(
+    /// # use vsmtp_common::{status::Status, Reply, ReplyCode::Code};
+    /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::PreQ].2, Status::Accept(
     /// #  "250 The header value has been updated again\r\n".parse().unwrap()
-    /// # )));
+    /// # ));
     /// ```
     ///
     /// # rhai-autodocs:index:9
@@ -607,10 +607,10 @@ mod message {
     /// #        .with_internal(rules)?
     /// #      .build()
     /// #   .build()), Some(msg));
-    /// # use vsmtp_common::{status::Status, CodeID, Reply, ReplyCode::Code};
-    /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::PreQ].2, Status::Accept(either::Right(
+    /// # use vsmtp_common::{status::Status, Reply, ReplyCode::Code};
+    /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::PreQ].2, Status::Accept(
     /// #  "250 The initial header value\r\n".parse().unwrap()
-    /// # )));
+    /// # ));
     /// ```
     ///
     /// # rhai-autodocs:index:10
@@ -728,10 +728,10 @@ mod message {
     /// #        .with_internal(rules)?
     /// #      .build()
     /// #   .build()), Some(msg));
-    /// # use vsmtp_common::{ status::Status, CodeID, Reply, ReplyCode::Code};
-    /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::PreQ].2, Status::Accept(either::Right(
+    /// # use vsmtp_common::{status::Status, Reply, ReplyCode::Code};
+    /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::PreQ].2, Status::Accept(
     /// #  "250 Rust is good !!!!!\r\n".parse().unwrap()
-    /// # )));
+    /// # ));
     /// ```
     ///
     /// # rhai-autodocs:index:12

@@ -187,7 +187,6 @@ use crate::tests::helpers::{get_default_config, get_default_state};
 use vsmtp_common::mail_context::{Empty, MailContext};
 use vsmtp_common::rcpt::Rcpt;
 use vsmtp_common::transfer::ForwardTarget;
-use vsmtp_common::{addr, CodeID, ReplyOrCodeID};
 use vsmtp_common::{
     mail_context::MessageMetadata, state::State, status::Status, transfer::Transfer,
 };

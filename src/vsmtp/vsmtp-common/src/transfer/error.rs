@@ -15,7 +15,7 @@
  *
 */
 
-use crate::{CodeID, Domain, Reply, ReplyCode, Target};
+use crate::{Domain, Reply, ReplyCode, Target};
 
 /// The envelop to use for the SMTP exchange is invalid
 #[derive(Debug, Clone, thiserror::Error, serde::Serialize, serde::Deserialize)]
@@ -195,7 +195,7 @@ impl From<std::io::Error> for Delivery {
 pub enum Rule {
     /// The rule engine has denied the transaction
     #[error("denied: {0}")]
-    Denied(either::Either<CodeID, Reply>),
+    Denied(Reply),
 }
 
 ///

@@ -17,7 +17,7 @@
 use tokio_rustls::rustls;
 use vqueue::GenericQueueManager;
 use vsmtp_common::{
-    status::Status, Address, CodeID, ContextFinished, Domain, Reply, Stage, TransactionType,
+    status::Status, Address, ContextFinished, Domain, Reply, Stage, TransactionType,
 };
 use vsmtp_config::Config;
 use vsmtp_delivery::Deliver;
@@ -97,32 +97,6 @@ where
     }
 }
 
-impl<Parser, ParserFactory> Handler<Parser, ParserFactory>
-where
-    Parser: MailParser + Send + Sync,
-    ParserFactory: Fn() -> Parser + Send + Sync,
-{
-    pub(super) fn reply_in_config(&self, code: CodeID) -> Reply {
-        self.config
-            .server
-            .smtp
-            .codes
-            .get(&code)
-            .expect("config ill formed")
-            .clone()
-    }
-
-    pub(super) fn reply_or_code_in_config(
-        &self,
-        code_or_reply: either::Either<CodeID, Reply>,
-    ) -> Reply {
-        match code_or_reply {
-            either::Left(code) => self.reply_in_config(code),
-            either::Right(reply) => reply,
-        }
-    }
-}
-
 #[async_trait::async_trait]
 impl<Parser: MailParser + Send + Sync, ParserFactory: Fn() -> Parser + Send + Sync>
     vsmtp_protocol::ReceiverHandler for Handler<Parser, ParserFactory>
@@ -188,23 +162,20 @@ impl<Parser: MailParser + Send + Sync, ParserFactory: Fn() -> Parser + Send + Sy
             .to_mail_from(reverse_path)
             .expect("bad state");
 
-        let e = match self.rule_engine.run_when(
-            &self.state,
-            &mut self.skipped,
-            ExecutionStage::MailFrom,
-        ) {
-            Status::Faccept(e) | Status::Accept(e) => e,
+        match self
+            .rule_engine
+            .run_when(&self.state, &mut self.skipped, ExecutionStage::MailFrom)
+        {
+            Status::Faccept(reply) | Status::Accept(reply) => reply,
             Status::Quarantine(_) | Status::Next | Status::DelegationResult => {
-                either::Left(CodeID::Ok)
+                "250 Ok\r\n".parse::<Reply>().unwrap()
             }
-            Status::Deny(code) => {
+            Status::Deny(reply) => {
                 ctx.deny();
-                code
+                reply
             }
             Status::Delegated(_) => unreachable!(),
-        };
-
-        self.reply_or_code_in_config(e)
+        }
     }
 
     #[allow(clippy::too_many_lines)]
@@ -219,7 +190,9 @@ impl<Parser: MailParser + Send + Sync, ParserFactory: Fn() -> Parser + Send + Sy
             .map_or(0, Vec::len)
             >= self.config.server.smtp.rcpt_count_max
         {
-            return self.reply_in_config(CodeID::TooManyRecipients);
+            return "452 Requested action not taken: too many recipients\r\n"
+                .parse::<Reply>()
+                .unwrap();
         }
 
         let forward_path = args
@@ -353,22 +326,20 @@ impl<Parser: MailParser + Send + Sync, ParserFactory: Fn() -> Parser + Send + Sy
             _ => &mut self.state,
         };
 
-        let e = match self
+        match self
             .rule_engine
             .run_when(state, &mut self.skipped, ExecutionStage::RcptTo)
         {
-            Status::Faccept(e) | Status::Accept(e) => e,
+            Status::Faccept(reply) | Status::Accept(reply) => reply,
             Status::Quarantine(_) | Status::Next | Status::DelegationResult => {
-                either::Left(CodeID::Ok)
+                "250 Ok\r\n".parse::<Reply>().unwrap()
             }
-            Status::Deny(code) => {
+            Status::Deny(reply) => {
                 ctx.deny();
-                code
+                reply
             }
             Status::Delegated(_) => unreachable!(),
-        };
-
-        self.reply_or_code_in_config(e)
+        }
     }
 
     async fn on_rset(&mut self) -> Reply {
@@ -382,7 +353,7 @@ impl<Parser: MailParser + Send + Sync, ParserFactory: Fn() -> Parser + Send + Sy
 
         // TODO: reset message?
 
-        self.reply_in_config(CodeID::Ok)
+        "250 Ok\r\n".parse::<Reply>().unwrap()
     }
 
     async fn on_message(
@@ -403,7 +374,11 @@ impl<Parser: MailParser + Send + Sync, ParserFactory: Fn() -> Parser + Send + Sy
 
     async fn on_hard_error(&mut self, ctx: &mut ReceiverContext, reply: Reply) -> Reply {
         ctx.deny();
-        reply.extended(&self.reply_in_config(CodeID::TooManyError))
+        reply.extended(
+            &"451 Too many errors from the client\r\n"
+                .parse::<Reply>()
+                .unwrap(),
+        )
     }
 
     async fn on_soft_error(&mut self, _: &mut ReceiverContext, reply: Reply) -> Reply {

@@ -4419,7 +4419,6 @@ dependencies = [
  "anyhow",
  "async-trait",
  "base64 0.21.0",
- "either",
  "erased-serde",
  "fastrand",
  "function_name",

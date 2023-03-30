@@ -21,5 +21,3 @@ mod root_example {
     mod simple;
     mod tls;
 }
-
-mod validate;
