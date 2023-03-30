@@ -14,13 +14,41 @@
  * this program. If not, see https://www.gnu.org/licenses/.
  *
 */
-/// used to send different types of data to vsmtp's processes.
+
+/// Payload sent across the different processes of `vSMTP`.
+#[must_use]
 #[derive(Debug)]
 pub struct ProcessMessage {
-    /// id of the mail context.
-    pub message_uuid: uuid::Uuid,
+    message_uuid: uuid::Uuid,
     /// is the email stored in the delegated queue.
-    pub delegated: bool,
+    delegated: bool,
+}
+
+impl ProcessMessage {
+    /// Construct a new `ProcessMessage`.
+    pub const fn new(message_uuid: uuid::Uuid) -> Self {
+        Self {
+            message_uuid,
+            delegated: false,
+        }
+    }
+
+    pub(crate) const fn delegated(message_uuid: uuid::Uuid) -> Self {
+        Self {
+            message_uuid,
+            delegated: true,
+        }
+    }
+
+    pub(crate) const fn is_from_delegation(&self) -> bool {
+        self.delegated
+    }
+}
+
+impl AsRef<uuid::Uuid> for ProcessMessage {
+    fn as_ref(&self) -> &uuid::Uuid {
+        &self.message_uuid
+    }
 }
 
 #[cfg(test)]

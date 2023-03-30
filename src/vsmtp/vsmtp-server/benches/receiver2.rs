@@ -1,7 +1,7 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use vsmtp_config::DnsResolvers;
 use vsmtp_rule_engine::RuleEngine;
-use vsmtp_server::{socket_bind_anyhow, ProcessMessage, Server};
+use vsmtp_server::{socket_bind_anyhow, Server};
 use vsmtp_test::config;
 
 fn get_mail(body_size: u64) -> lettre::Message {
@@ -24,13 +24,7 @@ fn run_benchmark(body_size: u64, port: u16) {
             let server = tokio::spawn(async move {
                 let config = config::local_test();
 
-                let delivery_channel = tokio::sync::mpsc::channel::<ProcessMessage>(
-                    config.server.queues.delivery.channel_size,
-                );
-
-                let working_channel = tokio::sync::mpsc::channel::<ProcessMessage>(
-                    config.server.queues.working.channel_size,
-                );
+                let (emitter, _, _) = vsmtp_server::scheduler::init(1, 1);
 
                 let config = std::sync::Arc::new(config);
                 let resolvers = std::sync::Arc::new(DnsResolvers::from_system_conf().unwrap());
@@ -54,8 +48,7 @@ fn run_benchmark(body_size: u64, port: u16) {
                         vec![],
                     )
                     .unwrap(),
-                    working_channel.0.clone(),
-                    delivery_channel.0.clone(),
+                    emitter,
                 )
                 .unwrap()
                 .listen((

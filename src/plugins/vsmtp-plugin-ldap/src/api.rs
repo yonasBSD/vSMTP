@@ -355,6 +355,7 @@ pub mod ldap {
     ///         }
     ///     ],
     /// }
+    /// ```
     ///
     /// # rhai-autodocs:index:2
     #[rhai_fn(global, return_raw, pure)]
@@ -457,6 +458,7 @@ pub mod ldap {
     ///         }
     ///     ],
     /// }
+    /// ```
     ///
     /// # rhai-autodocs:index:3
     #[rhai_fn(global, return_raw, pure)]

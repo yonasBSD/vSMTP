@@ -178,8 +178,9 @@ pub fn getpwuid(uid: libc::uid_t) -> anyhow::Result<std::path::PathBuf> {
         anyhow::bail!("getpwuid: '{}'", std::io::Error::last_os_error());
     }
     #[allow(unsafe_code)]
+    // SAFETY: pointer is not null
+    let buffer = unsafe { *passwd }.pw_dir;
+    #[allow(unsafe_code)]
     // SAFETY: the foreign allocated is used correctly as specified in `CStr::from_ptr`
-    Ok(unsafe { std::ffi::CStr::from_ptr((*passwd).pw_dir) }
-        .to_str()?
-        .into())
+    Ok(unsafe { std::ffi::CStr::from_ptr(buffer) }.to_str()?.into())
 }

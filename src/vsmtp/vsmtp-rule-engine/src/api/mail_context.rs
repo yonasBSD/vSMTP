@@ -70,7 +70,7 @@ mod mail_context {
     /// # rhai-autodocs:index:2
     #[rhai_fn(name = "client_address", return_raw)]
     pub fn client_address(ncc: NativeCallContext) -> EngineResult<String> {
-        Ok(vsl_guard_ok!(get_global!(ncc, ctx)?.read())
+        Ok(vsl_guard_ok!(get_global!(ncc, ctx).read())
             .client_addr()
             .to_string())
     }
@@ -103,7 +103,7 @@ mod mail_context {
     /// # rhai-autodocs:index:3
     #[rhai_fn(name = "client_ip", return_raw)]
     pub fn client_ip(ncc: NativeCallContext) -> EngineResult<String> {
-        Ok(vsl_guard_ok!(get_global!(ncc, ctx)?.read())
+        Ok(vsl_guard_ok!(get_global!(ncc, ctx).read())
             .client_addr()
             .ip()
             .to_string())
@@ -138,7 +138,7 @@ mod mail_context {
     #[rhai_fn(name = "client_port", return_raw)]
     pub fn client_port(ncc: NativeCallContext) -> EngineResult<rhai::INT> {
         Ok(rhai::INT::from(
-            vsl_guard_ok!(get_global!(ncc, ctx)?.read())
+            vsl_guard_ok!(get_global!(ncc, ctx).read())
                 .client_addr()
                 .port(),
         ))
@@ -172,7 +172,7 @@ mod mail_context {
     /// # rhai-autodocs:index:5
     #[rhai_fn(name = "server_address", return_raw)]
     pub fn server_address(ncc: NativeCallContext) -> EngineResult<String> {
-        Ok(vsl_guard_ok!(get_global!(ncc, ctx)?.read())
+        Ok(vsl_guard_ok!(get_global!(ncc, ctx).read())
             .server_addr()
             .to_string())
     }
@@ -205,7 +205,7 @@ mod mail_context {
     /// # rhai-autodocs:index:6
     #[rhai_fn(name = "server_ip", return_raw)]
     pub fn server_ip(ncc: NativeCallContext) -> EngineResult<String> {
-        Ok(vsl_guard_ok!(get_global!(ncc, ctx)?.read())
+        Ok(vsl_guard_ok!(get_global!(ncc, ctx).read())
             .server_addr()
             .ip()
             .to_string())
@@ -240,7 +240,7 @@ mod mail_context {
     #[rhai_fn(name = "server_port", return_raw)]
     pub fn server_port(ncc: NativeCallContext) -> EngineResult<rhai::INT> {
         Ok(rhai::INT::from(
-            vsl_guard_ok!(get_global!(ncc, ctx)?.read())
+            vsl_guard_ok!(get_global!(ncc, ctx).read())
                 .server_addr()
                 .port(),
         ))
@@ -274,7 +274,7 @@ mod mail_context {
     /// # rhai-autodocs:index:8
     #[rhai_fn(name = "connection_timestamp", return_raw)]
     pub fn connection_timestamp(ncc: NativeCallContext) -> EngineResult<time::OffsetDateTime> {
-        Ok(*vsl_guard_ok!(get_global!(ncc, ctx)?.read()).connection_timestamp())
+        Ok(*vsl_guard_ok!(get_global!(ncc, ctx).read()).connection_timestamp())
     }
 
     /// Get the name of the server.
@@ -305,7 +305,7 @@ mod mail_context {
     /// # rhai-autodocs:index:9
     #[rhai_fn(name = "server_name", return_raw)]
     pub fn server_name(ncc: NativeCallContext) -> EngineResult<String> {
-        Ok(vsl_guard_ok!(get_global!(ncc, ctx)?.read())
+        Ok(vsl_guard_ok!(get_global!(ncc, ctx).read())
             .server_name()
             .to_string())
     }
@@ -338,7 +338,7 @@ mod mail_context {
     /// # rhai-autodocs:index:10
     #[rhai_fn(name = "is_secured", return_raw)]
     pub fn is_secured(ncc: NativeCallContext) -> EngineResult<bool> {
-        Ok(vsl_guard_ok!(get_global!(ncc, ctx)?.read()).tls().is_some())
+        Ok(vsl_guard_ok!(get_global!(ncc, ctx).read()).tls().is_some())
     }
 
     /// Get the value of the `HELO/EHLO` command sent by the client.
@@ -367,7 +367,7 @@ mod mail_context {
     /// # rhai-autodocs:index:11
     #[rhai_fn(name = "helo", return_raw)]
     pub fn helo(ncc: NativeCallContext) -> EngineResult<String> {
-        Ok(vsl_guard_ok!(get_global!(ncc, ctx)?.read())
+        Ok(vsl_guard_ok!(get_global!(ncc, ctx).read())
             .client_name()
             .map(ToString::to_string)
             .map_err(Into::<crate::error::RuntimeError>::into)?)
@@ -398,7 +398,7 @@ mod mail_context {
     /// # rhai-autodocs:index:12
     #[rhai_fn(return_raw)]
     pub fn mail_from(ncc: NativeCallContext) -> EngineResult<SharedObject> {
-        let reverse_path = vsl_guard_ok!(get_global!(ncc, ctx)?.read())
+        let reverse_path = vsl_guard_ok!(get_global!(ncc, ctx).read())
             .reverse_path()
             .map_err(Into::<crate::error::RuntimeError>::into)?
             .clone();
@@ -436,7 +436,7 @@ mod mail_context {
     /// # rhai-autodocs:index:13
     #[rhai_fn(name = "rcpt_list", return_raw)]
     pub fn rcpt_list(ncc: NativeCallContext) -> EngineResult<rhai::Array> {
-        Ok(vsl_guard_ok!(get_global!(ncc, ctx)?.read())
+        Ok(vsl_guard_ok!(get_global!(ncc, ctx).read())
             .forward_paths()
             .map_err(Into::<crate::error::RuntimeError>::into)?
             .iter()
@@ -475,7 +475,7 @@ mod mail_context {
     /// # rhai-autodocs:index:14
     #[rhai_fn(name = "rcpt", return_raw)]
     pub fn rcpt(ncc: NativeCallContext) -> EngineResult<SharedObject> {
-        let rcpt = vsl_guard_ok!(get_global!(ncc, ctx)?.read())
+        let rcpt = vsl_guard_ok!(get_global!(ncc, ctx).read())
             .forward_paths()
             .map_err(Into::<crate::error::RuntimeError>::into)?
             .last()
@@ -513,7 +513,7 @@ mod mail_context {
     /// # rhai-autodocs:index:15
     #[rhai_fn(name = "mail_timestamp", return_raw)]
     pub fn mail_timestamp(ncc: NativeCallContext) -> EngineResult<time::OffsetDateTime> {
-        Ok(*vsl_guard_ok!(get_global!(ncc, ctx)?.read())
+        Ok(*vsl_guard_ok!(get_global!(ncc, ctx).read())
             .mail_timestamp()
             .map_err(Into::<crate::error::RuntimeError>::into)?)
     }
@@ -544,7 +544,7 @@ mod mail_context {
     /// # rhai-autodocs:index:16
     #[rhai_fn(name = "message_id", return_raw)]
     pub fn message_id(ncc: NativeCallContext) -> EngineResult<String> {
-        Ok(vsl_guard_ok!(get_global!(ncc, ctx)?.read())
+        Ok(vsl_guard_ok!(get_global!(ncc, ctx).read())
             .message_uuid()
             .map_err(Into::<crate::error::RuntimeError>::into)?
             .to_string())

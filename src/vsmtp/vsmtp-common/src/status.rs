@@ -15,7 +15,7 @@
  *
 */
 
-use crate::ReplyOrCodeID;
+use crate::Reply;
 
 // NOTE: only in this crate and not the rule-engine one because of the [`Context::skipped`] field.
 /// Status of the mail context treated by the rule engine.
@@ -23,16 +23,16 @@ use crate::ReplyOrCodeID;
 #[strum(serialize_all = "snake_case")]
 pub enum Status {
     /// accepts the current stage value, skips all rules in the stage.
-    Accept(ReplyOrCodeID),
+    Accept(Reply),
 
     /// continue to the next rule / stage.
     Next,
 
     /// immediately stops the transaction and send an error code.
-    Deny(ReplyOrCodeID),
+    Deny(Reply),
 
     /// ignore all future rules for the transaction.
-    Faccept(ReplyOrCodeID),
+    Faccept(Reply),
 
     /// ignore all future rules for the transaction.
     /// the String parameter is the path to the quarantine folder.

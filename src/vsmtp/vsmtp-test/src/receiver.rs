@@ -148,10 +148,7 @@ macro_rules! run_test {
 
             let resolvers = std::sync::Arc::new(vsmtp_config::DnsResolvers::from_config(&config).unwrap());
 
-            let (delivery_channel, working_channel) = (
-                tokio::sync::mpsc::channel::<vsmtp_server::ProcessMessage>(1),
-                tokio::sync::mpsc::channel::<vsmtp_server::ProcessMessage>(1),
-            );
+            let (emitter, _working_rx, _delivery_rx) = vsmtp_server::scheduler::init(1, 1);
 
             let rule_engine: std::sync::Arc<vsmtp_rule_engine::RuleEngine> = {
                 let _f = || vsmtp_rule_engine::RuleEngine::new(
@@ -192,8 +189,7 @@ macro_rules! run_test {
                 rule_engine,
                 queue_manager.clone(),
                 vsmtp_mail_parser::BasicParser::default,
-                working_channel.0.clone(),
-                delivery_channel.0.clone(),
+                emitter,
                 client_addr,
                 server_addr,
                 config.server.name.clone(),

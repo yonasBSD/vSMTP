@@ -71,6 +71,11 @@
 
 ---
 
+> ⚠️ Breaking changes for vSMTP 2.1.1 to 2.2
+>
+> Please take note that some breaking API changes in vsl have been introduced
+> between versions 2.1.1 and 2.2 of vSMTP. Refer to the [Changelogs] for more details.
+
 # What is vSMTP ?
 
 vSMTP is a next-gen *Mail Transfer Agent* (MTA), faster, safer and greener.
@@ -151,7 +156,19 @@ import "service/database" as db;
 }
 ```
 
-Check out the [filtering chapter](https://vsmtp.rs/filtering/filtering.html) of the book and the [vSL reference](https://vsmtp.rs/ref/vSL/api.html) to get an overview of what you can do with vSL.
+Check out the [filtering chapter](https://vsmtp.rs/filtering/filtering.html) of the [book] and the [vSL reference](https://vsmtp.rs/ref/vSL/api.html) to get an overview of what you can do with vSL.
+
+## Plugins
+
+vSMTP can be extended via plugins. Here are some already available:
+
+- [MySQL](https://vsmtp.rs/ref/vSL/api/fn::global::mysql.html)
+- [Memcached](https://vsmtp.rs/ref/vSL/api/fn::global::memcached.html)
+- [Ldap](https://vsmtp.rs/ref/vSL/api/fn::global::ldap.html)
+- Redis (Premium plugin)
+- CSV files
+
+Check the [Plugins chapter](https://vsmtp.rs/plugins/plugins.html) from the [book] for more details.
 
 ## Benchmarks
 
@@ -176,8 +193,8 @@ In this repository, the "develop" branch is the branch that we work on every day
 If you want to check examples for the latest vSMTP versions, switch to the "main" branch, where our latest releases
 are delivered.
 
-For documentation please consult the [vBook](https://vsmtp.rs), the online reference and user guide for vSMTP.
-Documentation for the "develop" branch is also available in the vBook at <https://vsmtp.rs/next>.
+For documentation please consult our [book], called vBook, the online reference and user guide for vSMTP.
+Documentation for the "develop" branch is also available in the [book] at <https://vsmtp.rs/next>.
 
 To stay tuned, ask questions and get in-depth answers feel free to join our [Discord](https://discord.gg/N8JGBRBshf) server.
 You can also open GitHub [discussions](https://github.com/viridIT/vSMTP/discussions).
@@ -186,7 +203,7 @@ You can also open GitHub [discussions](https://github.com/viridIT/vSMTP/discussi
 
 You can find more information about the project agenda in [Milestones](https://github.com/viridIT/vSMTP/milestones) and the [roadmap](ROADMAP.md) section.
 
-You can check out updates in the [Changelogs](https://github.com/viridIT/vSMTP/blob/develop/CHANGELOG.md).
+You can check out updates in the [Changelogs].
 
 ## Contributing
 
@@ -205,3 +222,6 @@ For any question related to commercial, licensing, etc. you can [contact us] on 
 The standard version of vSMTP is free and under an Open Source license.
 
 It is provided as usual without any warranty. Please refer to the [license](https://github.com/viridIT/vSMTP/blob/main/LICENSE) for further information.
+
+[book]: (https://vsmtp.rs)
+[Changelogs]: (https://github.com/viridIT/vSMTP/blob/develop/CHANGELOG.md)

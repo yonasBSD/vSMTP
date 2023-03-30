@@ -82,7 +82,20 @@ pub enum Context {
 #[derive(Debug)]
 pub struct FieldAccessError {
     field: String,
+    // TODO: could use std::ops::RangeInclusive instead of Vec
     stage: Vec<Stage>,
+}
+
+impl FieldAccessError {
+    ///
+    #[must_use]
+    #[inline]
+    pub fn new(field: impl Into<String>, stage: Vec<Stage>) -> Self {
+        Self {
+            field: field.into(),
+            stage,
+        }
+    }
 }
 
 impl std::error::Error for FieldAccessError {}

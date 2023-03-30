@@ -18,8 +18,8 @@ use super::{
     wants::{
         WantsApp, WantsAppLogs, WantsAppVSL, WantsServer, WantsServerDNS, WantsServerInterfaces,
         WantsServerLogs, WantsServerQueues, WantsServerSMTPAuth, WantsServerSMTPConfig1,
-        WantsServerSMTPConfig2, WantsServerSMTPConfig3, WantsServerSystem, WantsServerTLSConfig,
-        WantsServerVirtual, WantsValidate, WantsVersion,
+        WantsServerSMTPConfig2, WantsServerSystem, WantsServerTLSConfig, WantsServerVirtual,
+        WantsValidate, WantsVersion,
     },
     WantsPath,
 };
@@ -31,7 +31,7 @@ use crate::field::{
     ResolverOptsWrapper,
 };
 use anyhow::Context;
-use vsmtp_common::{auth::Mechanism, CodeID, Domain, Reply, Stage};
+use vsmtp_common::{auth::Mechanism, Domain, Stage};
 
 ///
 pub struct Builder<State> {
@@ -144,9 +144,9 @@ impl Builder<WantsServerSystem> {
     #[must_use]
     pub fn with_default_user_and_thread_pool(
         self,
-        thread_pool_receiver: usize,
-        thread_pool_processing: usize,
-        thread_pool_delivery: usize,
+        thread_pool_receiver: std::num::NonZeroUsize,
+        thread_pool_processing: std::num::NonZeroUsize,
+        thread_pool_delivery: std::num::NonZeroUsize,
     ) -> Builder<WantsServerInterfaces> {
         self.with_system(
             FieldServerSystem::default_user(),
@@ -184,9 +184,9 @@ impl Builder<WantsServerSystem> {
         user: users::User,
         group: users::Group,
         group_local: Option<users::Group>,
-        thread_pool_receiver: usize,
-        thread_pool_processing: usize,
-        thread_pool_delivery: usize,
+        thread_pool_receiver: std::num::NonZeroUsize,
+        thread_pool_processing: std::num::NonZeroUsize,
+        thread_pool_delivery: std::num::NonZeroUsize,
     ) -> Builder<WantsServerInterfaces> {
         Builder::<WantsServerInterfaces> {
             state: WantsServerInterfaces {
@@ -210,9 +210,9 @@ impl Builder<WantsServerSystem> {
         user: &str,
         group: &str,
         group_local: Option<&str>,
-        thread_pool_receiver: usize,
-        thread_pool_processing: usize,
-        thread_pool_delivery: usize,
+        thread_pool_receiver: std::num::NonZeroUsize,
+        thread_pool_processing: std::num::NonZeroUsize,
+        thread_pool_delivery: std::num::NonZeroUsize,
     ) -> anyhow::Result<Builder<WantsServerInterfaces>> {
         Ok(Builder::<WantsServerInterfaces> {
             state: WantsServerInterfaces {
@@ -350,7 +350,7 @@ impl Builder<WantsServerTLSConfig> {
                         rustls::ProtocolVersion::TLSv1_3,
                     )],
                     cipher_suite: FieldServerTls::default_cipher_suite(),
-                    default: None,
+                    root: None,
                 }),
             },
         })
@@ -393,9 +393,9 @@ impl Builder<WantsServerSMTPConfig1> {
 impl Builder<WantsServerSMTPConfig2> {
     ///
     #[must_use]
-    pub fn with_default_smtp_error_handler(self) -> Builder<WantsServerSMTPConfig3> {
-        Builder::<WantsServerSMTPConfig3> {
-            state: WantsServerSMTPConfig3 {
+    pub fn with_default_smtp_error_handler(self) -> Builder<WantsServerSMTPAuth> {
+        Builder::<WantsServerSMTPAuth> {
+            state: WantsServerSMTPAuth {
                 parent: self.state,
                 error: FieldServerSMTPError::default(),
                 timeout_client: FieldServerSMTPTimeoutClient::default(),
@@ -412,9 +412,9 @@ impl Builder<WantsServerSMTPConfig2> {
         hard_count: i64,
         delay: std::time::Duration,
         timeout_client: &std::collections::BTreeMap<Stage, std::time::Duration>,
-    ) -> Builder<WantsServerSMTPConfig3> {
-        Builder::<WantsServerSMTPConfig3> {
-            state: WantsServerSMTPConfig3 {
+    ) -> Builder<WantsServerSMTPAuth> {
+        Builder::<WantsServerSMTPAuth> {
+            state: WantsServerSMTPAuth {
                 parent: self.state,
                 error: FieldServerSMTPError {
                     soft_count,
@@ -436,28 +436,6 @@ impl Builder<WantsServerSMTPConfig2> {
                         .unwrap_or(&std::time::Duration::from_millis(1000)),
                     data: std::time::Duration::from_millis(1000),
                 },
-            },
-        }
-    }
-}
-
-impl Builder<WantsServerSMTPConfig3> {
-    ///
-    #[must_use]
-    pub fn with_default_smtp_codes(self) -> Builder<WantsServerSMTPAuth> {
-        self.with_smtp_codes(std::collections::BTreeMap::new())
-    }
-
-    ///
-    #[must_use]
-    pub fn with_smtp_codes(
-        self,
-        codes: std::collections::BTreeMap<CodeID, Reply>,
-    ) -> Builder<WantsServerSMTPAuth> {
-        Builder::<WantsServerSMTPAuth> {
-            state: WantsServerSMTPAuth {
-                parent: self.state,
-                codes,
             },
         }
     }

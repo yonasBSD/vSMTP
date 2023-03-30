@@ -122,8 +122,7 @@ run_test! {
         "NOOP\r\n",
     ],
     expected = [
-        // FIXME: supposed to have "second.testserver.com"
-        "220 testserver.com Service ready\r\n",
+        "220 second.testserver.com Service ready\r\n",
         "250 Ok\r\n",
     ],
     tunnel = "second.testserver.com",

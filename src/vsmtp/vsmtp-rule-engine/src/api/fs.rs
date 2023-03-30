@@ -72,9 +72,9 @@ mod fs {
     #[rhai_fn(name = "write", return_raw)]
     pub fn write_str(ncc: NativeCallContext, dir: &str) -> EngineResult<()> {
         super::write(
-            &get_global!(ncc, srv)?,
-            &get_global!(ncc, ctx)?,
-            &get_global!(ncc, msg)?,
+            &get_global!(ncc, srv),
+            &get_global!(ncc, ctx),
+            &get_global!(ncc, msg),
             dir,
         )
     }
@@ -123,7 +123,7 @@ mod fs {
     /// # rhai-autodocs:index:2
     #[rhai_fn(name = "dump", return_raw)]
     pub fn dump_str(ncc: NativeCallContext, dir: &str) -> EngineResult<()> {
-        super::dump(&get_global!(ncc, srv)?, &get_global!(ncc, ctx)?, dir)
+        super::dump(&get_global!(ncc, srv), &get_global!(ncc, ctx), dir)
     }
 }
 

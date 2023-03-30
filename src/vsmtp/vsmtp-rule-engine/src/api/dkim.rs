@@ -87,7 +87,7 @@ mod dkim {
     /// # rhai-autodocs:index:1
     #[rhai_fn(name = "has_result", return_raw)]
     pub fn has_result(ncc: NativeCallContext) -> EngineResult<bool> {
-        super::Impl::has_dkim_result(&get_global!(ncc, ctx)?)
+        super::Impl::has_dkim_result(&get_global!(ncc, ctx))
     }
 
     /// Return the DKIM signature verification result in the `ctx()` or
@@ -96,7 +96,7 @@ mod dkim {
     /// # rhai-autodocs:index:2
     #[rhai_fn(name = "result", return_raw)]
     pub fn result(ncc: NativeCallContext) -> EngineResult<rhai::Map> {
-        super::Impl::dkim_result(&get_global!(ncc, ctx)?)
+        super::Impl::dkim_result(&get_global!(ncc, ctx))
     }
 
     /// Store the result produced by the DKIM signature verification in the `ctx()`.
@@ -107,7 +107,7 @@ mod dkim {
     /// # rhai-autodocs:index:3
     #[rhai_fn(return_raw)]
     pub fn store(ncc: NativeCallContext, result: rhai::Map) -> EngineResult<()> {
-        super::Impl::store(&get_global!(ncc, ctx)?, &result)
+        super::Impl::store(&get_global!(ncc, ctx), &result)
     }
 
     /// Get the list of DKIM private keys associated with this sdid
@@ -115,7 +115,7 @@ mod dkim {
     /// # rhai-autodocs:index:4
     #[rhai_fn(return_raw)]
     pub fn get_private_keys(ncc: NativeCallContext, sdid: &str) -> EngineResult<rhai::Array> {
-        let server = get_global!(ncc, srv)?;
+        let server = get_global!(ncc, srv);
         let r#virtual = server
             .config
             .server
@@ -160,44 +160,54 @@ mod dkim {
     /// ```
     /// // The message received.
     /// let msg = r#"
-    /// Received: from github.com (hubbernetes-node-54a15d2.ash1-iad.github.net [10.56.202.84])
-    /// 	by smtp.github.com (Postfix) with ESMTPA id 19FB45E0B6B
-    /// 	for <mlala@negabit.com>; Wed, 26 Oct 2022 14:30:51 -0700 (PDT)
     /// DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=github.com;
-    /// 	s=pf2014; t=1666819851;
-    /// 	bh=7gTTczemS/Aahap1SpEnunm4pAPNuUIg7fUzwEx0QUA=;
+    /// 	s=pf2023; t=1680072674;
+    /// 	bh=RprtMST4/9zuJ2sHMc/XzPU24+EpKHxKeMv9WGr9GGc=;
     /// 	h=Date:From:To:Subject:From;
-    /// 	b=eAufMk7uj4R+bO5Nr4DymffdGdbrJNza1+eykatgZED6tBBcMidkMiLSnP8FyVCS9
-    /// 	 /GSlXME6/YffAXg4JEBr2lN3PuLIf94S86U3VckuoQQQe1LPtHlnGW5ZwJgi6DjrzT
-    /// 	 klht/6Pn1w3a2jdNSDccWhk5qlSOQX9JKnE7UD58=
-    /// Date: Wed, 26 Oct 2022 14:30:51 -0700
-    /// From: Mathieu Lala <noreply@github.com>
+    /// 	b=ewM8CN8h+YIoodsw4j+PWNf2PzE9tgUpMqW877vIjGtCfn82Sl7m8EwVUAmiXbw1z
+    /// 	 KO3fBgM2YYOTAuDXEc46jgwEVQnWocfTnXvXMn1JsGLaRZX35w7X6ON1fPOoCm0CmN
+    /// 	 THodL0qR4oPEXCPItAysl9r7PKkhxGDrzBLXapVg=
+    /// Date: Tue, 28 Mar 2023 23:51:14 -0700
+    /// From: "dependabot[bot]" <noreply@github.com>
     /// To: mlala@negabit.com
-    /// Message-ID: <viridIT/vSMTP/push/refs/heads/test/rule-engine/000000-c6459a@github.com>
-    /// Subject: [viridIT/vSMTP] c6459a: test: add test on message
+    /// Message-ID: <viridIT/vSMTP/push/refs/heads/dependabot/cargo/clap-4.2.0/ff7841-e82e9d@github.com>
+    /// Subject: [viridIT/vSMTP] e82e9d: Build(deps): Bump clap from 4.1.11 to 4.2.0
     /// Mime-Version: 1.0
     /// Content-Type: text/plain;
     ///  charset=UTF-8
     /// Content-Transfer-Encoding: 7bit
     /// Approved: =?UTF-8?Q?hello_there_=F0=9F=91=8B?=
-    /// X-GitHub-Recipient-Address: mlala@negabit.com
-    /// X-Auto-Response-Suppress: All
     ///
-    ///   Branch: refs/heads/test/rule-engine
+    ///   Branch: refs/heads/dependabot/cargo/clap-4.2.0
     ///   Home:   https://github.com/viridIT/vSMTP
-    ///   Commit: c6459a4946395ba90182ce7181bdbc327994c038
-    ///       https://github.com/viridIT/vSMTP/commit/c6459a4946395ba90182ce7181bdbc327994c038
-    ///   Author: Mathieu Lala <m.lala@viridit.com>
-    ///   Date:   2022-10-26 (Wed, 26 Oct 2022)
+    ///   Commit: e82e9d9382dc44a296a889ee2ec7c6126e77d988
+    ///       https://github.com/viridIT/vSMTP/commit/e82e9d9382dc44a296a889ee2ec7c6126e77d988
+    ///   Author: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+    ///   Date:   2023-03-29 (Wed, 29 Mar 2023)
     ///
     ///   Changed paths:
-    ///     M src/vsmtp/vsmtp-rule-engine/src/api/message.rs
-    ///     M src/vsmtp/vsmtp-rule-engine/src/lib.rs
-    ///     M src/vsmtp/vsmtp-test/src/vsl.rs
+    ///     M Cargo.lock
+    ///     M src/vqueue/Cargo.toml
+    ///     M src/vsmtp/vsmtp-core/Cargo.toml
     ///
     ///   Log Message:
     ///   -----------
-    ///   test: add test on message
+    ///   Build(deps): Bump clap from 4.1.11 to 4.2.0
+    ///
+    /// Bumps [clap](https://github.com/clap-rs/clap) from 4.1.11 to 4.2.0.
+    /// - [Release notes](https://github.com/clap-rs/clap/releases)
+    /// - [Changelog](https://github.com/clap-rs/clap/blob/master/CHANGELOG.md)
+    /// - [Commits](https://github.com/clap-rs/clap/compare/v4.1.11...clap_complete-v4.2.0)
+    ///
+    /// ---
+    /// updated-dependencies:
+    /// - dependency-name: clap
+    ///   dependency-type: direct:production
+    ///   update-type: version-update:semver-minor
+    /// ...
+    ///
+    /// Signed-off-by: dependabot[bot] <support@github.com>
+    ///
     ///
     ///
     /// "#;
@@ -236,9 +246,9 @@ mod dkim {
     /// #        .with_internal(rules)?
     /// #      .build()
     /// #   .build()), Some(msg));
-    /// # use vsmtp_common::{status::Status, CodeID};
+    /// # use vsmtp_common::{status::Status};
     /// # use vsmtp_rule_engine::ExecutionStage;
-    /// # assert_eq!(states[&ExecutionStage::PreQ].2, Status::Accept(either::Left(CodeID::Ok)));
+    /// # assert_eq!(states[&ExecutionStage::PreQ].2, Status::Accept("250 Ok".parse::<vsmtp_common::Reply>().unwrap()));
     /// ```
     ///
     /// Changing the header `Subject` will result in a dkim verification failure.
@@ -246,44 +256,54 @@ mod dkim {
     /// ```
     /// // The message received.
     /// let msg = r#"
-    /// Received: from github.com (hubbernetes-node-54a15d2.ash1-iad.github.net [10.56.202.84])
-    /// 	by smtp.github.com (Postfix) with ESMTPA id 19FB45E0B6B
-    /// 	for <mlala@negabit.com>; Wed, 26 Oct 2022 14:30:51 -0700 (PDT)
     /// DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=github.com;
-    /// 	s=pf2014; t=1666819851;
-    /// 	bh=7gTTczemS/Aahap1SpEnunm4pAPNuUIg7fUzwEx0QUA=;
+    /// 	s=pf2023; t=1680072674;
+    /// 	bh=RprtMST4/9zuJ2sHMc/XzPU24+EpKHxKeMv9WGr9GGc=;
     /// 	h=Date:From:To:Subject:From;
-    /// 	b=eAufMk7uj4R+bO5Nr4DymffdGdbrJNza1+eykatgZED6tBBcMidkMiLSnP8FyVCS9
-    /// 	 /GSlXME6/YffAXg4JEBr2lN3PuLIf94S86U3VckuoQQQe1LPtHlnGW5ZwJgi6DjrzT
-    /// 	 klht/6Pn1w3a2jdNSDccWhk5qlSOQX9JKnE7UD58=
-    /// Date: Wed, 26 Oct 2022 14:30:51 -0700
-    /// From: Mathieu Lala <noreply@github.com>
+    /// 	b=ewM8CN8h+YIoodsw4j+PWNf2PzE9tgUpMqW877vIjGtCfn82Sl7m8EwVUAmiXbw1z
+    /// 	 KO3fBgM2YYOTAuDXEc46jgwEVQnWocfTnXvXMn1JsGLaRZX35w7X6ON1fPOoCm0CmN
+    /// 	 THodL0qR4oPEXCPItAysl9r7PKkhxGDrzBLXapVg=
+    /// Date: Tue, 28 Mar 2023 23:51:14 -0700
+    /// From: "dependabot[bot]" <noreply@github.com>
     /// To: mlala@negabit.com
-    /// Message-ID: <viridIT/vSMTP/push/refs/heads/test/rule-engine/000000-c6459a@github.com>
-    /// Subject: Changing the header produce an invalid dkim verification
+    /// Message-ID: <viridIT/vSMTP/push/refs/heads/dependabot/cargo/clap-4.2.0/ff7841-e82e9d@github.com>
+    /// Subject: This is definitively not the Subject of the original message
     /// Mime-Version: 1.0
     /// Content-Type: text/plain;
     ///  charset=UTF-8
     /// Content-Transfer-Encoding: 7bit
     /// Approved: =?UTF-8?Q?hello_there_=F0=9F=91=8B?=
-    /// X-GitHub-Recipient-Address: mlala@negabit.com
-    /// X-Auto-Response-Suppress: All
     ///
-    ///   Branch: refs/heads/test/rule-engine
+    ///   Branch: refs/heads/dependabot/cargo/clap-4.2.0
     ///   Home:   https://github.com/viridIT/vSMTP
-    ///   Commit: c6459a4946395ba90182ce7181bdbc327994c038
-    ///       https://github.com/viridIT/vSMTP/commit/c6459a4946395ba90182ce7181bdbc327994c038
-    ///   Author: Mathieu Lala <m.lala@viridit.com>
-    ///   Date:   2022-10-26 (Wed, 26 Oct 2022)
+    ///   Commit: e82e9d9382dc44a296a889ee2ec7c6126e77d988
+    ///       https://github.com/viridIT/vSMTP/commit/e82e9d9382dc44a296a889ee2ec7c6126e77d988
+    ///   Author: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+    ///   Date:   2023-03-29 (Wed, 29 Mar 2023)
     ///
     ///   Changed paths:
-    ///     M src/vsmtp/vsmtp-rule-engine/src/api/message.rs
-    ///     M src/vsmtp/vsmtp-rule-engine/src/lib.rs
-    ///     M src/vsmtp/vsmtp-test/src/vsl.rs
+    ///     M Cargo.lock
+    ///     M src/vqueue/Cargo.toml
+    ///     M src/vsmtp/vsmtp-core/Cargo.toml
     ///
     ///   Log Message:
     ///   -----------
-    ///   test: add test on message
+    ///   Build(deps): Bump clap from 4.1.11 to 4.2.0
+    ///
+    /// Bumps [clap](https://github.com/clap-rs/clap) from 4.1.11 to 4.2.0.
+    /// - [Release notes](https://github.com/clap-rs/clap/releases)
+    /// - [Changelog](https://github.com/clap-rs/clap/blob/master/CHANGELOG.md)
+    /// - [Commits](https://github.com/clap-rs/clap/compare/v4.1.11...clap_complete-v4.2.0)
+    ///
+    /// ---
+    /// updated-dependencies:
+    /// - dependency-name: clap
+    ///   dependency-type: direct:production
+    ///   update-type: version-update:semver-minor
+    /// ...
+    ///
+    /// Signed-off-by: dependabot[bot] <support@github.com>
+    ///
     ///
     ///
     /// "#;
@@ -311,20 +331,20 @@ mod dkim {
     /// #        .with_internal(rules)?
     /// #      .build()
     /// #   .build()), Some(msg));
-    /// # use vsmtp_common::{status::Status, CodeID};
+    /// # use vsmtp_common::{status::Status};
     /// # use vsmtp_rule_engine::ExecutionStage;
-    /// # assert_eq!(states[&ExecutionStage::PreQ].2, Status::Accept(either::Left(CodeID::Ok)));
+    /// # assert_eq!(states[&ExecutionStage::PreQ].2, Status::Accept("250 Ok".parse::<vsmtp_common::Reply>().unwrap()));
     /// ```
     ///
     /// # rhai-autodocs:index:7
     #[rhai_fn(return_raw)]
     pub fn verify(ncc: NativeCallContext) -> EngineResult<rhai::Map> {
-        let ctx = get_global!(ncc, ctx)?;
-        let msg = get_global!(ncc, msg)?;
+        let ctx = get_global!(ncc, ctx);
+        let msg = get_global!(ncc, msg);
         let result = super::Impl::verify_inner(
             &ctx,
             &msg,
-            &get_global!(ncc, srv)?,
+            &get_global!(ncc, srv),
             5,
             // the dns query may result in multiple public key, the registry with invalid format are ignored.
             // among ["first_one", "cycle"]
@@ -345,7 +365,7 @@ mod dkim {
                 .unwrap_or_default()
         );
 
-        crate::api::message::Impl::prepend_header(&msg, "Authentication-Results", &header_value)?;
+        crate::api::message::Impl::prepend_header(&msg, "Authentication-Results", &header_value);
 
         Ok(result)
     }
@@ -403,17 +423,17 @@ mod dkim {
     /// #        .with_internal(rules)?
     /// #      .build()
     /// #   .build()));
-    /// # use vsmtp_common::{status::Status, CodeID};
+    /// # use vsmtp_common::{status::Status};
     /// # use vsmtp_rule_engine::ExecutionStage;
-    /// # assert_eq!(states[&ExecutionStage::PreQ].2, Status::Accept(either::Left(CodeID::Ok)));
+    /// # assert_eq!(states[&ExecutionStage::PreQ].2, Status::Accept("250 Ok".parse::<vsmtp_common::Reply>().unwrap()));
     /// ```
     ///
     /// # rhai-autodocs:index:8
     #[rhai_fn(name = "sign", return_raw)]
     pub fn sign(ncc: NativeCallContext, params: rhai::Map) -> EngineResult<()> {
         let signature = vsl_generic_ok!(super::Impl::generate_signature(
-            &*vsl_guard_ok!(get_global!(ncc, msg)?.read()),
-            &*vsl_guard_ok!(get_global!(ncc, ctx)?.read()),
+            &vsl_guard_ok!(get_global!(ncc, msg).read()),
+            &vsl_guard_ok!(get_global!(ncc, ctx).read()),
             rhai::serde::from_dynamic::<SignatureParams>(&params.into())?
         ));
 
@@ -671,7 +691,7 @@ impl Impl {
 
         let mut last_error: Option<String> = None;
 
-        let mut header = crate::api::message::Impl::get_header_untouched(msg, "DKIM-Signature")?;
+        let mut header = crate::api::message::Impl::get_header_untouched(msg, "DKIM-Signature");
         header.truncate(nbr_headers);
 
         for input in header {
@@ -695,7 +715,7 @@ impl Impl {
             // }
 
             for key in &Self::get_public_key(srv, &signature, on_multiple_key_records)? {
-                if let Err(error) = Self::verify(&*vsl_guard_ok!(msg.read()), &signature, key) {
+                if let Err(error) = Self::verify(&vsl_guard_ok!(msg.read()), &signature, key) {
                     tracing::warn!(%error, "DKIM signature verification failed");
                     last_error = Some(Self::get_dkim_error_status(&error));
                     continue;

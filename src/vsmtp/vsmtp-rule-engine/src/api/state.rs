@@ -20,22 +20,20 @@ use rhai::plugin::{
     mem, Dynamic, EvalAltResult, FnAccess, FnNamespace, ImmutableString, Module, NativeCallContext,
     PluginFunction, RhaiResult, TypeId,
 };
-use vsmtp_common::{status::Status, CodeID, Reply, ReplyOrCodeID};
+use vsmtp_common::{status::Status, Reply};
 use vsmtp_plugin_vsl::objects::Object;
 
-fn reply_or_code_id_from_object(code: &SharedObject) -> EngineResult<ReplyOrCodeID> {
+fn reply_or_code_id_from_object(code: &SharedObject) -> EngineResult<Reply> {
     match &**code {
-        Object::Code(code) => Ok(ReplyOrCodeID::Right(code.clone())),
+        Object::Code(reply) => Ok(reply.clone()),
         object => Err(format!("parameter must be a code, not {}", object.as_ref()).into()),
     }
 }
 
-fn reply_or_code_id_from_string(code: &str) -> EngineResult<ReplyOrCodeID> {
-    Ok(ReplyOrCodeID::Right(
-        <Reply as std::str::FromStr>::from_str(code).map_err::<Box<EvalAltResult>, _>(|_| {
-            format!("parameter must be a code, not {code:?}").into()
-        })?,
-    ))
+fn reply_or_code_id_from_string(code: &str) -> EngineResult<Reply> {
+    <Reply as std::str::FromStr>::from_str(code).map_err::<Box<EvalAltResult>, _>(|_| {
+        format!("parameter must be a code, not {code:?}").into()
+    })
 }
 
 pub use state::*;
@@ -52,7 +50,7 @@ mod state {
     /// the incoming client can be trusted.
     ///
     /// # Args
-    ///    
+    ///
     /// * code - A customized code as a string or code object. (default: "250 Ok")
     ///
     /// # Errors
@@ -101,8 +99,8 @@ mod state {
     ///
     /// # rhai-autodocs:index:1
     #[must_use]
-    pub const fn faccept() -> Status {
-        Status::Faccept(ReplyOrCodeID::Left(CodeID::Ok))
+    pub fn faccept() -> Status {
+        Status::Faccept("250 Ok\r\n".parse::<Reply>().unwrap())
     }
 
     #[doc(hidden)]
@@ -122,7 +120,7 @@ mod state {
     /// will be ignored.
     ///
     /// # Args
-    ///    
+    ///
     /// * code - A customized code as a string or code object. (default: "250 Ok")
     ///
     /// # Errors
@@ -169,8 +167,8 @@ mod state {
     ///
     /// # rhai-autodocs:index:2
     #[must_use]
-    pub const fn accept() -> Status {
-        Status::Accept(ReplyOrCodeID::Left(CodeID::Ok))
+    pub fn accept() -> Status {
+        Status::Accept("250 Ok\r\n".parse::<Reply>().unwrap())
     }
 
     #[doc(hidden)]
@@ -213,7 +211,7 @@ mod state {
     /// Stop rules evaluation and send an error code to the client.
     ///
     /// # Args
-    ///    
+    ///
     /// * code - A customized code as a string or code object. (default: "554 permanent problems with the remote server")
     ///
     /// # Errors
@@ -262,8 +260,12 @@ mod state {
     /// # rhai-autodocs:index:4
     #[must_use]
     #[rhai_fn(global)]
-    pub const fn deny() -> Status {
-        Status::Deny(ReplyOrCodeID::Left(CodeID::Denied))
+    pub fn deny() -> Status {
+        Status::Deny(
+            "554 permanent problems with the remote server\r\n"
+                .parse::<Reply>()
+                .unwrap(),
+        )
     }
 
     #[doc(hidden)]

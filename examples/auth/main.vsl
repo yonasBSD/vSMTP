@@ -1,5 +1,0 @@
-#{
-    authenticate: [
-        rule "login" || authenticate()
-    ]
-}

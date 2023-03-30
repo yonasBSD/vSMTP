@@ -31,7 +31,6 @@ pub fn safe_auth_config() -> Config {
         .without_tls_support()
         .with_default_smtp_options()
         .with_default_smtp_error_handler()
-        .with_default_smtp_codes()
         .with_safe_auth(-1)
         .with_app_at_location("./tmp/app")
         .with_vsl("./src/template/ignore_vsl/domain-enabled")
@@ -39,7 +38,6 @@ pub fn safe_auth_config() -> Config {
         .with_system_dns()
         .without_virtual_entries()
         .validate()
-        .unwrap()
 }
 
 pub fn unsafe_auth_config() -> Config {
@@ -56,7 +54,6 @@ pub fn unsafe_auth_config() -> Config {
         .without_tls_support()
         .with_default_smtp_options()
         .with_default_smtp_error_handler()
-        .with_default_smtp_codes()
         .with_auth(
             true,
             vec![
@@ -73,7 +70,6 @@ pub fn unsafe_auth_config() -> Config {
         .with_system_dns()
         .without_virtual_entries()
         .validate()
-        .unwrap()
 }
 
 mod basic;

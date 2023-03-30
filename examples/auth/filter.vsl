@@ -1,0 +1,14 @@
+#{
+    authenticate: [
+        rule "auth using shadow over saslauthd" || {
+            auth::unix_users()
+        }
+    ],
+
+    // Put the message with receive in the quarantine state
+    preq: [
+        rule "quarantine" || {
+            state::quarantine("hold")
+        }
+    ]
+}

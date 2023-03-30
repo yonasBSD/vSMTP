@@ -15,14 +15,15 @@
  *
  */
 use crate::{
-    channel_message::ProcessMessage,
     delivery::{
         deferred::flush_deferred_queue,
-        deliver::{flush_deliver_queue, handle_one_in_delivery_queue},
+        deliver::{flush_deliver_queue, handle_one},
     },
+    scheduler,
 };
 use anyhow::Context;
 use time::format_description::well_known::Rfc2822;
+use tokio_stream::StreamExt;
 use vqueue::GenericQueueManager;
 use vsmtp_common::status::Status;
 use vsmtp_common::ContextFinished;
@@ -30,35 +31,39 @@ use vsmtp_config::Config;
 use vsmtp_mail_parser::MessageBody;
 use vsmtp_rule_engine::RuleEngine;
 
-mod deferred;
-mod deliver;
+/// Deferred delivery
+pub mod deferred;
+/// First delivery
+pub mod deliver;
 
-pub async fn start<Q: GenericQueueManager + Sized + 'static>(
+pub(crate) async fn start<Q: GenericQueueManager + Sized + 'static>(
     config: std::sync::Arc<Config>,
     rule_engine: std::sync::Arc<RuleEngine>,
     queue_manager: std::sync::Arc<Q>,
-    mut delivery_receiver: tokio::sync::mpsc::Receiver<ProcessMessage>,
+    mut receiver: scheduler::Receiver,
 ) {
     flush_deliver_queue(config.clone(), queue_manager.clone(), rule_engine.clone()).await;
 
     let mut flush_deferred_interval =
         tokio::time::interval(config.server.queues.delivery.deferred_retry_period);
 
+    let delivery_receiver = receiver.as_stream().map(|pm| {
+        tokio::spawn(handle_one(
+            config.clone(),
+            queue_manager.clone(),
+            pm,
+            rule_engine.clone(),
+        ))
+    });
+    tokio::pin!(delivery_receiver);
+
     loop {
         tokio::select! {
-            Some(pm) = delivery_receiver.recv() => {
-                tokio::spawn(
-                    handle_one_in_delivery_queue(
-                        config.clone(),
-                        queue_manager.clone(),
-                        pm,
-                        rule_engine.clone(),
-                    )
-                );
-            }
+            Some(_join_handle) = delivery_receiver.next() => {}
             _ = flush_deferred_interval.tick() => {
                 tracing::info!("cronjob delay elapsed `{}s`, flushing queue.",
                     config.server.queues.delivery.deferred_retry_period.as_secs());
+
                 tokio::spawn(
                     flush_deferred_queue(
                         config.clone(),

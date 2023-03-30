@@ -15,17 +15,18 @@
  *
 */
 
+#[cfg(feature = "syslog")]
+use crate::config::field::SyslogSocket;
 use crate::{
     config::field::{
         FieldApp, FieldAppLogs, FieldAppVSL, FieldQueueDelivery, FieldQueueWorking, FieldServer,
         FieldServerDNS, FieldServerInterfaces, FieldServerLogs, FieldServerQueues, FieldServerSMTP,
         FieldServerSMTPAuth, FieldServerSMTPError, FieldServerSMTPTimeoutClient, FieldServerSystem,
         FieldServerSystemThreadPool, FieldServerTls, FieldServerVirtual, ResolverOptsWrapper,
-        SyslogSocket,
     },
     Config,
 };
-use vsmtp_common::{auth::Mechanism, collection, CodeID, Domain, Reply};
+use vsmtp_common::{auth::Mechanism, Domain};
 
 impl Default for Config {
     fn default() -> Self {
@@ -202,16 +203,16 @@ impl Default for FieldServerSystemThreadPool {
 }
 
 impl FieldServerSystemThreadPool {
-    pub(crate) const fn default_receiver() -> usize {
-        6
+    pub(crate) fn default_receiver() -> std::num::NonZeroUsize {
+        std::num::NonZeroUsize::new(6).expect("6 is non-zero")
     }
 
-    pub(crate) const fn default_processing() -> usize {
-        6
+    pub(crate) fn default_processing() -> std::num::NonZeroUsize {
+        std::num::NonZeroUsize::new(6).expect("6 is non-zero")
     }
 
-    pub(crate) const fn default_delivery() -> usize {
-        6
+    pub(crate) fn default_delivery() -> std::num::NonZeroUsize {
+        std::num::NonZeroUsize::new(6).expect("6 is non-zero")
     }
 }
 
@@ -236,7 +237,10 @@ impl Default for FieldServerLogs {
         Self {
             filename: Self::default_filename(),
             level: Self::default_level(),
-            system: None,
+            #[cfg(any(feature = "journald", feature = "syslog"))]
+            sys_level: Self::default_sys_level(),
+            #[cfg(feature = "syslog")]
+            syslog: SyslogSocket::default(),
         }
     }
 }
@@ -249,13 +253,15 @@ impl FieldServerLogs {
     pub(crate) fn default_level() -> Vec<tracing_subscriber::filter::Directive> {
         vec!["warn".parse().expect("hardcoded value is valid")]
     }
+
+    #[cfg(any(feature = "journald", feature = "syslog"))]
+    pub(crate) fn default_sys_level() -> tracing::Level {
+        tracing::Level::INFO
+    }
 }
 
+#[cfg(feature = "syslog")]
 impl SyslogSocket {
-    pub(crate) fn default_udp_local() -> std::net::SocketAddr {
-        "127.0.0.1:0".parse().expect("valid")
-    }
-
     pub(crate) fn default_udp_server() -> std::net::SocketAddr {
         "127.0.0.1:514".parse().expect("valid")
     }
@@ -265,9 +271,12 @@ impl SyslogSocket {
     }
 }
 
+#[cfg(feature = "syslog")]
 impl Default for SyslogSocket {
     fn default() -> Self {
-        Self::Unix { path: None }
+        Self::Unix {
+            path: "/dev/log".into(),
+        }
     }
 }
 
@@ -389,7 +398,6 @@ impl Default for FieldServerSMTP {
             rcpt_count_max: Self::default_rcpt_count_max(),
             error: FieldServerSMTPError::default(),
             timeout_client: FieldServerSMTPTimeoutClient::default(),
-            codes: Self::default_smtp_codes(),
             auth: None,
         }
     }
@@ -398,51 +406,6 @@ impl Default for FieldServerSMTP {
 impl FieldServerSMTP {
     pub(crate) const fn default_rcpt_count_max() -> usize {
         1000
-    }
-
-    // TODO: should be const and compile time checked
-    pub(crate) fn default_smtp_codes() -> std::collections::BTreeMap<CodeID, Reply> {
-        let codes: std::collections::BTreeMap<CodeID, Reply> = collection! {
-            CodeID::Greetings => "220 {name} Service ready\r\n".parse::<Reply>().unwrap(),
-            CodeID::Help => "214 joining us https://viridit.com/support\r\n".parse::<Reply>().unwrap(),
-            CodeID::Closing => "221 Service closing transmission channel\r\n".parse::<Reply>().unwrap(),
-            CodeID::Helo => "250 Ok\r\n".parse::<Reply>().unwrap(),
-            CodeID::DataStart => "354 Start mail input; end with <CRLF>.<CRLF>\r\n".parse::<Reply>().unwrap(),
-            CodeID::Ok => "250 Ok\r\n".parse::<Reply>().unwrap(),
-            CodeID::Failure => "451 Requested action aborted: local error in processing\r\n".parse::<Reply>().unwrap(),
-            CodeID::Denied => "554 permanent problems with the remote server\r\n".parse::<Reply>().unwrap(),
-            CodeID::UnrecognizedCommand => "500 Syntax error command unrecognized\r\n".parse::<Reply>().unwrap(),
-            CodeID::SyntaxErrorParams => "501 Syntax error in parameters or arguments\r\n".parse::<Reply>().unwrap(),
-            CodeID::ParameterUnimplemented => "504 Command parameter not implemented\r\n".parse::<Reply>().unwrap(),
-            CodeID::Unimplemented => "502 Command not implemented\r\n".parse::<Reply>().unwrap(),
-            CodeID::BadSequence => "503 Bad sequence of commands\r\n".parse::<Reply>().unwrap(),
-            CodeID::MessageSizeExceeded => "552 4.3.1 Message size exceeds fixed maximum message size\r\n".parse::<Reply>().unwrap(),
-            CodeID::TlsGoAhead => "220 TLS go ahead\r\n".parse::<Reply>().unwrap(),
-            CodeID::TlsNotAvailable => "454 TLS not available due to temporary reason\r\n".parse::<Reply>().unwrap(),
-            CodeID::AlreadyUnderTLS => "554 5.5.1 Error: TLS already active\r\n".parse::<Reply>().unwrap(),
-            CodeID::AuthSucceeded => "235 2.7.0 Authentication succeeded\r\n".parse::<Reply>().unwrap(),
-            CodeID::AuthMechNotSupported => "504 5.5.4 Mechanism is not supported\r\n".parse::<Reply>().unwrap(),
-            CodeID::AuthClientMustNotStart => "501 5.7.0 Client must not start with this mechanism\r\n".parse::<Reply>().unwrap(),
-            CodeID::AuthMechanismMustBeEncrypted => "538 5.7.11 Encryption required for requested authentication mechanism\r\n".parse::<Reply>().unwrap(),
-            CodeID::AuthInvalidCredentials => "535 5.7.8 Authentication credentials invalid\r\n".parse::<Reply>().unwrap(),
-            CodeID::AuthClientCanceled => "501 Authentication canceled by client\r\n".parse::<Reply>().unwrap(),
-            CodeID::AuthErrorDecode64 => "501 5.5.2 Invalid, not base64\r\n".parse::<Reply>().unwrap(),
-            CodeID::AuthTempError => "454 4.7.0 Temporary authentication failure\r\n".parse::<Reply>().unwrap(),
-            CodeID::ConnectionMaxReached => "554 Cannot process connection, closing\r\n".parse::<Reply>().unwrap(),
-            CodeID::TooManyError => "451 Too many errors from the client\r\n".parse::<Reply>().unwrap(),
-            CodeID::Timeout => "451 Timeout - closing connection\r\n".parse::<Reply>().unwrap(),
-            CodeID::TooManyRecipients => "452 Requested action not taken: too many recipients\r\n".parse::<Reply>().unwrap(),
-        };
-
-        assert!(
-            <CodeID as strum::IntoEnumIterator>::iter()
-                // exclude these codes because they are generated by the [Config::ensure] and vsl.
-                .filter(|i| ![CodeID::EhloPain, CodeID::EhloSecured,].contains(i))
-                .all(|i| codes.contains_key(&i)),
-            "default SMTPReplyCode are ill-formed "
-        );
-
-        codes
     }
 }
 

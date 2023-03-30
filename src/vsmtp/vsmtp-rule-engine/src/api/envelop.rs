@@ -66,7 +66,7 @@ mod envelop {
         ncc: NativeCallContext,
         new_addr: &str,
     ) -> EngineResult<()> {
-        super::rewrite_mail_from_envelop(&mut get_global!(ncc, ctx)?, new_addr)
+        super::rewrite_mail_from_envelop(&mut get_global!(ncc, ctx), new_addr)
     }
 
     #[doc(hidden)]
@@ -75,7 +75,7 @@ mod envelop {
         ncc: NativeCallContext,
         new_addr: SharedObject,
     ) -> EngineResult<()> {
-        super::rewrite_mail_from_envelop(&mut get_global!(ncc, ctx)?, &new_addr.to_string())
+        super::rewrite_mail_from_envelop(&mut get_global!(ncc, ctx), &new_addr.to_string())
     }
 
     /// Replace a recipient received by a `RCPT TO` command.
@@ -114,8 +114,8 @@ mod envelop {
         new_addr: &str,
     ) -> EngineResult<()> {
         super::rewrite_rcpt(
-            &mut get_global!(ncc, ctx)?,
-            get_global!(ncc, srv)?,
+            &mut get_global!(ncc, ctx),
+            get_global!(ncc, srv),
             old_addr,
             new_addr,
         )
@@ -129,8 +129,8 @@ mod envelop {
         new_addr: &str,
     ) -> EngineResult<()> {
         super::rewrite_rcpt(
-            &mut get_global!(ncc, ctx)?,
-            get_global!(ncc, srv)?,
+            &mut get_global!(ncc, ctx),
+            get_global!(ncc, srv),
             &old_addr.to_string(),
             new_addr,
         )
@@ -144,8 +144,8 @@ mod envelop {
         new_addr: SharedObject,
     ) -> EngineResult<()> {
         super::rewrite_rcpt(
-            &mut get_global!(ncc, ctx)?,
-            get_global!(ncc, srv)?,
+            &mut get_global!(ncc, ctx),
+            get_global!(ncc, srv),
             old_addr,
             &new_addr.to_string(),
         )
@@ -159,8 +159,8 @@ mod envelop {
         new_addr: SharedObject,
     ) -> EngineResult<()> {
         super::rewrite_rcpt(
-            &mut get_global!(ncc, ctx)?,
-            get_global!(ncc, srv)?,
+            &mut get_global!(ncc, ctx),
+            get_global!(ncc, srv),
             &old_addr.to_string(),
             &new_addr.to_string(),
         )
@@ -195,11 +195,7 @@ mod envelop {
     /// # rhai-autodocs:index:3
     #[rhai_fn(name = "add_rcpt", return_raw)]
     pub fn add_rcpt_envelop_str(ncc: NativeCallContext, new_addr: &str) -> EngineResult<()> {
-        super::add_rcpt_envelop(
-            &mut get_global!(ncc, ctx)?,
-            get_global!(ncc, srv)?,
-            new_addr,
-        )
+        super::add_rcpt_envelop(&mut get_global!(ncc, ctx), get_global!(ncc, srv), new_addr)
     }
 
     #[doc(hidden)]
@@ -209,8 +205,8 @@ mod envelop {
         new_addr: SharedObject,
     ) -> EngineResult<()> {
         super::add_rcpt_envelop(
-            &mut get_global!(ncc, ctx)?,
-            get_global!(ncc, srv)?,
+            &mut get_global!(ncc, ctx),
+            get_global!(ncc, srv),
             &new_addr.to_string(),
         )
     }
@@ -258,13 +254,13 @@ mod envelop {
     /// # rhai-autodocs:index:5
     #[rhai_fn(name = "rm_rcpt", return_raw)]
     pub fn remove_rcpt_envelop_str(ncc: NativeCallContext, addr: &str) -> EngineResult<()> {
-        super::remove_rcpt_envelop(&mut get_global!(ncc, ctx)?, addr)
+        super::remove_rcpt_envelop(&mut get_global!(ncc, ctx), addr)
     }
 
     #[doc(hidden)]
     #[rhai_fn(name = "rm_rcpt", return_raw)]
     pub fn remove_rcpt_envelop_obj(ncc: NativeCallContext, addr: SharedObject) -> EngineResult<()> {
-        super::remove_rcpt_envelop(&mut get_global!(ncc, ctx)?, &addr.to_string())
+        super::remove_rcpt_envelop(&mut get_global!(ncc, ctx), &addr.to_string())
     }
 }
 
@@ -332,8 +328,7 @@ fn add_rcpt_envelop(context: &mut Context, srv: Server, new_addr: &str) -> Engin
 fn remove_rcpt_envelop(context: &mut Context, addr: &str) -> EngineResult<()> {
     let addr = vsl_conversion_ok!("address", <Address as std::str::FromStr>::from_str(addr));
 
-    let mut context = vsl_guard_ok!(context.write());
-    context
+    vsl_guard_ok!(context.write())
         .remove_forward_path(&addr)
         .map_err::<Box<rhai::EvalAltResult>, _>(|e| e.to_string().into())?;
     Ok(())

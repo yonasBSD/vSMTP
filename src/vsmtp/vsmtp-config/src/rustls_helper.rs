@@ -123,7 +123,7 @@ pub fn get_rustls_config(
         .with_cert_resolver(std::sync::Arc::new(CertResolver {
             sni_resolver: cert_resolver,
             default_cert: config
-                .default
+                .root
                 .as_ref()
                 .map(|default_tls| {
                     to_rustls(
