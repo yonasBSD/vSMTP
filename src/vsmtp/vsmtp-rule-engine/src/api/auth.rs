@@ -15,24 +15,19 @@
  *
 */
 
+use super::EngineResult;
+use crate::{error::RuntimeError, get_global};
+pub use auth::*;
 use rhai::plugin::{
     Dynamic, FnAccess, FnNamespace, Module, NativeCallContext, PluginFunction, RhaiResult, TypeId,
 };
-
-pub use auth::*;
-use vsmtp_common::status::Status;
+use vsmtp_common::{auth::Credentials, status::Status, FieldAccessError, Stage};
 
 use crate::api::state;
-
-use super::EngineResult;
 
 /// Authentication mechanisms and credential manipulation.
 #[rhai::plugin::export_module]
 mod auth {
-    use crate::api::state;
-    use crate::api::EngineResult;
-    use crate::get_global;
-    use vsmtp_common::{auth::Credentials, status::Status};
 
     /// Process the SASL authentication mechanism.
     ///
@@ -52,6 +47,18 @@ mod auth {
         match &ctx
             .auth()
             .as_ref()
+            .ok_or_else(|| {
+                RuntimeError::MissingField(FieldAccessError::new(
+                    "auth",
+                    vec![
+                        Stage::Connect,
+                        Stage::Helo,
+                        Stage::MailFrom,
+                        Stage::RcptTo,
+                        Stage::Finished,
+                    ],
+                ))
+            })
             .expect("state cannot be empty")
             .credentials
         {

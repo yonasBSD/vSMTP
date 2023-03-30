@@ -1,3 +1,7 @@
-# Auth
+# SASL Authentication with vSMTP
 
-A simple example to show you how to setup authentication.
+You can run the example with the following command:
+
+```sh
+./test.sh
+```

@@ -248,8 +248,14 @@ where
                     .parse::<Reply>()
                     .unwrap()
             }
-            Err(AuthError::IO(e)) => todo!("{}", e),
-            Err(AuthError::ConfigError(e)) => todo!("{}", e),
+            Err(AuthError::IO(e)) => todo!("{e}"),
+            Err(AuthError::ConfigError(rsasl::prelude::SASLError::NoSharedMechanism)) => {
+                ctx.deny();
+                "504 5.5.4 Mechanism is not supported\r\n"
+                    .parse::<Reply>()
+                    .unwrap()
+            }
+            Err(AuthError::ConfigError(e)) => todo!("handle non_exhaustive pattern: {e}"),
         }
     }
 

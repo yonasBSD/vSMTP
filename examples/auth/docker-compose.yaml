@@ -1,0 +1,15 @@
+version: "3"
+
+services:
+  vsmtp:
+    build: .
+    hostname: auth-example.vsmtp.tld
+    volumes:
+      - ./vsmtp.vsl:/etc/vsmtp/vsmtp.vsl:ro
+      - ./filter.vsl:/etc/vsmtp/filter.vsl:ro
+    ports:
+      - 127.0.0.1:10025:25
+    command: sh -c "saslauthd -a shadow && vsmtp --no-daemon --stdout"
+
+    ## FIXME: should be able to run vsmtp not as root, if the group sasl has been set
+    user: "root:root"
