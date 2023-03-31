@@ -2,7 +2,7 @@
 edition = "2021"
 
 name = "vsmtp"
-version = "2.2.0"
+version = "2.2.1"
 license = "GPL-3.0-only"
 
 authors = ["Team viridIT <https://viridit.com/>"]
@@ -81,19 +81,19 @@ telemetry = ["dep:tracing-opentelemetry", "dep:opentelemetry-jaeger"]
 document-features = ["dep:document-features"]
 
 [dependencies.vsmtp-common]
-version = "=2.2.0"
+version = "=2.2.1"
 path = "../vsmtp-common"
 
 [dependencies.vsmtp-server]
-version = "=2.2.0"
+version = "=2.2.1"
 path = "../vsmtp-server"
 
 [dependencies.vsmtp-config]
-version = "=2.2.0"
+version = "=2.2.1"
 path = "../vsmtp-config"
 
 [dependencies.vsmtp-rule-engine]
-version = "=2.2.0"
+version = "=2.2.1"
 path = "../vsmtp-rule-engine"
 
 [dependencies]
@@ -149,7 +149,7 @@ assets = [
     [
         # https://www.debian.org/doc/debian-policy/ch-sharedlibs.html#shared-library-support-files
         "target/release/*.so",
-        "/usr/lib/vsmtp/2.2.0/",
+        "/usr/lib/vsmtp/2.2.1/",
         "755",
     ],
     ["../../../tools/install/deb/lintian-overrides", "/usr/share/lintian/overrides/vsmtp", "644"],
@@ -171,7 +171,7 @@ post_uninstall_script = "../../../tools/install/deb/postrm"
 assets = [
     { source = "target/release/vsmtp", dest = "/usr/sbin/vsmtp", mode = "755" },
     { source = "target/release/vqueue", dest = "/usr/sbin/vqueue", mode = "755" },
-    { source = "target/release/*.so", dest = "/usr/lib/vsmtp/2.2.0/", mode = "755" },
+    { source = "target/release/*.so", dest = "/usr/lib/vsmtp/2.2.1/", mode = "755" },
     { source = "../../../tools/install/man/*", dest = "/usr/share/man/man1/", mode = "644", doc = true },
     { source = "../../../README.md", dest = "/usr/share/doc/vsmtp/", mode = "644", doc = true },
 ]

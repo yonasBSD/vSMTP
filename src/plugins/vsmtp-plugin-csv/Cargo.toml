@@ -2,7 +2,7 @@
 edition = "2021"
 
 name = "vsmtp-plugin-csv"
-version = "2.2.0"
+version = "2.2.1"
 license = "GPL-3.0-only"
 
 authors = ["Team viridIT <https://viridit.com/>"]
@@ -27,7 +27,7 @@ crate-type = ["cdylib"]
 pre-release-commit-message = "chore: Release {{crate_name}} version {{version}}"
 
 [dependencies]
-vsmtp-plugin-vsl = { version = "=2.2.0", path = "../../vsmtp/vsmtp-plugin-vsl" }
+vsmtp-plugin-vsl = { version = "=2.2.1", path = "../../vsmtp/vsmtp-plugin-vsl" }
 
 rhai = { version = "=1.13.0", features = ["unchecked", "sync", "internals", "no_closure", "metadata"] }
 csv = { version = "1.2.1", default-features = false }
