@@ -4492,7 +4492,7 @@ dependencies = [
 
 [[package]]
 name = "vsmtp-plugin-ldap"
-version = "2.2.0"
+version = "2.2.1"
 dependencies = [
  "humantime-serde",
  "ldap3",
