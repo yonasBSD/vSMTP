@@ -53,7 +53,7 @@ version = "=2.2.0"
 path = "../../vqueue"
 
 [dependencies.vsmtp-plugin-vsl]
-version = "=2.2.0"
+version = "=2.2.1"
 path = "../vsmtp-plugin-vsl"
 
 [dependencies]
