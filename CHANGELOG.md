@@ -13,6 +13,8 @@ release. They will however *never* happen in a patch release.
 
 ## [Unreleased] - ReleaseDate
 
+## [2.2.1] - 2023-03-31
+
 ### Added
 
 * add telemetry cargo feature to vsmtp to export telemetry using opentelemetry and jaeger. (only exporter supported for now) (#1086)
