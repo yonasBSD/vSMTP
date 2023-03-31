@@ -98,13 +98,18 @@ impl<T: FilesystemQueueManagerExt + Send + Sync + core::fmt::Debug> GenericQueue
         let mut msg_path = queue_path.join(msg_uuid.to_string());
         msg_path.set_extension("json");
 
-        let mut file = std::fs::OpenOptions::new()
+        let file = std::fs::OpenOptions::new()
             .create(true)
             .write(true)
             .truncate(true)
             .open(&msg_path)?;
 
-        serde_json::to_writer_pretty(&mut file, ctx).context("failed to write context")?;
+        let mut buf_writer = std::io::BufWriter::new(file);
+
+        #[cfg(debug_assertions)]
+        serde_json::to_writer_pretty(&mut buf_writer, ctx).context("failed to write context")?;
+        #[cfg(not(debug_assertions))]
+        serde_json::to_writer(&mut buf_writer, ctx).context("failed to write context")?;
 
         tracing::debug!(to = ?queue_path, "Email context written.");
 
@@ -242,11 +247,9 @@ impl<T: FilesystemQueueManagerExt + Send + Sync + core::fmt::Debug> GenericQueue
 
         let modified_at = file.metadata()?.modified()?;
 
-        let content = std::fs::read_to_string(&ctx_filepath)
-            .with_context(|| format!("Cannot read file '{}'", ctx_filepath.display()))?;
-
-        let mut deserialized = serde_json::from_str::<ContextFinished>(&content)
-            .with_context(|| format!("Cannot deserialize: '{content:?}'"))?;
+        let reader = std::io::BufReader::new(file);
+        let mut deserialized: ContextFinished = serde_json::from_reader(reader)
+            .with_context(|| format!("Cannot deserialize at '{}'", ctx_filepath.display()))?;
 
         deserialized.rcpt_to.delivery = deserialized
             .rcpt_to

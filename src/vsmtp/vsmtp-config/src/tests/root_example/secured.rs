@@ -34,7 +34,11 @@ fn parse() {
             .unwrap()
             .with_path(path_to_config)
             .with_hostname_and_client_count_max(8)
-            .with_default_user_and_thread_pool(3, 3, 3)
+            .with_default_user_and_thread_pool(
+                std::num::NonZeroUsize::new(3).unwrap(),
+                std::num::NonZeroUsize::new(3).unwrap(),
+                std::num::NonZeroUsize::new(3).unwrap()
+            )
             .with_ipv4_localhost()
             .with_default_logs_settings()
             .with_spool_dir_and_queues(
@@ -59,7 +63,6 @@ fn parse() {
                     Stage::RcptTo => std::time::Duration::from_millis(400),
                 }
             )
-            .with_default_smtp_codes()
             .without_auth()
             .with_default_app()
             .with_default_vsl_settings()
@@ -81,6 +84,5 @@ fn parse() {
             )
             .without_virtual_entries()
             .validate()
-            .unwrap()
     );
 }

@@ -20,7 +20,7 @@ use crate::field::{
     FieldQueueDelivery, FieldQueueWorking, FieldServerDNS, FieldServerSMTPAuth,
     FieldServerSMTPError, FieldServerSMTPTimeoutClient, FieldServerTls, FieldServerVirtual,
 };
-use vsmtp_common::{CodeID, Domain, Reply};
+use vsmtp_common::Domain;
 
 ///
 pub struct WantsVersion(pub(crate) ());
@@ -52,9 +52,9 @@ pub struct WantsServerInterfaces {
     pub(super) user: users::User,
     pub(super) group: users::Group,
     pub(super) group_local: Option<users::Group>,
-    pub(super) thread_pool_receiver: usize,
-    pub(super) thread_pool_processing: usize,
-    pub(super) thread_pool_delivery: usize,
+    pub(super) thread_pool_receiver: std::num::NonZeroUsize,
+    pub(super) thread_pool_processing: std::num::NonZeroUsize,
+    pub(super) thread_pool_delivery: std::num::NonZeroUsize,
 }
 
 ///
@@ -93,16 +93,10 @@ pub struct WantsServerSMTPConfig2 {
 }
 
 ///
-pub struct WantsServerSMTPConfig3 {
+pub struct WantsServerSMTPAuth {
     pub(crate) parent: WantsServerSMTPConfig2,
     pub(super) error: FieldServerSMTPError,
     pub(super) timeout_client: FieldServerSMTPTimeoutClient,
-}
-
-///
-pub struct WantsServerSMTPAuth {
-    pub(crate) parent: WantsServerSMTPConfig3,
-    pub(super) codes: std::collections::BTreeMap<CodeID, Reply>,
 }
 
 ///

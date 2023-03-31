@@ -8,7 +8,7 @@ The following is a list of plugins and features that we plan to add to vSMTP. (I
 | :--- | :--- | :--- | :--- | :--- |
 | N/A | Public | SMTP delegation | Native | Available |
 | milter | Commercial | Sendmail milter emulator | External | v2.4 |
-| ldap | Public | LDAP connector | External | v2.2
+| ldap | Public | LDAP connector | External | Available
 | dnsl | Public | DNS reverse lookup for white and black lists | External | v2.5
 | spamassassin | Public | SpamAssassin service handler | External | v2.3
 | rspamd | Commercial | rSPAM service handler | External | v2.4
@@ -52,10 +52,10 @@ Do not hesitate to contact us for specific databases plugins.
 | Name | License | Comment | Type | Status |
 | :--- | :--- | :--- | :--- | :--- |
 | csv | Public | Handler for Comma-Separated Values files | External | Available
-| memc | Public | Memcached in-memory key-value store connector | External | v2.1
-| redis | Commercial | Adaptor for Redis in-memory data structure store | External | v2.1
-| bdb | Public | Berkeley DB connector | External | v2.2
-| mongodb | Public | MongoDB connecter | External | v2.2
+| memcached | Public | Memcached in-memory key-value store connector | External | Available
+| redis | Commercial | Adaptor for Redis in-memory data structure store | External | Available
+| bdb | Public | Berkeley DB connector | External | Unplanned
+| mongodb | Public | MongoDB connecter | External | v2.2.1
 
 ## Misc
 

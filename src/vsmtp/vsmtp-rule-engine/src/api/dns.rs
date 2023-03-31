@@ -72,7 +72,7 @@ mod dns {
     /// # rhai-autodocs:index:1
     #[rhai_fn(name = "lookup", return_raw)]
     pub fn lookup(ncc: NativeCallContext, name: &str) -> EngineResult<rhai::Array> {
-        super::Impl::lookup(&get_global!(ncc, srv)?, name)
+        super::Impl::lookup(&get_global!(ncc, srv), name)
     }
 
     #[doc(hidden)]
@@ -113,16 +113,16 @@ mod dns {
     ///   ],
     /// }
     /// # "#)?.build()));
-    /// # use vsmtp_common::{status::Status, CodeID, Reply, ReplyCode::Code};
-    /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::Connect].2, Status::Accept(either::Right(
+    /// # use vsmtp_common::{status::Status, Reply, ReplyCode::Code};
+    /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::Connect].2, Status::Accept(
     /// #  r#"250 client ip: 127.0.0.1 -> ["localhost."]"#.parse().unwrap(),
-    /// # )));
+    /// # ));
     /// ```
     ///
     /// # rhai-autodocs:index:2
     #[rhai_fn(name = "rlookup", return_raw)]
     pub fn rlookup(ncc: NativeCallContext, name: &str) -> EngineResult<rhai::Array> {
-        super::Impl::rlookup(&get_global!(ncc, srv)?, name)
+        super::Impl::rlookup(&get_global!(ncc, srv), name)
     }
 
     #[doc(hidden)]

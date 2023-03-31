@@ -15,24 +15,19 @@
  *
 */
 
+use super::EngineResult;
+use crate::{error::RuntimeError, get_global};
+pub use auth::*;
 use rhai::plugin::{
     Dynamic, FnAccess, FnNamespace, Module, NativeCallContext, PluginFunction, RhaiResult, TypeId,
 };
-
-pub use auth::*;
-use vsmtp_common::status::Status;
+use vsmtp_common::{auth::Credentials, status::Status, FieldAccessError, Stage};
 
 use crate::api::state;
-
-use super::EngineResult;
 
 /// Authentication mechanisms and credential manipulation.
 #[rhai::plugin::export_module]
 mod auth {
-    use crate::api::state;
-    use crate::api::EngineResult;
-    use crate::get_global;
-    use vsmtp_common::{auth::Credentials, status::Status};
 
     /// Process the SASL authentication mechanism.
     ///
@@ -46,12 +41,24 @@ mod auth {
     /// # rhai-autodocs:index:1
     #[rhai_fn(name = "unix_users", return_raw)]
     pub fn unix_users(ncc: NativeCallContext) -> EngineResult<Status> {
-        let ctx = get_global!(ncc, ctx)?;
+        let ctx = get_global!(ncc, ctx);
         let ctx = vsl_guard_ok!(ctx.read());
 
         match &ctx
             .auth()
             .as_ref()
+            .ok_or_else(|| {
+                RuntimeError::MissingField(FieldAccessError::new(
+                    "auth",
+                    vec![
+                        Stage::Connect,
+                        Stage::Helo,
+                        Stage::MailFrom,
+                        Stage::RcptTo,
+                        Stage::Finished,
+                    ],
+                ))
+            })
             .expect("state cannot be empty")
             .credentials
         {
@@ -96,9 +103,7 @@ mod auth {
     /// # rhai-autodocs:index:2
     #[rhai_fn(name = "is_authenticated", return_raw)]
     pub fn is_authenticated(ncc: NativeCallContext) -> EngineResult<bool> {
-        Ok(vsl_guard_ok!(get_global!(ncc, ctx)?.read())
-            .auth()
-            .is_some())
+        Ok(vsl_guard_ok!(get_global!(ncc, ctx).read()).auth().is_some())
     }
 
     /// Get authentication credentials from the client.
@@ -127,7 +132,7 @@ mod auth {
     /// # rhai-autodocs:index:3
     #[rhai_fn(name = "credentials", return_raw)]
     pub fn credentials(ncc: NativeCallContext) -> EngineResult<Credentials> {
-        vsl_guard_ok!(get_global!(ncc, ctx)?.read())
+        vsl_guard_ok!(get_global!(ncc, ctx).read())
             .auth()
             .as_ref()
             .and_then(|auth| auth.credentials.clone())

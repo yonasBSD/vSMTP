@@ -71,8 +71,8 @@ strum = { version = "0.24.1", default-features = false, features = ["std", "deri
 serde_with = { version = "2.3.1", default-features = false, features = ["std", "macros"] }
 
 
-serde_json = { version = "1.0.94", default-features = false, features = ["std"] }
-serde = { version = "1.0.156", default-features = false, features = ["std", "derive"] }
+serde_json = { version = "1.0.95", default-features = false, features = ["std"] }
+serde = { version = "1.0.159", default-features = false, features = ["std", "derive"] }
 lettre = { version = "0.10.3", default-features = false, features = [
   "smtp-transport",
   "builder",
@@ -87,7 +87,7 @@ time = { version = "0.3.20", default-features = false, features = ["std", "forma
 
 trust-dns-resolver = { version = "0.22.0", default-features = false, features = ["system-config", "tokio-runtime"] }
 
-tokio = { version = "1.26.0", default-features = false, features = [
+tokio = { version = "1.27.0", default-features = false, features = [
   "macros",
   "sync",
   "fs",
@@ -108,7 +108,7 @@ builder = []
 [dev-dependencies]
 vsmtp-test = { path = "../vsmtp-test" }
 pretty_assertions = "1.3.0"
-rstest = "0.16.0"
+rstest = "0.17.0"
 rand = "0.8.5"
 rand_chacha = "0.3.1"
 rsa = { version = "0.8.2", default-features = false, features = [

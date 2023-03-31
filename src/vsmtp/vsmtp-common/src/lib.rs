@@ -71,7 +71,6 @@ mod types {
     #[macro_use]
     pub mod address;
     pub mod client_name;
-    pub mod code_id;
     pub mod domain;
     pub mod reply;
     pub mod reply_code;
@@ -83,7 +82,6 @@ mod types {
 pub use types::{
     address::Address,
     client_name::ClientName,
-    code_id::CodeID,
     domain::{domain_iter, Domain},
     reply::Reply,
     reply_code::*,
@@ -94,9 +92,6 @@ pub use types::{
 
 ///
 pub mod transport;
-
-///
-pub type ReplyOrCodeID = either::Either<CodeID, Reply>;
 
 mod context;
 pub use context::{

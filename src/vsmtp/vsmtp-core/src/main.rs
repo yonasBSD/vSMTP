@@ -81,20 +81,7 @@ fn try_main() -> anyhow::Result<()> {
         }
     }
 
-    vsmtp::tracing_subscriber::initialize(&args, &config)?;
-
-    tracing::info!(
-        server = ?config.server.logs.filename,
-        app = ?config.app.logs.filename,
-        syslog = config
-        .server
-        .logs
-        .system
-        .as_ref()
-        .map(|sys| sys.to_string())
-        .unwrap_or_else(|| "None".to_string()),
-        "vSMTP logs initialized: ",
-    );
+    vsmtp::init_logs(&args, &config)?;
 
     let sockets = (
         bind_sockets(&config.server.interfaces.addr)?,

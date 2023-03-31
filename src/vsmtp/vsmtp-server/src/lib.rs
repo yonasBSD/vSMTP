@@ -29,16 +29,20 @@
 //
 
 mod channel_message;
-mod delivery;
-mod processing;
 mod runtime;
 mod server;
-
 mod receiver {
     pub mod handler;
     mod post_transaction;
     pub mod pre_transaction;
 }
+
+/// This module is responsible of the delivery of the message, and the management of failures.
+pub mod delivery;
+/// This module is responsible of the communication between the different part of the software.
+pub mod scheduler;
+/// This module execute logics on message after taking their responsibility, and before sending them.
+pub mod working;
 
 pub use channel_message::ProcessMessage;
 pub use receiver::handler::Handler;
@@ -50,17 +54,6 @@ use anyhow::Context;
 use vsmtp_common::status::SmtpConnection;
 use vsmtp_common::{Address, ContextFinished};
 use vsmtp_mail_parser::MessageBody;
-
-/// tag for a specific email process.
-#[derive(Debug, strum::Display)]
-pub enum Process {
-    /// The server handle clients, parse commands & store emails at this stage.
-    Receiver,
-    /// The server handle emails "offline", the client is no longer communicating.
-    Processing,
-    /// The server is going to deliver the email locally or to another server.
-    Delivery,
-}
 
 /// delegate a message to another service.
 pub(crate) fn delegate(

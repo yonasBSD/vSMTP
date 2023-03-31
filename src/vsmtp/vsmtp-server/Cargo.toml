@@ -61,7 +61,7 @@ path = "../vsmtp-rule-engine"
 tracing = { version = "0.1.37", default-features = false, features = ["std", "attributes", "release_max_level_info"] }
 log = { version = "0.4.17", default-features = false, features = ["std", "release_max_level_info"] }
 
-async-trait = { version = "0.1.66", default-features = false }
+async-trait = { version = "0.1.68", default-features = false }
 fastrand = { version = "1.9.0", default-features = false }
 thiserror = { version = "1.0.39", default-features = false }
 strum = { version = "0.24.1", default-features = false, features = ["std", "derive"] }
@@ -84,7 +84,7 @@ lettre = { version = "0.10.3", default-features = false, features = [
   "tokio1-rustls-tls",
   "tracing",
 ] }
-tokio = { version = "1.26.0", default-features = false, features = [
+tokio = { version = "1.27.0", default-features = false, features = [
   "macros",
   "sync",
   "fs",

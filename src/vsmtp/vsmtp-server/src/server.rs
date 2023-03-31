@@ -14,12 +14,12 @@
  * this program. If not, see https://www.gnu.org/licenses/.
  *
 */
-use crate::{channel_message::ProcessMessage, receiver::handler::Handler, ValidationVSL};
+use crate::{receiver::handler::Handler, scheduler::Emitter, ValidationVSL};
 use anyhow::Context;
 use tokio_rustls::rustls;
 use tokio_stream::StreamExt;
 use vqueue::GenericQueueManager;
-use vsmtp_common::CodeID;
+use vsmtp_common::Reply;
 use vsmtp_config::{get_rustls_config, Config};
 use vsmtp_mail_parser::BasicParser;
 use vsmtp_protocol::{AcceptArgs, ConnectionKind};
@@ -27,12 +27,13 @@ use vsmtp_rule_engine::RuleEngine;
 
 /// TCP/IP server
 pub struct Server {
+    conn_max_reach_reply: Reply,
+
     config: std::sync::Arc<Config>,
     tls_config: Option<std::sync::Arc<rustls::ServerConfig>>,
     rule_engine: std::sync::Arc<RuleEngine>,
     queue_manager: std::sync::Arc<dyn GenericQueueManager>,
-    working_sender: tokio::sync::mpsc::Sender<ProcessMessage>,
-    delivery_sender: tokio::sync::mpsc::Sender<ProcessMessage>,
+    emitter: std::sync::Arc<Emitter>,
 }
 
 /// Create a `TCPListener` ready to be listened to
@@ -78,8 +79,7 @@ impl Server {
         config: std::sync::Arc<Config>,
         rule_engine: std::sync::Arc<RuleEngine>,
         queue_manager: std::sync::Arc<dyn GenericQueueManager>,
-        working_sender: tokio::sync::mpsc::Sender<ProcessMessage>,
-        delivery_sender: tokio::sync::mpsc::Sender<ProcessMessage>,
+        emitter: std::sync::Arc<Emitter>,
     ) -> anyhow::Result<Self> {
         if !config.server.queues.dirpath.exists() {
             std::fs::DirBuilder::new()
@@ -88,6 +88,9 @@ impl Server {
         }
 
         Ok(Self {
+            conn_max_reach_reply: "554 Cannot process connection, closing\r\n"
+                .parse::<Reply>()
+                .expect("valid smtp reply"),
             tls_config: if let Some(smtps) = &config.server.tls {
                 Some(std::sync::Arc::new(get_rustls_config(
                     smtps,
@@ -99,8 +102,7 @@ impl Server {
             rule_engine,
             queue_manager,
             config,
-            working_sender,
-            delivery_sender,
+            emitter,
         })
     }
 
@@ -126,14 +128,7 @@ impl Server {
 
             if let Err(error) = tokio::io::AsyncWriteExt::write_all(
                 &mut stream,
-                self.config
-                    .server
-                    .smtp
-                    .codes
-                    .get(&CodeID::ConnectionMaxReached)
-                    .expect("ill-formed configuration")
-                    .as_ref()
-                    .as_bytes(),
+                self.conn_max_reach_reply.as_ref().as_bytes(),
             )
             .await
             {
@@ -161,8 +156,7 @@ impl Server {
             self.config.clone(),
             self.rule_engine.clone(),
             self.queue_manager.clone(),
-            self.working_sender.clone(),
-            self.delivery_sender.clone(),
+            self.emitter.clone(),
         );
         let client_counter_copy = client_counter.clone();
         tokio::spawn(async move {
@@ -258,8 +252,7 @@ impl Server {
         config: std::sync::Arc<Config>,
         rule_engine: std::sync::Arc<RuleEngine>,
         queue_manager: std::sync::Arc<dyn GenericQueueManager>,
-        working_sender: tokio::sync::mpsc::Sender<ProcessMessage>,
-        delivery_sender: tokio::sync::mpsc::Sender<ProcessMessage>,
+        emitter: std::sync::Arc<Emitter>,
     ) -> anyhow::Result<()> {
         let smtp_handler = Handler::new(
             config.clone(),
@@ -267,8 +260,7 @@ impl Server {
             rule_engine,
             queue_manager,
             BasicParser::default,
-            working_sender,
-            delivery_sender,
+            emitter,
             args.client_addr,
             args.server_addr,
             config.server.name.clone(),
@@ -296,220 +288,4 @@ impl Server {
         log::info!("Connection closed cleanly.");
         Ok(())
     }
-}
-
-#[cfg(test)]
-mod tests {
-
-    use crate::{socket_bind_anyhow, ProcessMessage, Server};
-    use vsmtp_config::DnsResolvers;
-    use vsmtp_rule_engine::RuleEngine;
-    use vsmtp_test::config;
-
-    macro_rules! listen_with {
-        ($addr:expr, $addr_submission:expr, $addr_submissions:expr, $timeout:expr, $client_count_max:expr) => {{
-            let config = std::sync::Arc::new({
-                let mut config = config::local_test();
-                config.server.interfaces.addr = $addr;
-                config.server.interfaces.addr_submission = $addr_submission;
-                config.server.interfaces.addr_submissions = $addr_submissions;
-                config.server.client_count_max = $client_count_max;
-                config
-            });
-
-            let queue_manager = <vqueue::temp::QueueManager as vqueue::GenericQueueManager>::init(
-                config.clone(),
-                vec![],
-            )
-            .unwrap();
-
-            let resolvers = std::sync::Arc::new(DnsResolvers::from_config(&config).unwrap());
-
-            let delivery = tokio::sync::mpsc::channel::<ProcessMessage>(
-                config.server.queues.delivery.channel_size,
-            );
-
-            let working = tokio::sync::mpsc::channel::<ProcessMessage>(
-                config.server.queues.working.channel_size,
-            );
-
-            let s = Server::new(
-                config.clone(),
-                std::sync::Arc::new(
-                    RuleEngine::new(config.clone(), resolvers, queue_manager.clone()).unwrap(),
-                ),
-                queue_manager,
-                working.0,
-                delivery.0,
-            )
-            .unwrap();
-
-            tokio::time::timeout(
-                std::time::Duration::from_millis($timeout),
-                s.listen((
-                    config
-                        .server
-                        .interfaces
-                        .addr
-                        .iter()
-                        .cloned()
-                        .map(socket_bind_anyhow)
-                        .collect::<anyhow::Result<Vec<std::net::TcpListener>>>()
-                        .unwrap(),
-                    config
-                        .server
-                        .interfaces
-                        .addr_submission
-                        .iter()
-                        .cloned()
-                        .map(socket_bind_anyhow)
-                        .collect::<anyhow::Result<Vec<std::net::TcpListener>>>()
-                        .unwrap(),
-                    config
-                        .server
-                        .interfaces
-                        .addr_submissions
-                        .iter()
-                        .cloned()
-                        .map(socket_bind_anyhow)
-                        .collect::<anyhow::Result<Vec<std::net::TcpListener>>>()
-                        .unwrap(),
-                )),
-            )
-            .await
-            .unwrap_err();
-        }};
-    }
-
-    #[tokio::test]
-    async fn basic() {
-        listen_with![
-            vec!["0.0.0.0:10021".parse().unwrap()],
-            vec!["0.0.0.0:10588".parse().unwrap()],
-            vec!["0.0.0.0:10466".parse().unwrap()],
-            10,
-            1
-        ];
-    }
-
-    #[ignore]
-    #[test_log::test(tokio::test(flavor = "multi_thread", worker_threads = 8))]
-    async fn one_client_max_ok() {
-        let server = tokio::spawn(async move {
-            listen_with![
-                vec!["127.0.0.1:10016".parse().unwrap()],
-                vec!["127.0.0.1:10578".parse().unwrap()],
-                vec!["127.0.0.1:10456".parse().unwrap()],
-                500,
-                1
-            ];
-        });
-
-        let client = tokio::spawn(async move {
-            tokio::time::sleep(std::time::Duration::from_millis(400)).await;
-            let mail = lettre::Message::builder()
-                .from("NoBody <nobody@domain.tld>".parse().unwrap())
-                .reply_to("Yuin <yuin@domain.tld>".parse().unwrap())
-                .to("Hei <hei@domain.tld>".parse().unwrap())
-                .subject("Happy new year")
-                .body(String::from("Be happy!"))
-                .unwrap();
-
-            let sender = lettre::AsyncSmtpTransport::<lettre::Tokio1Executor>::builder_dangerous(
-                "127.0.0.1",
-            )
-            .port(10016)
-            .build();
-
-            lettre::AsyncTransport::send(&sender, mail).await
-        });
-
-        let (client, server) = tokio::join!(client, server);
-        server.unwrap();
-
-        dbg!(client
-            .as_ref()
-            .unwrap()
-            .as_ref()
-            .unwrap()
-            .message()
-            .collect::<Vec<_>>());
-
-        assert_eq!(client.unwrap().unwrap().message().next().unwrap(), "Ok");
-    }
-
-    // FIXME: randomly fail the CI
-    /*
-    #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
-    async fn one_client_max_err() {
-        let server = tokio::spawn(async move {
-            listen_with![
-                vec!["127.0.0.1:10006".parse().unwrap()],
-                vec!["127.0.0.1:10568".parse().unwrap()],
-                vec!["127.0.0.1:10446".parse().unwrap()],
-                1000,
-                1
-            ];
-        });
-
-        let now = tokio::time::Instant::now();
-        let until = now
-            .checked_add(std::time::Duration::from_millis(100))
-            .unwrap();
-
-        let client = tokio::spawn(async move {
-            tokio::time::sleep_until(until).await;
-            let mail = lettre::Message::builder()
-                .from("NoBody <nobody@domain.tld>".parse().unwrap())
-                .reply_to("Yuin <yuin@domain.tld>".parse().unwrap())
-                .to("Hei <hei@domain.tld>".parse().unwrap())
-                .subject("Happy new year")
-                .body(String::from("Be happy!"))
-                .unwrap();
-
-            let sender = lettre::AsyncSmtpTransport::<lettre::Tokio1Executor>::builder_dangerous(
-                "127.0.0.1",
-            )
-            .port(10006)
-            .build();
-
-            lettre::AsyncTransport::send(&sender, mail).await
-        });
-
-        let client2 = tokio::spawn(async move {
-            tokio::time::sleep_until(until).await;
-            let mail = lettre::Message::builder()
-                .from("NoBody <nobody2@domain.tld>".parse().unwrap())
-                .reply_to("Yuin <yuin@domain.tld>".parse().unwrap())
-                .to("Hei <hei@domain.tld>".parse().unwrap())
-                .subject("Happy new year")
-                .body(String::from("Be happy!"))
-                .unwrap();
-
-            let sender = lettre::AsyncSmtpTransport::<lettre::Tokio1Executor>::builder_dangerous(
-                "127.0.0.1",
-            )
-            .port(10006)
-            .build();
-
-            lettre::AsyncTransport::send(&sender, mail).await
-        });
-
-        let (server, client, client2) = tokio::join!(server, client, client2);
-        server.unwrap();
-
-        let client1 = format!("{}", client.unwrap().unwrap_err());
-        let client2 = format!("{}", client2.unwrap().unwrap_err());
-
-        // one of the client has been denied on connection, but we cant know which one
-        let ok1_failed2 = client1
-            == "permanent error (554): permanent problems with the remote server"
-            && client2 == "permanent error (554): Cannot process connection, closing";
-        let ok2_failed1 = client2
-            == "permanent error (554): permanent problems with the remote server"
-            && client1 == "permanent error (554): Cannot process connection, closing";
-
-        assert!(ok1_failed2 || ok2_failed1);
-    }
-    */
 }

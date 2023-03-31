@@ -33,7 +33,7 @@ use rhai::{
 };
 use rhai_dylib::module_resolvers::libloading::DylibModuleResolver;
 use vqueue::{GenericQueueManager, QueueID};
-use vsmtp_common::{status::Status, CodeID, Domain, Reply, ReplyOrCodeID, TransactionType};
+use vsmtp_common::{status::Status, Domain, Reply, TransactionType};
 use vsmtp_config::{Config, DnsResolvers};
 use vsmtp_mail_parser::MessageBody;
 
@@ -294,13 +294,12 @@ impl RuleEngine {
             }};
         }
 
-        let delegation_header = rule_state
+        let header = rule_state
             .message()
             .read()
             .expect("Mutex poisoned")
-            .get_header("X-VSMTP-DELEGATION");
-
-        let header = delegation_header.ok_or_else(|| err!("500 Delegation header not found"))?;
+            .get_header("X-VSMTP-DELEGATION")
+            .ok_or_else(|| err!("500 Delegation header not found"))?;
         let header = vsmtp_mail_parser::get_mime_header("X-VSMTP-DELEGATION", &header);
 
         tracing::debug!(%header, "Got header for delegation");
@@ -390,7 +389,13 @@ impl RuleEngine {
 
             match self.get_directives_for_smtp_state(&context, smtp_state) {
                 Ok(script) => script,
-                Err(_) => return Status::Deny(ReplyOrCodeID::Left(CodeID::Denied)),
+                Err(_) => {
+                    return Status::Deny(
+                        "554 permanent problems with the remote server\r\n"
+                            .parse::<Reply>()
+                            .unwrap(),
+                    )
+                }
             }
         };
 
@@ -409,15 +414,15 @@ impl RuleEngine {
                     Some(directive) => &directive[position..],
                     None => return deny(),
                 },
-                Err(e) => {
+                Err(reply) => {
                     #[cfg(not(debug_assertions))]
                     {
                         // TODO: print a better error message.
-                        tracing::warn!(error = ?e, "Failed to get delegation directive from the delegation header. Stopping processing.");
+                        tracing::warn!(error = ?reply, "Failed to get delegation directive from the delegation header. Stopping processing.");
                         return deny();
                     }
                     #[cfg(debug_assertions)]
-                    return Status::Deny(either::Right(e));
+                    return Status::Deny(reply);
                 }
             },
             Some(status) if status.is_finished() => {

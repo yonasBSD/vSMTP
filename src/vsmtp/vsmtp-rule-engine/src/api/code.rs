@@ -43,11 +43,11 @@ mod code {
     ///     ]
     /// }
     /// # "#)?.build()));
-    /// # use vsmtp_common::{status::Status, CodeID, Reply, ReplyCode::Enhanced};
+    /// # use vsmtp_common::{status::Status, Reply, ReplyCode::Enhanced};
     /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::MailFrom].2,
-    /// #   Status::Deny(either::Right(
+    /// #   Status::Deny(
     /// #     "554 5.7.1 Relay access denied\r\n".parse().unwrap(),
-    /// #   ))
+    /// #   )
     /// # );
     /// ```
     ///
@@ -73,11 +73,11 @@ mod code {
     ///     ]
     /// }
     /// # "#)?.build()));
-    /// # use vsmtp_common::{status::Status, CodeID, Reply, ReplyCode::Enhanced};
+    /// # use vsmtp_common::{status::Status, Reply, ReplyCode::Enhanced};
     /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::MailFrom].2,
-    /// #   Status::Deny(either::Right(
+    /// #   Status::Deny(
     /// #     "550 5.7.20 No passing DKIM signature found\r\n".parse().unwrap(),
-    /// #   ))
+    /// #   )
     /// # );
     /// ```
     ///
@@ -103,11 +103,11 @@ mod code {
     ///     ]
     /// }
     /// # "#)?.build()));
-    /// # use vsmtp_common::{status::Status, CodeID, Reply, ReplyCode::Enhanced};
+    /// # use vsmtp_common::{status::Status, Reply, ReplyCode::Enhanced};
     /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::MailFrom].2,
-    /// #   Status::Deny(either::Right(
+    /// #   Status::Deny(
     /// #    "550 5.7.21 No acceptable DKIM signature found\r\n".parse().unwrap(),
-    /// #   ))
+    /// #   )
     /// # );
     /// ```
     ///
@@ -133,11 +133,11 @@ mod code {
     ///     ]
     /// }
     /// # "#)?.build()));
-    /// # use vsmtp_common::{status::Status, CodeID, Reply, ReplyCode::Enhanced};
+    /// # use vsmtp_common::{status::Status, Reply, ReplyCode::Enhanced};
     /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::MailFrom].2,
-    /// #   Status::Deny(either::Right(
+    /// #   Status::Deny(
     /// #    "550 5.7.22 No valid author-matched DKIM signature found\r\n".parse().unwrap(),
-    /// #   ))
+    /// #   )
     /// # );
     /// ```
     ///
@@ -168,11 +168,11 @@ mod code {
     ///     ]
     /// }
     /// # "#)?.build()));
-    /// # use vsmtp_common::{status::Status, CodeID, Reply, ReplyCode::Enhanced};
+    /// # use vsmtp_common::{status::Status, Reply, ReplyCode::Enhanced};
     /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::MailFrom].2,
-    /// #   Status::Deny(either::Right(
+    /// #   Status::Deny(
     /// #     "550 5.7.23 SPF validation failed\r\n".parse().unwrap(),
-    /// #   ))
+    /// #   )
     /// # );
     /// ```
     ///
@@ -198,11 +198,11 @@ mod code {
     ///     ]
     /// }
     /// # "#)?.build()));
-    /// # use vsmtp_common::{status::Status, CodeID, Reply, ReplyCode::Enhanced};
+    /// # use vsmtp_common::{status::Status, Reply, ReplyCode::Enhanced};
     /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::MailFrom].2,
-    /// #   Status::Deny(either::Right(
+    /// #   Status::Deny(
     /// #     "550 5.7.24 SPF validation error\r\n".parse().unwrap(),
-    /// #   ))
+    /// #   )
     /// # );
     /// ```
     ///
@@ -227,11 +227,11 @@ mod code {
     ///     ]
     /// }
     /// # "#)?.build()));
-    /// # use vsmtp_common::{status::Status, CodeID, Reply, ReplyCode::Enhanced};
+    /// # use vsmtp_common::{status::Status, Reply, ReplyCode::Enhanced};
     /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::MailFrom].2,
-    /// #   Status::Deny(either::Right(
+    /// #   Status::Deny(
     /// #     "550 5.7.25 Reverse DNS validation failed\r\n".parse().unwrap(),
-    /// #   ))
+    /// #   )
     /// # );
     /// ```
     ///
@@ -256,11 +256,11 @@ mod code {
     ///     ]
     /// }
     /// # "#)?.build()));
-    /// # use vsmtp_common::{status::Status, CodeID, Reply, ReplyCode::Enhanced};
+    /// # use vsmtp_common::{status::Status, Reply, ReplyCode::Enhanced};
     /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::MailFrom].2,
-    /// #   Status::Deny(either::Right(
+    /// #   Status::Deny(
     /// #     "500 5.7.26 Multiple authentication checks failed\r\n".parse().unwrap(),
-    /// #   ))
+    /// #   )
     /// # );
     /// ```
     ///
@@ -286,11 +286,11 @@ mod code {
     ///     ]
     /// }
     /// # "#)?.build()));
-    /// # use vsmtp_common::{status::Status, CodeID, Reply, ReplyCode::Enhanced};
+    /// # use vsmtp_common::{status::Status, Reply, ReplyCode::Enhanced};
     /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::MailFrom].2,
-    /// #   Status::Deny(either::Right(
+    /// #   Status::Deny(
     /// #     "550 5.7.27 Sender address has null MX\r\n".parse().unwrap(),
-    /// #   ))
+    /// #   )
     /// # );
     /// ```
     ///
@@ -318,11 +318,11 @@ mod code {
     ///     ]
     /// }
     /// # "#)?.build()));
-    /// # use vsmtp_common::{status::Status, CodeID, Reply, ReplyCode::Enhanced};
+    /// # use vsmtp_common::{status::Status, Reply, ReplyCode::Enhanced};
     /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::MailFrom].2,
-    /// #   Status::Deny(either::Right(
+    /// #   Status::Deny(
     /// #     "556 5.1.10 Recipient address has null MX\r\n".parse().unwrap(),
-    /// #   ))
+    /// #   )
     /// # );
     /// ```
     ///
@@ -347,11 +347,11 @@ mod code {
     ///     ]
     /// }
     /// # "#)?.build()));
-    /// # use vsmtp_common::{status::Status, CodeID, Reply, ReplyCode::Enhanced};
+    /// # use vsmtp_common::{status::Status, Reply, ReplyCode::Enhanced};
     /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::MailFrom].2,
-    /// #   Status::Deny(either::Right(
+    /// #   Status::Deny(
     /// #     "451 4.7.1 Sender is not authorized. Please try again.\r\n".parse().unwrap(),
-    /// #   ))
+    /// #   )
     /// # );
     /// ```
     ///
@@ -379,11 +379,11 @@ mod code {
     ///     ]
     /// }
     /// # "#)?.build()));
-    /// # use vsmtp_common::{status::Status, CodeID, Reply, ReplyCode::Enhanced};
+    /// # use vsmtp_common::{status::Status, Reply, ReplyCode::Enhanced};
     /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::MailFrom].2,
-    /// #   Status::Deny(either::Right(
+    /// #   Status::Deny(
     /// #     "451 4.3.0 Multiple destination domains per transaction is unsupported. Please try again.\r\n".parse().unwrap(),
-    /// #   ))
+    /// #   )
     /// # );
     /// ```
     ///
@@ -415,11 +415,11 @@ mod code {
     ///     ]
     /// }
     /// # "#)?.build()));
-    /// # use vsmtp_common::{status::Status, CodeID, Reply, ReplyCode::Enhanced};
+    /// # use vsmtp_common::{status::Status, Reply, ReplyCode::Enhanced};
     /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::MailFrom].2,
-    /// #   Status::Deny(either::Right(
+    /// #   Status::Deny(
     /// #     "550 5.1.1 The email account that you tried to reach does not exist. Please try again.\r\n".parse().unwrap(),
-    /// #   ))
+    /// #   )
     /// # );
     /// ```
     ///

@@ -37,7 +37,6 @@ fn get_tls_auth_config() -> Config {
         .unwrap()
         .with_default_smtp_options()
         .with_default_smtp_error_handler()
-        .with_default_smtp_codes()
         .with_safe_auth(-1)
         .with_app_at_location("./tmp/app")
         .with_vsl("./src/template/auth/domain-enabled")
@@ -45,7 +44,6 @@ fn get_tls_auth_config() -> Config {
         .with_system_dns()
         .without_virtual_entries()
         .validate()
-        .unwrap()
 }
 
 run_test! {

@@ -23,7 +23,7 @@ build = "build.rs"
 [build-dependencies]
 vsmtp-rule-engine = { path = "../vsmtp-rule-engine", version = "2.0.1-rc.1" }
 vsmtp-config = { path = "../vsmtp-config", version = "2.0.1-rc.1" }
-rhai-autodocs = "0.1.5"
+rhai-autodocs = "0.1.6"
 
 [package.metadata.release]
 tag = true
@@ -46,7 +46,19 @@ pre-release-replacements = [
 #! Customize the build with the following [features flags](https://doc.rust-lang.org/cargo/reference/features.html):
 default = []
 
-#! ## Debugging
+#! ## Logging system
+
+## Enable the tracing layer implemtation for the [`journald`](https://docs.rs/tracing-journald) backend.
+##
+## * build the project using `cargo build --features journald`.
+journald = ["dep:tracing-journald", "vsmtp-config/journald"]
+
+## Enable the tracing layer implemtation for the [`syslog`](https://docs.rs/tracing-rfc-5424) backend.
+##
+## * build the project using `cargo build --features syslog`.
+syslog = ["dep:tracing-rfc-5424", "vsmtp-config/syslog"]
+
+#! ## Debugging & Monitoring
 
 ## Enable the [`console-subscriber`](https://docs.rs/console-subscriber) layer to collect and aggregate the runtime's
 ## [`tracing`](https://docs.rs/tracing) data, and use a gRPC server to exports telemetry to clients.
@@ -55,6 +67,12 @@ default = []
 ## * add `tokio=trace,runtime=trace` to the log level.
 ## * run [`tokio-console`](https://docs.rs/tokio-console).
 tokio_console = ["dep:console-subscriber"]
+
+## Enable the [`tracing-opentelemetry`](https://docs.rs/tracing-opentelemetry) layer,
+## and the [`opentelemetry-jaeger`](https://docs.rs/opentelemetry-jaeger) exporter.
+##
+## * `cargo build --features telemetry`
+telemetry = ["dep:tracing-opentelemetry", "dep:opentelemetry-jaeger"]
 
 #! ## Documentation
 
@@ -79,10 +97,12 @@ version = "=2.2.0"
 path = "../vsmtp-rule-engine"
 
 [dependencies]
-clap = { version = "4.1.8", default-features = false, features = ["std", "derive", "cargo", "usage", "help", "color"] }
+clap = { version = "4.2.0", default-features = false, features = ["std", "derive", "cargo", "usage", "help", "color"] }
 dotenv = { version = "0.15.0", default-features = false }
 diff = { version = "0.1.13", default-features = false }
-serde_json = { version = "1.0.94", default-features = false, features = ["std"] }
+serde_json = { version = "1.0.95", default-features = false, features = ["std"] }
+
+cfg-if = { version = "1.0.0" }
 
 anyhow = { version = "1.0.69", default-features = false, features = ["std"] }
 either = { version = "1.8.1", default-features = false, features = ["use_std"] }
@@ -91,11 +111,18 @@ humantime = { version = "2.1.0", default-features = false }
 tracing = { version = "0.1.37", default-features = false, features = ["std", "attributes", "release_max_level_info"] }
 tracing-subscriber = { version = "0.3.16", default-features = false, features = ["smallvec", "fmt", "ansi", "std"] }
 tracing-appender = { version = "0.2.2", default-features = false }
-tracing-journald = { version = "0.3.0", default-features = false }
-syslog = { version = "6.0.1", default-features = false }
+
+tracing-journald = { version = "0.3.0", optional = true, default-features = false }
+tracing-rfc-5424 = { version = "0.1.0", optional = true, default-features = false }
+console-subscriber = { version = "0.1.7", optional = true, default-features = false }
+
+tracing-opentelemetry = { version = "0.18.0", optional = true, default-features = false, features = [
+    "tracing-log",
+    "metrics",
+] }
+opentelemetry-jaeger = { version = "0.17.0", optional = true, default-features = false, features = ["rt-tokio"] }
 
 document-features = { version = "0.2.7", optional = true }
-console-subscriber = { version = "0.1.7", optional = true, default-features = false }
 
 [package.metadata.docs.rs]
 all-features = true
@@ -131,6 +158,7 @@ assets = [
 ]
 maintainer-scripts = "../../../tools/install/deb/"
 systemd-units = { unit-name = "vsmtp", enable = true, start = false }
+features = ["journald"]
 
 #
 # RPM PACKAGING

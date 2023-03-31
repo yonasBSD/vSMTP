@@ -37,7 +37,6 @@ fn parse() {
             .without_tls_support()
             .with_default_smtp_options()
             .with_default_smtp_error_handler()
-            .with_default_smtp_codes()
             .without_auth()
             .with_app_at_location("examples/antivirus/app")
             .with_filter_path("../../../examples/antivirus/filter.vsl")
@@ -45,6 +44,5 @@ fn parse() {
             .with_system_dns()
             .without_virtual_entries()
             .validate()
-            .unwrap()
     );
 }

@@ -77,7 +77,6 @@ mod transport {
     ///     ],
     /// }
     /// # "#;
-    /// #
     /// # let states = vsmtp_test::vsl::run(|builder| Ok(builder
     /// #   .add_root_filter_rules("#{}")?
     /// #      .add_domain_rules("testserver.com".parse().unwrap())
@@ -88,9 +87,7 @@ mod transport {
     /// #   .build())
     /// # );
     /// # assert_eq!(states[&vsmtp_rule_engine::ExecutionStage::RcptTo].2, vsmtp_common::status::Status::Next);
-    /// #
     /// # let config = vsmtp_test::config::local_test();
-    /// #
     /// # use vsmtp_common::{Address, Target};
     /// # let forward_paths = states[&vsmtp_rule_engine::ExecutionStage::RcptTo].0.forward_paths().unwrap();
     /// # for (addr, (addr_expected, target)) in forward_paths.iter().zip([
@@ -136,7 +133,6 @@ mod transport {
     ///    ]
     /// }
     /// # "#;
-    /// #
     /// # let states = vsmtp_test::vsl::run(|builder| Ok(builder
     /// #   .add_root_filter_rules("#{}")?
     /// #      .add_domain_rules("testserver.com".parse().unwrap())
@@ -182,7 +178,7 @@ mod transport {
         let rcpt = <Address as std::str::FromStr>::from_str(rcpt)
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())?;
 
-        let ctx = get_global!(ncc, ctx)?;
+        let ctx = get_global!(ncc, ctx);
         let transport = std::sync::Arc::new(Forward::new(params));
         let mut guard = ctx.write().expect("mutex poisoned");
         guard
@@ -203,7 +199,7 @@ mod transport {
         let rcpt = <Address as std::str::FromStr>::from_str(&rcpt.to_string())
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())?;
 
-        let ctx = get_global!(ncc, ctx)?;
+        let ctx = get_global!(ncc, ctx);
 
         let mut guard = ctx.write().expect("mutex poisoned");
         guard
@@ -223,7 +219,7 @@ mod transport {
         let rcpt = <Address as std::str::FromStr>::from_str(rcpt)
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())?;
 
-        let ctx = get_global!(ncc, ctx)?;
+        let ctx = get_global!(ncc, ctx);
         let mut guard = ctx.write().expect("mutex poisoned");
         guard
             .set_transport_for_one(&rcpt, std::sync::Arc::new(Forward::new(params)))
@@ -242,7 +238,7 @@ mod transport {
         let rcpt = <Address as std::str::FromStr>::from_str(&rcpt.to_string())
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())?;
 
-        let ctx = get_global!(ncc, ctx)?;
+        let ctx = get_global!(ncc, ctx);
         let mut guard = ctx.write().expect("mutex poisoned");
         guard
             .set_transport_for_one(&rcpt, std::sync::Arc::new(Forward::new(params)))
@@ -322,7 +318,7 @@ mod transport {
             <SenderParameters as std::str::FromStr>::from_str(forward)
                 .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())?;
 
-        let ctx = get_global!(ncc, ctx)?;
+        let ctx = get_global!(ncc, ctx);
         let transport = std::sync::Arc::new(Forward::new(params));
 
         let mut guard = ctx.write().expect("mutex poisoned");
@@ -337,7 +333,7 @@ mod transport {
         let params = <SenderParameters as std::str::FromStr>::from_str(&forward.to_string())
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())?;
 
-        let ctx = get_global!(ncc, ctx)?;
+        let ctx = get_global!(ncc, ctx);
         let mut guard = ctx.write().expect("mutex poisoned");
         guard
             .set_transport_foreach(std::sync::Arc::new(Forward::new(params)))
@@ -429,8 +425,8 @@ mod transport {
         let rcpt = <Address as std::str::FromStr>::from_str(rcpt)
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())?;
 
-        let ctx = get_global!(ncc, ctx)?;
-        let srv = get_global!(ncc, srv)?;
+        let ctx = get_global!(ncc, ctx);
+        let srv = get_global!(ncc, srv);
         let mut guard = ctx.write().expect("mutex poisoned");
         guard
             .set_transport_for_one(
@@ -449,8 +445,8 @@ mod transport {
         let rcpt = <Address as std::str::FromStr>::from_str(&rcpt.to_string())
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())?;
 
-        let ctx = get_global!(ncc, ctx)?;
-        let srv = get_global!(ncc, srv)?;
+        let ctx = get_global!(ncc, ctx);
+        let srv = get_global!(ncc, srv);
 
         let mut guard = ctx.write().expect("mutex poisoned");
         guard
@@ -533,8 +529,8 @@ mod transport {
     /// # rhai-autodocs:index:4
     #[rhai_fn(return_raw)]
     pub fn deliver_all(ncc: NativeCallContext) -> EngineResult<()> {
-        let ctx = get_global!(ncc, ctx)?;
-        let srv = get_global!(ncc, srv)?;
+        let ctx = get_global!(ncc, ctx);
+        let srv = get_global!(ncc, srv);
 
         let mut guard = ctx.write().expect("mutex poisoned");
         guard
@@ -619,8 +615,8 @@ mod transport {
         let rcpt = <Address as std::str::FromStr>::from_str(rcpt)
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())?;
 
-        let ctx = get_global!(ncc, ctx)?;
-        let grp = get_global!(ncc, srv)?
+        let ctx = get_global!(ncc, ctx);
+        let grp = get_global!(ncc, srv)
             .config
             .server
             .system
@@ -639,8 +635,8 @@ mod transport {
         let rcpt = <Address as std::str::FromStr>::from_str(&rcpt.to_string())
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())?;
 
-        let ctx = get_global!(ncc, ctx)?;
-        let grp = get_global!(ncc, srv)?
+        let ctx = get_global!(ncc, ctx);
+        let grp = get_global!(ncc, srv)
             .config
             .server
             .system
@@ -718,8 +714,8 @@ mod transport {
     /// # rhai-autodocs:index:6
     #[rhai_fn(return_raw)]
     pub fn mbox_all(ncc: NativeCallContext) -> EngineResult<()> {
-        let ctx = get_global!(ncc, ctx)?;
-        let grp = get_global!(ncc, srv)?
+        let ctx = get_global!(ncc, ctx);
+        let grp = get_global!(ncc, srv)
             .config
             .server
             .system
@@ -745,6 +741,7 @@ mod transport {
     /// All of them.
     ///
     /// # Examples
+    ///
     /// ```ignore
     /// #{
     ///     delivery: [
@@ -804,8 +801,8 @@ mod transport {
         let rcpt = <Address as std::str::FromStr>::from_str(rcpt)
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())?;
 
-        let ctx = get_global!(ncc, ctx)?;
-        let grp = get_global!(ncc, srv)?
+        let ctx = get_global!(ncc, ctx);
+        let grp = get_global!(ncc, srv)
             .config
             .server
             .system
@@ -824,8 +821,8 @@ mod transport {
         let rcpt = <Address as std::str::FromStr>::from_str(&rcpt.to_string())
             .map_err::<Box<EvalAltResult>, _>(|err| err.to_string().into())?;
 
-        let ctx = get_global!(ncc, ctx)?;
-        let grp = get_global!(ncc, srv)?
+        let ctx = get_global!(ncc, ctx);
+        let grp = get_global!(ncc, srv)
             .config
             .server
             .system
@@ -905,8 +902,8 @@ mod transport {
     /// # rhai-autodocs:index:8
     #[rhai_fn(return_raw)]
     pub fn maildir_all(ncc: NativeCallContext) -> EngineResult<()> {
-        let ctx = get_global!(ncc, ctx)?;
-        let grp = get_global!(ncc, srv)?
+        let ctx = get_global!(ncc, ctx);
+        let grp = get_global!(ncc, srv)
             .config
             .server
             .system

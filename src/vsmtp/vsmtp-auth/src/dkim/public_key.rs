@@ -51,11 +51,10 @@ impl TryFrom<&Record> for InnerPublicKey {
                 })?,
             )),
             Type::Ed25519 => Ok(Self::Ed25519(
-                ring_compat::signature::ed25519::VerifyingKey::new(&record.public_key).map_err(
-                    |e| ParseError::InvalidArgument {
+                ring_compat::signature::ed25519::VerifyingKey::from_slice(&record.public_key)
+                    .map_err(|e| ParseError::InvalidArgument {
                         reason: format!("invalid Ed25519 public key: {e}"),
-                    },
-                )?,
+                    })?,
             )),
         }
     }
@@ -149,7 +148,7 @@ impl TryFrom<&ring_compat::ring::signature::Ed25519KeyPair> for PublicKey {
     fn try_from(key: &ring_compat::ring::signature::Ed25519KeyPair) -> Result<Self, Self::Error> {
         let key=  <ring_compat::ring::signature::Ed25519KeyPair as ring_compat::ring::signature::KeyPair>::public_key(key).as_ref();
 
-        let key = ring_compat::signature::ed25519::VerifyingKey::new(key).map_err(|_| ())?;
+        let key = ring_compat::signature::ed25519::VerifyingKey::from_slice(key).map_err(|_| ())?;
 
         let inner = InnerPublicKey::Ed25519(key);
         Ok(Self {

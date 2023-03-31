@@ -30,15 +30,15 @@ impl Builder<WantsValidate> {
     /// # Errors
     ///
     /// *
-    pub fn validate(self) -> anyhow::Result<Config> {
+    #[must_use]
+    pub fn validate(self) -> Config {
         let virtual_entries = self.state;
         let dns = virtual_entries.parent;
         let app_logs = dns.parent;
         let app_vsl = app_logs.parent;
         let app = app_vsl.parent;
         let auth = app.parent;
-        let smtp_codes = auth.parent;
-        let smtp_error = smtp_codes.parent;
+        let smtp_error = auth.parent;
         let smtp_opt = smtp_error.parent;
         let srv_tls = smtp_opt.parent;
         let srv_delivery = srv_tls.parent;
@@ -49,7 +49,7 @@ impl Builder<WantsValidate> {
         let path = srv.parent;
         let version = path.parent;
 
-        Config::ensure(Config {
+        Config {
             version_requirement: version.version_requirement,
             path: path.path,
             server: FieldServer {
@@ -74,7 +74,10 @@ impl Builder<WantsValidate> {
                 logs: FieldServerLogs {
                     filename: srv_logs.filename,
                     level: srv_logs.level,
-                    system: None,
+                    #[cfg(any(feature = "journald", feature = "syslog"))]
+                    sys_level: FieldServerLogs::default_sys_level(),
+                    #[cfg(feature = "syslog")]
+                    syslog: crate::field::SyslogSocket::default(),
                 },
                 queues: FieldServerQueues {
                     dirpath: srv_delivery.dirpath,
@@ -96,7 +99,6 @@ impl Builder<WantsValidate> {
                         rcpt_to: smtp_error.timeout_client.rcpt_to,
                         data: smtp_error.timeout_client.data,
                     },
-                    codes: smtp_codes.codes,
                     auth: auth.auth,
                 },
                 dns: dns.config,
@@ -112,7 +114,7 @@ impl Builder<WantsValidate> {
                     filename: app_logs.filename,
                 },
             },
-        })
+        }
     }
 }
 
@@ -122,7 +124,7 @@ mod tests {
 
     #[test]
     fn default_build() {
-        let config = Config::builder()
+        let _config = Config::builder()
             .with_current_version()
             .without_path()
             .with_server_name("testserver.com".parse::<vsmtp_common::Domain>().unwrap())
@@ -133,7 +135,6 @@ mod tests {
             .without_tls_support()
             .with_default_smtp_options()
             .with_default_smtp_error_handler()
-            .with_default_smtp_codes()
             .without_auth()
             .with_default_app()
             .with_default_vsl_settings()
@@ -141,6 +142,5 @@ mod tests {
             .with_system_dns()
             .without_virtual_entries()
             .validate();
-        assert!(config.is_ok(), "{config:?}");
     }
 }
