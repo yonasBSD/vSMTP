@@ -34,7 +34,7 @@ version = "=2.2.0"
 path = "../vsmtp-common"
 
 [dependencies.vsmtp-mail-parser]
-version = "=2.2.0"
+version = "=2.2.1"
 path = "../vsmtp-mail-parser"
 
 [dependencies]
