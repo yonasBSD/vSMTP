@@ -85,7 +85,7 @@ version = "=2.2.1"
 path = "../vsmtp-common"
 
 [dependencies.vsmtp-server]
-version = "=2.2.0"
+version = "=2.2.1"
 path = "../vsmtp-server"
 
 [dependencies.vsmtp-config]
