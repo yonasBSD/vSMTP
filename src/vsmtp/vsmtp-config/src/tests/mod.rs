@@ -15,7 +15,6 @@
  *
 */
 mod root_example {
-    mod antivirus;
     mod logging;
     mod secured;
     mod simple;

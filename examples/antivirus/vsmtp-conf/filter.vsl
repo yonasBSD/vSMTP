@@ -1,0 +1,32 @@
+import "clamsmtp" as clamsmtp;
+
+#{
+  connect: [
+    action "debug clamsmtpd" || {
+      try {
+        log("info", `debugging the clamsmtp service address: ${dns::lookup("clamsmtp.example.tld")}`);
+      } catch (e) {
+        log("error", `${e}`);
+      }
+    }
+  ],
+  postq: [
+    delegate clamsmtp::service "check email for virus" || {
+      log("info", `debugging my message:\n${msg()}`);
+
+      log("warn", `has infected header : ${msg::has_header("X-Virus-Infected")}`);
+
+      if msg::has_header("X-Virus-Infected") {
+        return state::quarantine("virus");
+      } else {
+        state::next()
+      }
+    },
+    action "print" || {
+      log("info", `debugging my message: again\n${msg()}`);
+    },
+    rule "finally" || {
+      state::quarantine("clean-hold")
+    }
+  ],
+}

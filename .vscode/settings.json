@@ -23,6 +23,7 @@
     "cipherlist",
     "ciphersuite",
     "clamav",
+    "clamsmtp",
     "clamsmtpd",
     "codecov",
     "consts",

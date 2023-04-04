@@ -18,18 +18,12 @@ how to properly display multipart messages.
 
   ... Some text appears here ...
 
-[Note that the blank between the boundary and the start
- of the text in this part means no header fields were
- given and this is text in the US-ASCII character set.
- It could have been done with explicit typing as in the
- next part.]
+X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*
 
 --unique-boundary-1
 Content-type: text/plain; charset=US-ASCII
 
-This could have been part of the previous part, but
-illustrates explicit versus implicit typing of body
-parts.
+X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*
 
 --unique-boundary-1
 Content-Type: multipart/parallel; boundary=unique-boundary-2

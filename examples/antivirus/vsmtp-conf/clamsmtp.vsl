@@ -1,0 +1,13 @@
+export const feedback_address = "10.5.0.5:10025";
+
+// FIXME: tokio runtime not initialized
+// `${dns::lookup("clamsmtp.example.tld")}:10026`
+const clamsmtp_address = "10.5.0.3:10026";
+
+export const service = smtp::connect(#{
+  delegator: #{
+    address: clamsmtp_address,
+    timeout: "5s",
+  },
+  receiver: feedback_address,
+});
