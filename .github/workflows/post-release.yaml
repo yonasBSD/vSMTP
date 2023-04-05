@@ -163,5 +163,5 @@ jobs:
           tags: |
             "viridit/vsmtp:latest"
             "viridit/vsmtp:${{ needs.get-release-version.outputs.rv }}"
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64 # ,linux/arm64
           file: debian.Dockerfile

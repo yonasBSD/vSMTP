@@ -1,0 +1,38 @@
+import "services/db" as db;
+
+#{
+    mail: [
+        rule "log transaction" || {
+            let sender = ctx::mail_from();
+
+            // if the sender is not recognized in our database,
+            // we deny the transaction and write the sender into
+            // the database.
+            //
+            // In this example, we use a mongo db collection called "sender" in a "greylist" database.
+            let database = db::greylist.database("greylist");
+            let collection = database.collection("sender");
+            if collection.find_one(#{
+                "address": sender.to_string()
+            }) == () {
+                log("info", `New client discovered: ${sender}`);
+                collection.insert_one(#{
+                    "user": sender.local_part.to_string(),
+                    "domain": sender.domain.to_string(),
+                    "address": sender.to_string()
+                });
+
+                state::deny(code::c451_7_1())
+            } else {
+                log("info", `Known client connected: ${sender}`);
+                // the user is known by the server, the transaction
+                // can proceed.
+                state::accept()
+            }
+        },
+    ],
+
+    delivery: [
+        rule "setup delivery" || state::quarantine("hold")
+    ]
+}

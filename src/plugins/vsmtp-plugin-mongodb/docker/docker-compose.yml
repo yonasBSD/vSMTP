@@ -1,0 +1,37 @@
+version: "3.7"
+
+services:
+    vsmtp:
+        build:
+            dockerfile: debian.Dockerfile
+            context: ../../../../
+        volumes:
+            - ./vsmtp-config/conf.d:/etc/vsmtp/conf.d
+            - ./vsmtp-config/services:/etc/vsmtp/services
+            - ./vsmtp-config/vsmtp.vsl:/etc/vsmtp/vsmtp.vsl
+            - ./vsmtp-config/filter.vsl:/etc/vsmtp/filter.vsl
+        ports:
+            - 127.0.0.1:10025:25
+        links:
+            - mongodb
+    mongodb:
+        image: mongo
+        environment:
+            - MONGO_INITDB_ROOT_USERNAME=admin
+            - MONGO_INITDB_ROOT_PASSWORD=pass
+        ports:
+            - '27017:27017'
+    mongo-express:
+        image: mongo-express
+        depends_on:
+            - mongodb
+        restart: always
+        environment:
+            - ME_CONFIG_MONGODB_ADMINUSERNAME=admin
+            - ME_CONFIG_MONGODB_ADMINPASSWORD=pass
+            - ME_CONFIG_MONGODB_SERVER=mongodb
+        ports:
+            - '8081:8081'
+
+volumes:
+    vsmtp:

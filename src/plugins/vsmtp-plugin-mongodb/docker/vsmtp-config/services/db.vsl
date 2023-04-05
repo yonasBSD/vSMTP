@@ -1,0 +1,3 @@
+import "plugins/libvsmtp_plugin_mongodb" as mongo;
+
+export const greylist = mongo::connect("mongodb://admin:pass@mongodb:27017");

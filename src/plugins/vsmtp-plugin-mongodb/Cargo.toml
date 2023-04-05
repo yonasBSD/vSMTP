@@ -1,0 +1,30 @@
+[package]
+edition = "2021"
+
+name = "vsmtp-plugin-mongodb"
+version = "2.1.1"
+license = "GPL-3.0-only"
+
+authors = ["Team viridIT <https://viridit.com/>"]
+description = "A plugin for vSMTP that enable support for mongodb databases"
+
+homepage = "https://github.com/viridIT/vSMTP"
+repository = "https://github.com/viridIT/vSMTP"
+documentation = "https://docs.rs/crate/vsmtp-plugin-mongodb/"
+
+readme = "../../../README.md"
+keywords = ["vsmtp", "mongodb"]
+categories = ["email", "database", "plugin"]
+
+rust-version = "1.66.1"
+
+publish = false
+
+[lib]
+# You could also use Rust's unstable ABI with "dylib".
+crate-type = ["cdylib"]
+
+[dependencies]
+rhai = { version = "1.12.0", features = ["unchecked", "sync", "internals", "no_closure", "metadata"] }
+serde = { version = "1.0.156", default-features = false, features = ["std", "derive"] }
+mongodb = { version = "2.3.1", features = ["tokio-sync"] }

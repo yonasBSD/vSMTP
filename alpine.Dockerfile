@@ -1,7 +1,7 @@
 ##
 FROM clux/muslrust:1.68.0-stable AS chef
 USER root
-RUN cargo install cargo-chef
+RUN cargo install cargo-chef@0.1.51
 WORKDIR /vSMTP
 
 FROM chef AS planner
@@ -26,6 +26,7 @@ RUN cargo build --target x86_64-unknown-linux-musl --release    \
     -p vsmtp-plugin-csv         \
     -p vsmtp-plugin-ldap        \
     -p vsmtp-plugin-memcached   \
+    -p vsmtp-plugin-mongodb     \
     -p vsmtp-plugin-mysql
 
 ##

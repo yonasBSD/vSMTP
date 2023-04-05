@@ -23,7 +23,7 @@ jobs:
         with:
           push: true
           tags: "viridit/vsmtp:unstable"
-          platforms: linux/amd64
+          platforms: linux/amd64 # ,linux/arm64
           file: debian.Dockerfile
 
   test-staging:
