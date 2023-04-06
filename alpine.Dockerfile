@@ -27,6 +27,7 @@ RUN cargo build --target x86_64-unknown-linux-musl --release    \
     -p vsmtp-plugin-ldap        \
     -p vsmtp-plugin-memcached   \
     -p vsmtp-plugin-mongodb     \
+    -p vsmtp-plugin-redis       \
     -p vsmtp-plugin-mysql
 
 ##

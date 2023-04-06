@@ -23,6 +23,7 @@ members = [
   "src/plugins/vsmtp-plugin-memcached",
   "src/plugins/vsmtp-plugin-ldap",
   "src/plugins/vsmtp-plugin-mongodb",
+  "src/plugins/vsmtp-plugin-redis"
 ]
 
 exclude = ["fuzz", "benchmarks/stress"]

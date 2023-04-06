@@ -1,0 +1,27 @@
+version: "3"
+
+services:
+  vsmtp:
+    depends_on:
+      - greylist
+    build:
+      dockerfile: debian.Dockerfile
+      context: ../../../../
+    volumes:
+      - ./vsmtp-config/conf.d:/etc/vsmtp/conf.d
+      - ./vsmtp-config/services:/etc/vsmtp/services
+      - ./vsmtp-config/vsmtp.vsl:/etc/vsmtp/vsmtp.vsl
+      - ./vsmtp-config/filter.vsl:/etc/vsmtp/filter.vsl
+    ports:
+      - 127.0.0.1:10025:25
+    links:
+      - greylist
+
+  greylist:
+    build:
+      context: ./redis
+    expose:
+      - "6379"
+
+volumes:
+  vsmtp:

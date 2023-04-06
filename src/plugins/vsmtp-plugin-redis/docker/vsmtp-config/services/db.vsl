@@ -1,0 +1,8 @@
+import "plugins/libvsmtp_plugin_redis" as redis;
+
+// A service used to connect to and query our greylist database.
+export const greylist = redis::connect(#{
+    url: "redis://greylist:6379",
+    timeout: "1m",
+    connections: 1,
+});
