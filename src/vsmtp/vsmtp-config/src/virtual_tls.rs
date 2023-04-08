@@ -93,7 +93,7 @@ impl<'de> serde::Deserialize<'de> for SecretFile<std::sync::Arc<dkim::PrivateKey
         })?;
 
         let ed25519 = ring_compat::ring::signature::Ed25519KeyPair::from_pkcs8_maybe_unchecked(
-            &content_pem.contents,
+            content_pem.contents(),
         )
         .map_err(|e| {
             serde::de::Error::custom(format!("Failed to parse '{filepath}' as ed25519: '{e}'"))

@@ -412,12 +412,7 @@ impl SenderParameters {
                 // rustls::Certificate => PEM => lettre::transport::smtp::client::Certificate => rustls::Certificate
                 let certs = cert
                     .iter()
-                    .map(|c| {
-                        pem::encode(&pem::Pem {
-                            tag: "CERTIFICATE".to_owned(),
-                            contents: c.0.clone(),
-                        })
-                    })
+                    .map(|c| pem::encode(&pem::Pem::new("CERTIFICATE", c.0.clone())))
                     .flat_map(|c| c.as_bytes().to_vec())
                     .collect::<Vec<_>>();
 
