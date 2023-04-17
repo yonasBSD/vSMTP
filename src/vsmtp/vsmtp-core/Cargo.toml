@@ -100,7 +100,7 @@ path = "../vsmtp-rule-engine"
 clap = { version = "4.2.1", default-features = false, features = ["std", "derive", "cargo", "usage", "help", "color"] }
 dotenv = { version = "0.15.0", default-features = false }
 diff = { version = "0.1.13", default-features = false }
-serde_json = { version = "1.0.95", default-features = false, features = ["std"] }
+serde_json = { version = "1.0.96", default-features = false, features = ["std"] }
 
 cfg-if = { version = "1.0.0" }
 

@@ -71,7 +71,7 @@ strum = { version = "0.24.1", default-features = false, features = ["std", "deri
 serde_with = { version = "2.3.2", default-features = false, features = ["std", "macros"] }
 
 
-serde_json = { version = "1.0.95", default-features = false, features = ["std"] }
+serde_json = { version = "1.0.96", default-features = false, features = ["std"] }
 serde = { version = "1.0.160", default-features = false, features = ["std", "derive"] }
 lettre = { version = "0.10.3", default-features = false, features = [
   "smtp-transport",
