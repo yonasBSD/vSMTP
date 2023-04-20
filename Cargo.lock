@@ -577,7 +577,7 @@ checksum = "77ed9a53e5d4d9c573ae844bfac6872b159cb1d1585a83b29e7a64b7eef7332a"
 dependencies = [
  "glob",
  "libc",
- "libloading",
+ "libloading 0.7.4",
 ]
 
 [[package]]
@@ -2176,6 +2176,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "libloading"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d580318f95776505201b28cf98eb1fa5e4be3b689633ba6a3e6cd880ff22d8cb"
+dependencies = [
+ "cfg-if",
+ "windows-sys 0.48.0",
+]
+
+[[package]]
 name = "libm"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3240,11 +3250,11 @@ dependencies = [
 
 [[package]]
 name = "rhai-dylib"
-version = "0.1.6"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d22e69295b3493aa4e1217f9904a7233e7a38fe68ba9e83cc72840c071f414f"
+checksum = "223c0ca7031d79205e10439bdf4c66185ad2e9741dade1e18482677df8b8b5e5"
 dependencies = [
- "libloading",
+ "libloading 0.8.0",
  "rhai",
 ]
 
@@ -5094,7 +5104,7 @@ dependencies = [
  "futures-util",
  "iai",
  "lettre",
- "libloading",
+ "libloading 0.8.0",
  "log",
  "pretty_assertions",
  "rand",
