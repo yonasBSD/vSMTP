@@ -67,7 +67,7 @@ time = { version = "0.3.20", default-features = false, features = ["std", "forma
 uuid = { version = "1.3.1", default-features = false, features = ["std", "v4", "fast-rng"] }
 tokio-stream = { version = "0.1.14", default-features = false, features = ["time"] }
 tracing = { version = "0.1.38", default-features = false }
-tracing-subscriber = { version = "0.3.16", default-features = false, features = [
+tracing-subscriber = { version = "0.3.17", default-features = false, features = [
   "std",
   "smallvec",
   "env-filter",
