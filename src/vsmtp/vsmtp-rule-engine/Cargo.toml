@@ -59,7 +59,7 @@ path = "../vsmtp-plugin-vsl"
 [dependencies]
 rhai-dylib = { version = "0.1.7", features = ["sync"] }
 rhai = { version = "=1.13.0", features = ["unchecked", "sync", "internals", "no_closure", "metadata"] }
-tracing = { version = "0.1.37", default-features = false, features = ["std", "attributes", "release_max_level_info"] }
+tracing = { version = "0.1.38", default-features = false, features = ["std", "attributes", "release_max_level_info"] }
 
 anyhow = { version = "1.0.69", default-features = false, features = ["std"] }
 
