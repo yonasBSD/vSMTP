@@ -104,7 +104,7 @@ serde_json = { version = "1.0.96", default-features = false, features = ["std"] 
 
 cfg-if = { version = "1.0.0" }
 
-anyhow = { version = "1.0.69", default-features = false, features = ["std"] }
+anyhow = { version = "1.0.71", default-features = false, features = ["std"] }
 either = { version = "1.8.1", default-features = false, features = ["use_std"] }
 humantime = { version = "2.1.0", default-features = false }
 

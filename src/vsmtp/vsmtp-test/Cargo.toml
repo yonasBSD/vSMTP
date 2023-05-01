@@ -58,7 +58,7 @@ rsasl = { version = "=2.0.0", default-features = false, features = [
   "plain",
   "login",
 ] }
-anyhow = "1.0.69"
+anyhow = "1.0.71"
 
 serde_json = { version = "1.0.96", default-features = false, features = ["std"] }
 
