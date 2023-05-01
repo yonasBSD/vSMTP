@@ -68,7 +68,7 @@ thiserror = { version = "1.0.39", default-features = false }
 either = { version = "1.8.1", default-features = false, features = ["use_std"] }
 
 strum = { version = "0.24.1", default-features = false, features = ["std", "derive"] }
-serde_with = { version = "2.3.2", default-features = false, features = ["std", "macros"] }
+serde_with = { version = "2.3.3", default-features = false, features = ["std", "macros"] }
 
 
 serde_json = { version = "1.0.96", default-features = false, features = ["std"] }

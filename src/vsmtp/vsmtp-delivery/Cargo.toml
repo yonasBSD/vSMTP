@@ -55,7 +55,7 @@ urlencoding = { version = "2.1.2", default-features = false }
 
 thiserror = { version = "1.0.39", default-features = false }
 strum = { version = "0.24.1", features = ["derive"] }
-serde_with = { version = "2.3.2", default-features = false, features = ["std", "macros"] }
+serde_with = { version = "2.3.3", default-features = false, features = ["std", "macros"] }
 
 
 users = { version = "0.11.0", default-features = false }
