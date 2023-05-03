@@ -68,7 +68,7 @@ trust-dns-resolver = { version = "0.22.0", default-features = false, features = 
 serde = { version = "1.0.160", default-features = false, features = ["std", "derive"] }
 erased-serde = { version = "0.3.25", default-features = false, features = ["std"] }
 serde_json = { version = "1.0.96", default-features = false, features = ["std"] }
-serde_with = { version = "2.3.3", default-features = false, features = ["std", "macros", "base64"] }
+serde_with = { version = "3.0.0", default-features = false, features = ["std", "macros", "base64"] }
 
 thiserror = { version = "1.0.39", default-features = false }
 
