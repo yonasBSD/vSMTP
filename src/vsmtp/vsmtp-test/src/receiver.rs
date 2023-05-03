@@ -30,6 +30,7 @@ macro_rules! run_test {
         $(,)?
     ) => {{
         use tokio_rustls::rustls;
+        #[allow(dead_code)]
         async fn upgrade_tls(server_name: &str, stream: tokio::net::TcpStream) -> tokio_rustls::client::TlsStream<tokio::net::TcpStream> {
             struct CertVerifier {
                 webpki: rustls::client::WebPkiVerifier,

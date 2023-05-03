@@ -43,6 +43,7 @@
 // FIXME:
 #![allow(clippy::std_instead_of_core)] // issue with thiserror
 #![allow(clippy::indexing_slicing)] // issue with async_stream
+#![allow(clippy::question_mark_used)]
 
 mod command;
 mod connection_kind;

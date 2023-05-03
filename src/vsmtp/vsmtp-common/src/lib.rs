@@ -38,7 +38,8 @@
     clippy::shadow_reuse,
     clippy::shadow_unrelated,
     clippy::unseparated_literal_suffix,
-    clippy::missing_trait_methods
+    clippy::missing_trait_methods,
+    clippy::question_mark_used
 )]
 // fixme:
 #![allow(clippy::missing_const_for_fn)] // see https://github.com/rust-lang/rust-clippy/issues/9271

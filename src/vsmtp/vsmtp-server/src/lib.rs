@@ -27,6 +27,7 @@
 #![warn(clippy::nursery)]
 #![warn(clippy::cargo)]
 //
+#![allow(clippy::significant_drop_tightening)]
 
 mod channel_message;
 mod runtime;

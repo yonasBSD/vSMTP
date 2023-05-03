@@ -37,7 +37,8 @@
     clippy::shadow_reuse,
     clippy::pattern_type_mismatch,
     clippy::missing_trait_methods,
-    clippy::wildcard_enum_match_arm
+    clippy::wildcard_enum_match_arm,
+    clippy::question_mark_used
 )]
 #![allow(clippy::std_instead_of_core)] // thiserror
 //

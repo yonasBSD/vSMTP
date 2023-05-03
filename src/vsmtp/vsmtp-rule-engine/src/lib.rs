@@ -29,6 +29,7 @@
 // Rhai must do something with lifetimes in plugin modules to prevent
 // a Clone impl on the context, but it fails if adding an anonymous lifetime.
 #![allow(elided_lifetimes_in_paths)]
+#![allow(clippy::significant_drop_tightening)]
 
 macro_rules! block_on {
     ($future:expr) => {

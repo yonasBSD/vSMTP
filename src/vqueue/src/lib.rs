@@ -40,7 +40,8 @@
     clippy::unseparated_literal_suffix,
     clippy::shadow_reuse,
     clippy::mod_module_files,
-    clippy::semicolon_outside_block
+    clippy::semicolon_outside_block,
+    clippy::question_mark_used
 )]
 //
 #![cfg_attr(test, allow(clippy::unwrap_used, clippy::std_instead_of_core))]

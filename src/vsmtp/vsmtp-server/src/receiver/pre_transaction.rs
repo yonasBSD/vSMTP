@@ -434,11 +434,10 @@ impl RsaslSessionCallback {
 impl rsasl::callback::SessionCallback for RsaslSessionCallback {
     fn callback(
         &self,
-        session_data: &rsasl::callback::SessionData,
-        context: &rsasl::callback::Context<'_>,
-        request: &mut rsasl::callback::Request<'_>,
+        _session_data: &rsasl::callback::SessionData,
+        _context: &rsasl::callback::Context<'_>,
+        _request: &mut rsasl::callback::Request<'_>,
     ) -> Result<(), rsasl::prelude::SessionError> {
-        let _ = (session_data, context, request);
         Ok(())
     }
 
