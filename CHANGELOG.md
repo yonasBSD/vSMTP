@@ -13,6 +13,26 @@ release. They will however *never* happen in a patch release.
 
 ## [Unreleased] - ReleaseDate
 
+### Fixed
+
+* Use latest rhai master branch to enable dynamic deserialization, resolving the following DKIM sign workflow. (#1171)
+
+```js
+#{
+  postq: [
+    action "sign email" || {
+      for key in dkim::get_private_keys("example.com") {
+        dkim::sign(#{
+          canonicalization: "simple/relaxed",
+          selector: "mail",
+          private_key: key,
+        });
+      }
+    }
+  ],
+}
+```
+
 ## [2.2.1] - 2023-03-31
 
 ### Added
