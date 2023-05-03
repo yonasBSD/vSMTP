@@ -28,6 +28,9 @@ pub enum Status {
     /// continue to the next rule / stage.
     Next,
 
+    /// Reject the current command and send an error code.
+    Reject(Reply),
+
     /// immediately stops the transaction and send an error code.
     Deny(Reply),
 

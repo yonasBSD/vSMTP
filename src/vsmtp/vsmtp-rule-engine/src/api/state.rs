@@ -208,7 +208,7 @@ mod state {
         Status::Next
     }
 
-    /// Stop rules evaluation and send an error code to the client.
+    /// Sends an error code to the client and closes the transaction.
     ///
     /// # Args
     ///
@@ -264,7 +264,7 @@ mod state {
         Status::Deny(
             "554 permanent problems with the remote server\r\n"
                 .parse::<Reply>()
-                .unwrap(),
+                .expect("554 is a valid code"),
         )
     }
 
@@ -278,6 +278,79 @@ mod state {
     #[rhai_fn(name = "deny", return_raw)]
     pub fn deny_with_string(code: &str) -> EngineResult<Status> {
         reply_or_code_id_from_string(code).map(Status::Deny)
+    }
+
+    /// Reject the current command and send an error code to the client.
+    /// This effectively stops rules evaluation for the current stage.
+    ///
+    /// # Args
+    ///
+    /// * code - A customized code as a string or code object. (default: "451 Requested action aborted: local error in processing")
+    ///
+    /// # Errors
+    ///
+    /// * The object passed as parameter was not a code object.
+    /// * The string passed as parameter failed to be parsed into a valid code.
+    ///
+    /// # Effective smtp stage
+    ///
+    /// all of them.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// #{
+    ///     rcpt: [
+    ///         rule "check for satan" || {
+    ///            // The server asks the client to try again later if a recipient's domain matches satan.org,
+    ///            // this is a blacklist, sort-of, but the connection is not closed.
+    ///            if ctx::rcpt().domain == "satan.org" {
+    ///                state::reject()
+    ///            } else {
+    ///                state::next()
+    ///            }
+    ///        },
+    ///     ],
+    /// }
+    ///
+    /// #{
+    ///     mail: [
+    ///         rule "send a custom code with a code object" || {
+    ///             reject(code(421, "Service not available"))
+    ///         }
+    ///     ],
+    /// }
+    ///
+    /// #{
+    ///     mail: [
+    ///         rule "send a custom code with a string" || {
+    ///             reject("450 mailbox unavailable")
+    ///         }
+    ///     ],
+    /// }
+    /// ```
+    ///
+    /// # rhai-autodocs:index:4
+    #[must_use]
+    #[rhai_fn(global)]
+    pub fn reject() -> Status {
+        Status::Reject(
+            "451 Requested action aborted: local error in processing\r\n"
+                .parse::<Reply>()
+                .expect("451 is a valid code"),
+        )
+    }
+
+    #[doc(hidden)]
+    #[rhai_fn(name = "reject", return_raw, pure)]
+    pub fn reject_with_code(code: &mut SharedObject) -> EngineResult<Status> {
+        reply_or_code_id_from_object(code).map(Status::Reject)
+    }
+
+    #[doc(hidden)]
+    #[rhai_fn(name = "reject", return_raw)]
+    pub fn reject_with_string(code: &str) -> EngineResult<Status> {
+        reply_or_code_id_from_string(code).map(Status::Reject)
     }
 
     /// Skip all rules until the email is received and place the email in a

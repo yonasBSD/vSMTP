@@ -13,6 +13,41 @@ release. They will however *never* happen in a patch release.
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+* The `state::reject` state, which reject `RCPT TO` commands, and denies the transaction on any other command. (#1166)
+
+```js
+#{
+    mail: [
+        rule "reject sender example.com" || {
+            if ctx::mail_from().domain is "example.com" {
+                // denies the transaction.
+                state::reject("554 example.com is unacceptable.")
+            } else {
+                state::next()
+            }
+        },
+    ],
+
+    rcpt: [
+        rule "remove example.com recipient" || {
+            let current = ctx::rcpt();
+
+            if current.domain is "example.com" {
+                // remove the recipient from the envelop to prevent delivery.
+                envelop::rm_rcpt(current);
+                // does not deny the transaction, simply send the code and ask the client to retry `RCPT TO` commands.
+                state::reject("450 example.com recipient rejected")
+            } else {
+                state::next()
+            }
+        },
+    ],
+    // ...
+}
+```
+
 ### Fixed
 
 * Use latest rhai master branch to enable dynamic deserialization, resolving the following DKIM sign workflow. (#1171)

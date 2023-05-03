@@ -170,7 +170,8 @@ impl<Parser: MailParser + Send + Sync, ParserFactory: Fn() -> Parser + Send + Sy
             Status::Quarantine(_) | Status::Next | Status::DelegationResult => {
                 "250 Ok\r\n".parse::<Reply>().unwrap()
             }
-            Status::Deny(reply) => {
+            // on the mail from stage, reject acts as a deny.
+            Status::Reject(reply) | Status::Deny(reply) => {
                 ctx.deny();
                 reply
             }
@@ -330,7 +331,7 @@ impl<Parser: MailParser + Send + Sync, ParserFactory: Fn() -> Parser + Send + Sy
             .rule_engine
             .run_when(state, &mut self.skipped, ExecutionStage::RcptTo)
         {
-            Status::Faccept(reply) | Status::Accept(reply) => reply,
+            Status::Faccept(reply) | Status::Accept(reply) | Status::Reject(reply) => reply,
             Status::Quarantine(_) | Status::Next | Status::DelegationResult => {
                 "250 Ok\r\n".parse::<Reply>().unwrap()
             }

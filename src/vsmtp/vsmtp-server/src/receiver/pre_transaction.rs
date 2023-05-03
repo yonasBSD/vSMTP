@@ -64,7 +64,7 @@ where
                         .parse::<Reply>()
                         .unwrap()
                 }
-                Status::Deny(reply) => {
+                Status::Deny(reply) | Status::Reject(reply) => {
                     ctx.deny();
                     return reply;
                 }
@@ -275,9 +275,9 @@ where
             Status::Quarantine(_) | Status::Next | Status::DelegationResult => {
                 "250 Ok\r\n".parse::<Reply>().unwrap()
             }
-            Status::Deny(code) => {
+            Status::Deny(reply) | Status::Reject(reply) => {
                 ctx.deny();
-                code
+                reply
             }
             // FIXME: user ran a delegate method before postq/delivery
             Status::Delegated(_) => unreachable!(),
@@ -373,9 +373,9 @@ where
                     .unwrap()
                 }
             }
-            Status::Deny(code) => {
+            Status::Deny(reply) | Status::Reject(reply) => {
                 ctx.deny();
-                code
+                reply
             }
             // FIXME: user ran a delegate method before postq/delivery
             Status::Delegated(_) => unreachable!(),
