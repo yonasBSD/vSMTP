@@ -98,7 +98,7 @@ Follow us on [viridit.com](https://viridit.com)
 
 ## Filtering
 
-vSMTP enable you to create complex set of rules to filter your emails using [vSMTP's scripting language (vsl)](https://vsmtp.rs/reference/vSL/vsl.html) based on [Rhai](https://github.com/rhaiscript/rhai).
+vSMTP enable you to create complex set of rules to filter your emails using [vSMTP's scripting language (vsl)](https://vsmtp.rs/ref/vSL/api.html) based on [Rhai](https://github.com/rhaiscript/rhai).
 You can:
 
 - inspect / modify the content of incoming emails.
