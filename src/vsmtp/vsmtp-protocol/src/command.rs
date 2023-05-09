@@ -15,8 +15,10 @@
  *
 */
 
+use std::str::FromStr;
+
 use crate::ConnectionKind;
-use vsmtp_common::{auth::Mechanism, ClientName, Domain};
+use vsmtp_common::{auth::Mechanism, Address, ClientName, Domain};
 extern crate alloc;
 
 /// Buffer received from the client.
@@ -93,8 +95,7 @@ pub enum MimeBodyType {
 #[non_exhaustive]
 pub struct MailFromArgs {
     /// Sender address.
-    // TODO: wrap in a type mailbox
-    pub reverse_path: Option<String>,
+    pub reverse_path: Option<Address>,
     /// (8BITMIME)
     pub mime_body_type: Option<MimeBodyType>,
     // TODO:
@@ -107,8 +108,7 @@ pub struct MailFromArgs {
 #[non_exhaustive]
 pub struct RcptToArgs {
     /// Recipient address.
-    // TODO: wrap in a type mailbox
-    pub forward_path: String,
+    pub forward_path: Address,
 }
 
 /// Information received from the client at the AUTH command.
@@ -134,6 +134,11 @@ pub enum ParseArgsError {
         expected: usize,
         /// actual size of the buffer we got
         got: usize,
+    },
+    /// mail address is invalid (for rcpt, mail from ...)
+    InvalidMailAddress {
+        /// ill-formatted mail address
+        mail: String,
     },
     /// Other
     // FIXME: improve that
@@ -303,6 +308,13 @@ impl TryFrom<UnparsedArgs> for MailFromArgs {
             }
         }
 
+        let mailbox = match mailbox {
+            Some(mailbox) => Some(
+                Address::from_str(&mailbox)
+                    .map_err(|_error| ParseArgsError::InvalidMailAddress { mail: mailbox })?,
+            ),
+            None => None,
+        };
         Ok(Self {
             reverse_path: mailbox,
             mime_body_type,
@@ -338,7 +350,8 @@ impl TryFrom<UnparsedArgs> for RcptToArgs {
         };
 
         Ok(Self {
-            forward_path: mailbox,
+            forward_path: Address::from_str(&mailbox)
+                .map_err(|_error| ParseArgsError::InvalidMailAddress { mail: mailbox })?,
         })
     }
 }

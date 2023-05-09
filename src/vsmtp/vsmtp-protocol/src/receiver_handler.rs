@@ -172,10 +172,17 @@ pub trait ReceiverHandler {
 
     /// Called when an argument of a command is invalid.
     #[inline]
-    async fn on_args_error(&mut self, _: ParseArgsError) -> Reply {
-        #[allow(clippy::expect_used)]
-        "501 Syntax error in parameters or arguments\r\n"
-            .parse()
-            .expect("valid syntax")
+    async fn on_args_error(&mut self, error: ParseArgsError) -> Reply {
+        #[allow(clippy::expect_used, clippy::wildcard_enum_match_arm)]
+        match error {
+            ParseArgsError::InvalidMailAddress { mail } => {
+                format!("553 5.1.7 The address <{mail}> is not a valid RFC-5321 address\r\n")
+                    .parse()
+                    .expect("valid syntax")
+            }
+            _other => "501 Syntax error in parameters or arguments\r\n"
+                .parse()
+                .expect("valid syntax"),
+        }
     }
 }

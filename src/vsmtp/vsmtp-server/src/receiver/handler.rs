@@ -151,15 +151,11 @@ impl<Parser: MailParser + Send + Sync, ParserFactory: Fn() -> Parser + Send + Sy
     }
 
     async fn on_mail_from(&mut self, ctx: &mut ReceiverContext, args: MailFromArgs) -> Reply {
-        let reverse_path = args
-            .reverse_path
-            .map(|reverse_path| reverse_path.parse().expect("handle invalid mailbox"));
-
         self.state
             .context()
             .write()
             .expect("state poisoned")
-            .to_mail_from(reverse_path)
+            .to_mail_from(args.reverse_path)
             .expect("bad state");
 
         match self
@@ -196,11 +192,6 @@ impl<Parser: MailParser + Send + Sync, ParserFactory: Fn() -> Parser + Send + Sy
                 .unwrap();
         }
 
-        let forward_path = args
-            .forward_path
-            .parse::<Address>()
-            .expect("todo: handle invalid mailbox");
-
         let is_internal = {
             let ctx = self.state.context();
             let mut ctx = ctx.write().expect("state poisoned");
@@ -211,14 +202,15 @@ impl<Parser: MailParser + Send + Sync, ParserFactory: Fn() -> Parser + Send + Sy
                 reverse_path.as_ref().map_or(false, |reverse_path| {
                     self.rule_engine.is_handled_domain(&reverse_path.domain())
                 }),
-                self.rule_engine.is_handled_domain(&forward_path.domain()),
+                self.rule_engine
+                    .is_handled_domain(&args.forward_path.domain()),
             );
 
             match (is_outgoing, is_handled) {
-                (true, true) if Some(forward_path.domain()) == reverse_path_domain => {
+                (true, true) if Some(args.forward_path.domain()) == reverse_path_domain => {
                     tracing::debug!(
                         "INTERNAL: forward and reverse path domain are both: {}",
-                        forward_path.domain()
+                        args.forward_path.domain()
                     );
 
                     if self.state_internal.is_none() {
@@ -250,7 +242,7 @@ impl<Parser: MailParser + Send + Sync, ParserFactory: Fn() -> Parser + Send + Sy
                     let mut internal_guard = internal_ctx.write().expect("state poisoned");
                     internal_guard
                         .add_forward_path(
-                            forward_path,
+                            args.forward_path,
                             std::sync::Arc::new(Deliver::new(
                                 self.rule_engine.srv().resolvers.get_resolver_root(),
                                 self.config.clone(),
@@ -272,11 +264,11 @@ impl<Parser: MailParser + Send + Sync, ParserFactory: Fn() -> Parser + Send + Sy
                     tracing::debug!(
                         "OUTGOING: reverse:${} => forward:${}",
                         reverse_path_domain.map_or("none".to_string(), |d| d.to_string()),
-                        forward_path.domain()
+                        args.forward_path.domain()
                     );
 
                     ctx.add_forward_path(
-                        forward_path,
+                        args.forward_path,
                         std::sync::Arc::new(Deliver::new(
                             self.rule_engine.srv().resolvers.get_resolver_root(),
                             self.config.clone(),
@@ -297,19 +289,19 @@ impl<Parser: MailParser + Send + Sync, ParserFactory: Fn() -> Parser + Send + Sy
                     tracing::debug!(
                         "INCOMING: reverse:${:?} => forward:${}",
                         reverse_path,
-                        forward_path.domain()
+                        args.forward_path.domain()
                     );
 
                     ctx.set_transaction_type(TransactionType::Incoming(
                         if forward_path_is_handled {
-                            Some(forward_path.domain())
+                            Some(args.forward_path.domain())
                         } else {
                             None
                         },
                     ))
                     .expect("bad state");
                     ctx.add_forward_path(
-                        forward_path,
+                        args.forward_path,
                         std::sync::Arc::new(Deliver::new(
                             self.rule_engine.srv().resolvers.get_resolver_root(),
                             self.config.clone(),
