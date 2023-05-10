@@ -17,11 +17,12 @@
 
 use std::str::FromStr;
 
-use crate::ConnectionKind;
+use crate::{ConnectionKind, Error};
 use vsmtp_common::{auth::Mechanism, Address, ClientName, Domain};
 extern crate alloc;
 
 /// Buffer received from the client.
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct UnparsedArgs(pub Vec<u8>);
 
@@ -357,7 +358,9 @@ impl TryFrom<UnparsedArgs> for RcptToArgs {
 }
 
 /// SMTP Command.
-#[derive(Debug, strum::AsRefStr, strum::EnumString, strum::EnumVariantNames)]
+#[derive(
+    Debug, strum::AsRefStr, strum::EnumString, strum::EnumVariantNames, Clone, PartialEq, Eq, Copy,
+)]
 #[non_exhaustive]
 pub enum Verb {
     /// Used to identify the SMTP client to the SMTP server. (historical)
@@ -411,3 +414,15 @@ pub enum Verb {
     /// unknown.
     Unknown,
 }
+
+impl Verb {
+    #[inline]
+    #[must_use]
+    /// check if the answer of the verb is bufferable (cf. pipelining)
+    // Note: missing VRFY, EXPN, TURN
+    pub const fn is_bufferable(self) -> bool {
+        !matches!(self, Self::Ehlo | Self::Data | Self::Quit | Self::Noop)
+    }
+}
+
+pub type Batch = Vec<Result<Command<Verb, UnparsedArgs>, Error>>;

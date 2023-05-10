@@ -4,6 +4,7 @@ vsmtp (x.y.z) UNRELEASED; urgency=low
   * Added
     * `state::reject`, rejects `RCPT TO` commands, denies transaction
       on any other command. (#1166)
+    * pipelining support following rfc 2920 (#1160)
   * Fixed
     * a bug with ill-formatted email in rcpt and mail from command.
 

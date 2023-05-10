@@ -324,6 +324,7 @@ where
                         }),
                         Some("250-8BITMIME\r\n".to_string()),
                         Some("250 SMTPUTF8\r\n".to_string()),
+                        Some("250 PIPELINING\r\n".to_string()), // FIXME: improve handling of ehlo infos
                     ]
                     .into_iter()
                     .flatten()
@@ -365,6 +366,7 @@ where
                         Some("250-STARTTLS\r\n".to_string()),
                         Some("250-8BITMIME\r\n".to_string()),
                         Some("250 SMTPUTF8\r\n".to_string()),
+                        Some("250 PIPELINING\r\n".to_string()),
                     ]
                     .into_iter()
                     .flatten()

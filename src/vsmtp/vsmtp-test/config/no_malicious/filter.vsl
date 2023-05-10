@@ -1,0 +1,16 @@
+#{
+    connect: [
+      rule "accept all" || state::accept(),
+    ],
+    rcpt: [
+      rule "reject malicious" || {
+        let rcpt = ctx::rcpt();
+        if rcpt.domain == "malicious.com" {
+          envelop::rm_rcpt(rcpt);
+          state::reject("554 malicious.com is unauthorized.")
+        } else {
+            state::next()
+        }
+      }
+    ]
+  }

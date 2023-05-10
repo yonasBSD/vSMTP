@@ -48,6 +48,8 @@ release. They will however *never* happen in a patch release.
 }
 ```
 
+* Pipelining support following rfc 2920 (#1160)
+
 ### Fixed
 
 * Use latest rhai master branch to enable dynamic deserialization, resolving the following DKIM sign workflow. (#1171)

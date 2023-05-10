@@ -25,6 +25,7 @@ mod protocol {
     mod clair;
     mod mail_from;
     mod message_max_size;
+    mod pipelining;
     mod rset;
     mod vrfy;
 

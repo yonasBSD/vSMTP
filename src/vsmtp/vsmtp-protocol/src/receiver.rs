@@ -15,7 +15,7 @@
  *
 */
 use crate::{
-    reader::Reader, writer::Writer, AcceptArgs, AuthArgs, ConnectionKind, EhloArgs, Error,
+    reader::Reader, writer::WindowWriter, AcceptArgs, AuthArgs, ConnectionKind, EhloArgs, Error,
     HeloArgs, MailFromArgs, ParseArgsError, RcptToArgs, ReceiverHandler, Verb,
 };
 use tokio_rustls::rustls;
@@ -89,7 +89,7 @@ pub struct Receiver<
     V::Value: Send + Sync,
 {
     pub(crate) handler: T,
-    pub(crate) sink: Writer<W>,
+    pub(crate) sink: WindowWriter<W>,
     pub(crate) stream: Reader<R>,
     error_counter: ErrorCounter,
     context: ReceiverContext,
@@ -141,7 +141,7 @@ where
             // FIXME: see https://github.com/tokio-rs/tls/issues/40
             let (read, write) = tokio::io::split(tls_tcp_stream);
 
-            let (stream, sink) = (Reader::new(read), Writer::new(write));
+            let (stream, sink) = (Reader::new(read), WindowWriter::new(write));
 
             let secured_receiver = Receiver {
                 sink,
@@ -177,7 +177,7 @@ where
         message_size_max: usize,
     ) -> Self {
         let (read, write) = tcp_stream.into_split();
-        let (stream, sink) = (Reader::new(read), Writer::new(write));
+        let (stream, sink) = (Reader::new(read), WindowWriter::new(write));
         Self {
             handler,
             sink,
@@ -237,7 +237,7 @@ where
             }
 
             self.sink
-                .send_reply(&mut self.context, &mut self.error_counter, &mut self.handler, reply_accept)
+                .direct_send_reply(&mut self.context, &mut self.error_counter, &mut self.handler, reply_accept)
                 .await?;
 
             loop {
@@ -256,7 +256,7 @@ where
                             }
                         }
                         self.sink
-                            .send_reply(&mut self.context, &mut self.error_counter, &mut self.handler, reply)
+                            .direct_send_reply(&mut self.context, &mut self.error_counter, &mut self.handler, reply)
                             .await?;
 
                         yield ();
@@ -273,7 +273,7 @@ where
 
                         let reply = self.handler.on_post_auth(&mut self.context, auth_result).await;
                         self.sink
-                            .send_reply(&mut self.context, &mut self.error_counter, &mut self.handler, reply)
+                            .direct_send_reply(&mut self.context, &mut self.error_counter, &mut self.handler, reply)
                             .await?;
 
                         let produced_context = std::mem::take(&mut self.context);
@@ -317,7 +317,7 @@ where
             ).await;
 
             if self.kind == ConnectionKind::Tunneled {
-                self.sink.send_reply(
+                self.sink.direct_send_reply(
                     &mut self.context,
                     &mut self.error_counter,
                     &mut self.handler,
@@ -341,7 +341,7 @@ where
                             }
                         }
                         self.sink
-                            .send_reply(&mut self.context, &mut self.error_counter, &mut self.handler, reply)
+                            .direct_send_reply(&mut self.context, &mut self.error_counter, &mut self.handler, reply)
                             .await?;
 
                         yield ();
@@ -353,7 +353,7 @@ where
 
                         let reply = self.handler.on_post_auth(&mut self.context, auth_result).await;
                         self.sink
-                            .send_reply(&mut self.context, &mut self.error_counter, &mut self.handler, reply)
+                            .direct_send_reply(&mut self.context, &mut self.error_counter, &mut self.handler, reply)
                             .await?;
 
                         let produced_context = std::mem::take(&mut self.context);
@@ -392,19 +392,19 @@ where
 
         let command_stream = self
             .stream
-            .as_command_stream()
+            .as_window_stream()
             .timeout(std::time::Duration::from_secs(30));
         tokio::pin!(command_stream);
 
         loop {
-            let command = match command_stream.try_next().await {
-                Ok(Some(command)) => command,
-                Ok(None) => return Ok(HandshakeOutcome::Quit),
+            let commands_batch = match command_stream.try_next().await {
+                // FIXME: remove intermediate result
+                Ok(Some(Ok(commands_batch))) if !commands_batch.is_empty() => commands_batch,
                 Err(e) => {
                     tracing::warn!("Closing after {} without receiving a command", e);
                     #[allow(clippy::expect_used)]
                     self.sink
-                        .send_reply(
+                        .direct_send_reply(
                             &mut self.context,
                             &mut self.error_counter,
                             &mut self.handler,
@@ -416,83 +416,88 @@ where
 
                     return Ok(HandshakeOutcome::Quit);
                 }
+                _ => return Ok(HandshakeOutcome::Quit),
             };
+            for command in commands_batch {
+                let (verb, args) = match command {
+                    Ok(command) => command,
+                    Err(e) => match e {
+                        Error::BufferTooLong { expected, got } => {
+                            let reply = self
+                                .handler
+                                .on_args_error(ParseArgsError::BufferTooLong { expected, got })
+                                .await;
+                            self.sink
+                                .direct_send_reply(
+                                    &mut self.context,
+                                    &mut self.error_counter,
+                                    &mut self.handler,
+                                    reply,
+                                )
+                                .await?;
+                            continue;
+                        }
+                        Error::Io(io) => return Err(io),
+                        Error::Utf8(e) => {
+                            return Err(std::io::Error::new(
+                                std::io::ErrorKind::InvalidData,
+                                e.to_string(),
+                            ))
+                        }
+                        Error::ParsingError(e) => {
+                            return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, e))
+                        }
+                    },
+                };
+                tracing::trace!("<< {:?} ; {:?}", verb, std::str::from_utf8(&args.0));
 
-            let (verb, args) = match command {
-                Ok(command) => command,
-                Err(e) => match e {
-                    Error::BufferTooLong { expected, got } => {
-                        let reply = self
-                            .handler
-                            .on_args_error(ParseArgsError::BufferTooLong { expected, got })
-                            .await;
-                        self.sink
-                            .send_reply(
-                                &mut self.context,
-                                &mut self.error_counter,
-                                &mut self.handler,
-                                reply,
-                            )
-                            .await?;
-                        continue;
+                let stage = self.handler.get_stage();
+                let reply = match (verb, stage) {
+                    (Verb::Helo, _) => Some(handle_args!(HeloArgs, args, on_helo)),
+                    (Verb::Ehlo, _) => Some(handle_args!(EhloArgs, args, on_ehlo)),
+                    (Verb::Noop, _) => Some(self.handler.on_noop().await),
+                    (Verb::Rset, _) => Some(self.handler.on_rset().await),
+                    (Verb::StartTls, Stage::Connect | Stage::Helo) => {
+                        Some(self.handler.on_starttls(&mut self.context).await)
                     }
-                    Error::Io(io) => return Err(io),
-                    Error::Utf8(e) => {
-                        return Err(std::io::Error::new(
-                            std::io::ErrorKind::InvalidData,
-                            e.to_string(),
-                        ))
+                    (Verb::Auth, Stage::Connect | Stage::Helo) => {
+                        handle_args!(AuthArgs, args, Option: on_auth)
                     }
-                    Error::ParsingError(e) => {
-                        return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, e))
+                    (Verb::MailFrom, Stage::Helo | Stage::MailFrom) => {
+                        Some(handle_args!(MailFromArgs, args, on_mail_from))
                     }
-                },
-            };
-            tracing::trace!("<< {:?} ; {:?}", verb, std::str::from_utf8(&args.0));
-
-            let stage = self.handler.get_stage();
-            let reply = match (verb, stage) {
-                (Verb::Helo, _) => Some(handle_args!(HeloArgs, args, on_helo)),
-                (Verb::Ehlo, _) => Some(handle_args!(EhloArgs, args, on_ehlo)),
-                (Verb::Noop, _) => Some(self.handler.on_noop().await),
-                (Verb::Rset, _) => Some(self.handler.on_rset().await),
-                (Verb::StartTls, Stage::Connect | Stage::Helo) => {
-                    Some(self.handler.on_starttls(&mut self.context).await)
+                    (Verb::RcptTo, Stage::MailFrom | Stage::RcptTo) => {
+                        Some(handle_args!(RcptToArgs, args, on_rcpt_to))
+                    }
+                    (Verb::Data, Stage::RcptTo) => {
+                        self.context.outcome = Some(HandshakeOutcome::Message);
+                        Some(self.handler.on_data().await)
+                    }
+                    (Verb::Quit, _) => {
+                        self.context.outcome = Some(HandshakeOutcome::Quit);
+                        Some(self.handler.on_quit().await)
+                    }
+                    (Verb::Help, _) => Some(self.handler.on_help(args).await),
+                    (Verb::Unknown, _) => Some(self.handler.on_unknown(args.0).await),
+                    otherwise => Some(self.handler.on_bad_sequence(otherwise).await),
+                };
+                if let Some(reply) = reply {
+                    self.sink
+                        .send_reply(
+                            &mut self.context,
+                            &mut self.error_counter,
+                            &mut self.handler,
+                            reply,
+                            verb,
+                        )
+                        .await?;
                 }
-                (Verb::Auth, Stage::Connect | Stage::Helo) => {
-                    handle_args!(AuthArgs, args, Option: on_auth)
-                }
-                (Verb::MailFrom, Stage::Helo | Stage::MailFrom) => {
-                    Some(handle_args!(MailFromArgs, args, on_mail_from))
-                }
-                (Verb::RcptTo, Stage::MailFrom | Stage::RcptTo) => {
-                    Some(handle_args!(RcptToArgs, args, on_rcpt_to))
-                }
-                (Verb::Data, Stage::RcptTo) => {
-                    self.context.outcome = Some(HandshakeOutcome::Message);
-                    Some(self.handler.on_data().await)
-                }
-                (Verb::Quit, _) => {
-                    self.context.outcome = Some(HandshakeOutcome::Quit);
-                    Some(self.handler.on_quit().await)
-                }
-                (Verb::Help, _) => Some(self.handler.on_help(args).await),
-                (Verb::Unknown, _) => Some(self.handler.on_unknown(args.0).await),
-                otherwise => Some(self.handler.on_bad_sequence(otherwise).await),
-            };
-
-            if let Some(reply) = reply {
-                self.sink
-                    .send_reply(
-                        &mut self.context,
-                        &mut self.error_counter,
-                        &mut self.handler,
-                        reply,
-                    )
-                    .await?;
             }
 
             let produced_context = std::mem::take(&mut self.context);
+            if !self.sink.is_empty() {
+                self.sink.flush().await?;
+            }
             if let Some(done) = produced_context.outcome {
                 return Ok(done);
             }
