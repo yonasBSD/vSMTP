@@ -26,5 +26,5 @@ crate-type = ["cdylib"]
 
 [dependencies]
 rhai = { version = "1.12.0", features = ["unchecked", "sync", "internals", "no_closure", "metadata"] }
-serde = { version = "1.0.162", default-features = false, features = ["std", "derive"] }
+serde = { version = "1.0.163", default-features = false, features = ["std", "derive"] }
 mongodb = { version = "2.5.0", features = ["tokio-sync"] }
