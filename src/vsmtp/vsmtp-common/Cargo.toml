@@ -72,7 +72,7 @@ serde_with = { version = "3.0.0", default-features = false, features = ["std", "
 
 thiserror = { version = "1.0.39", default-features = false }
 
-base64 = { version = "0.21.0", default-features = false, features = ["std"] }
+base64 = { version = "0.21.1", default-features = false, features = ["std"] }
 rsasl = { version = "=2.0.0", default-features = false, features = [
     "provider",
     "config_builder",
