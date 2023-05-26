@@ -320,9 +320,9 @@ checksum = "9e1b586273c5702936fe7b7d6896644d8be71e6314cfe09d3167c95f712589e8"
 
 [[package]]
 name = "base64"
-version = "0.21.1"
+version = "0.21.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f1e31e207a6b8fb791a38ea3105e6cb541f55e4d029902d3039a4ad07cc4105"
+checksum = "604178f6c5c21f02dc555784810edfb88d34ac2c73b2eae109655649ee73ce3d"
 
 [[package]]
 name = "base64ct"
@@ -1263,7 +1263,7 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dbfb21b9878cf7a348dcb8559109aabc0ec40d69924bd706fa5149846c4fef75"
 dependencies = [
- "base64 0.21.1",
+ "base64 0.21.2",
  "memchr",
 ]
 
@@ -2064,7 +2064,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8033576bf9f051fce6cb92b6264114b4340896c352a9ff38b67bd4cde924635"
 dependencies = [
  "async-trait",
- "base64 0.21.1",
+ "base64 0.21.2",
  "email-encoding",
  "email_address",
  "fastrand",
@@ -2826,7 +2826,7 @@ version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6b13fe415cdf3c8e44518e18a7c95a13431d9bdf6d15367d82b23c377fdd441a"
 dependencies = [
- "base64 0.21.1",
+ "base64 0.21.2",
 ]
 
 [[package]]
@@ -3525,7 +3525,7 @@ version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d194b56d58803a43635bdc398cd17e383d6f71f9182b9a192c127ca42494a59b"
 dependencies = [
- "base64 0.21.1",
+ "base64 0.21.2",
 ]
 
 [[package]]
@@ -3728,7 +3728,7 @@ version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f02d8aa6e3c385bf084924f660ce2a3a6bd333ba55b35e8590b321f35d88513"
 dependencies = [
- "base64 0.21.1",
+ "base64 0.21.2",
  "chrono",
  "hex",
  "indexmap",
@@ -4295,7 +4295,7 @@ checksum = "3082666a3a6433f7f511c7192923fa1fe07c69332d3c6a2e6bb040b569199d5a"
 dependencies = [
  "async-trait",
  "axum",
- "base64 0.21.1",
+ "base64 0.21.2",
  "bytes",
  "futures-core",
  "futures-util",
@@ -4779,7 +4779,7 @@ version = "2.2.1"
 dependencies = [
  "addr",
  "anyhow",
- "base64 0.21.1",
+ "base64 0.21.2",
  "env_logger",
  "pretty_assertions",
  "rand",
@@ -4806,7 +4806,7 @@ dependencies = [
  "addr",
  "anyhow",
  "async-trait",
- "base64 0.21.1",
+ "base64 0.21.2",
  "erased-serde",
  "fastrand",
  "function_name",
@@ -4837,7 +4837,7 @@ name = "vsmtp-config"
 version = "2.2.1"
 dependencies = [
  "anyhow",
- "base64 0.21.1",
+ "base64 0.21.2",
  "hostname",
  "humantime-serde",
  "pem 2.0.1",
@@ -5031,7 +5031,7 @@ dependencies = [
  "anyhow",
  "async-stream",
  "async-trait",
- "base64 0.21.1",
+ "base64 0.21.2",
  "bytes",
  "fastrand",
  "rsasl",
@@ -5095,7 +5095,7 @@ dependencies = [
  "anyhow",
  "async-stream",
  "async-trait",
- "base64 0.21.1",
+ "base64 0.21.2",
  "criterion",
  "either",
  "env_logger",
@@ -5138,7 +5138,7 @@ version = "2.2.1"
 dependencies = [
  "anyhow",
  "async-trait",
- "base64 0.21.1",
+ "base64 0.21.2",
  "dotenv",
  "env_logger",
  "function_name",

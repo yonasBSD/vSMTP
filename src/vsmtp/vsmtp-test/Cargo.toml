@@ -72,7 +72,7 @@ tokio = { version = "1.28.1", default-features = false, features = [
 ] }
 tokio-stream = { version = "0.1.14", default-features = false, features = ["time"] }
 
-base64 = { version = "0.21.1", default-features = false, features = ["std"] }
+base64 = { version = "0.21.2", default-features = false, features = ["std"] }
 
 tracing = { version = "0.1.37", default-features = false, features = ["std"] }
 tracing-subscriber = { version = "0.3.17", default-features = false, features = [
