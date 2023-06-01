@@ -87,7 +87,7 @@ time = { version = "0.3.21", default-features = false, features = ["std", "forma
 
 trust-dns-resolver = { version = "0.22.0", default-features = false, features = ["system-config", "tokio-runtime"] }
 
-tokio = { version = "1.28.1", default-features = false, features = [
+tokio = { version = "1.28.2", default-features = false, features = [
   "macros",
   "sync",
   "fs",
