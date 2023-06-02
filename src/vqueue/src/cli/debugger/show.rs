@@ -66,7 +66,7 @@ impl Content {
         }
         out.insert(u64::MAX, values);
 
-        assert!(!self.result.contains_key(&key));
+        assert!(!self.result.contains_key(&key), "key already exists");
         self.result.insert(key, out);
     }
 }

@@ -53,7 +53,7 @@ addr = { version = "0.15.6", default-features = false, features = ["std"] }
 url = { version = "2.3.1", default-features = false }
 urlencoding = { version = "2.1.2", default-features = false }
 
-thiserror = { version = "1.0.39", default-features = false }
+thiserror = { version = "1.0.40", default-features = false }
 strum = { version = "0.24.1", features = ["derive"] }
 serde_with = { version = "3.0.0", default-features = false, features = ["std", "macros"] }
 

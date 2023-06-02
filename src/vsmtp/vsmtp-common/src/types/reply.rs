@@ -230,7 +230,7 @@ impl std::str::FromStr for Reply {
 
             if !line.is_empty() {
                 let c = line.remove(0);
-                assert!(" -".contains(c));
+                assert!(" -".contains(c), "Invalid reply line: {line}");
             }
             text.push(line);
         }

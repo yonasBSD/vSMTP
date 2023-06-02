@@ -216,9 +216,7 @@ where
                 mail.clone(),
             );
 
-            let (mail_ctx, message) = std::mem::replace(&mut self.state_internal, None)
-                .unwrap()
-                .take();
+            let (mail_ctx, message) = self.state_internal.take().unwrap().take();
             let mut mail_ctx = mail_ctx
                 .unwrap_finished()
                 .expect("has been set to finished");

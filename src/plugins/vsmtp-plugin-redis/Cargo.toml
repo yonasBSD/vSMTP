@@ -22,7 +22,7 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-rhai = { version = "1.12.0", default-features = false, features = [
+rhai = { version = "1.14.0", default-features = false, features = [
     "unchecked",
     "sync",
     "internals",
@@ -31,5 +31,15 @@ rhai = { version = "1.12.0", default-features = false, features = [
 ] }
 r2d2 = { version = "0.8.10", default-features = false }
 r2d2_redis = { version = "0.14.0", default-features = false }
+# redis = { version = "0.23.0", default-features = false, features = [
+# # "acl",
+# # "streams",
+# # "geospatial",
+# # "script",
+# # "tls-rustls",
+# # "json",
+# "r2d2",
+# ] }
+
 serde = { version = "1.0.163", default-features = false, features = ["std", "derive"] }
 humantime-serde = { version = "1.1.1", default-features = false }
