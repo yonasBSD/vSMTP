@@ -2,6 +2,7 @@ vsmtp (x.y.z) UNRELEASED; urgency=low
   [ Updated by ltabis ]
 
   * Added
+    * The dnsbl plugin, which is able to check in blacklists or whitelists for a specific domain. (#1179)
     * `state::reject`, rejects `RCPT TO` commands, denies transaction
       on any other command. (#1166)
     * pipelining support following rfc 2920 (#1160)

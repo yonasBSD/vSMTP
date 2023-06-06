@@ -1,0 +1,35 @@
+[package]
+name = "vsmtp-plugin-dnsxl"
+version = "2.2.1"
+license = "GPL-3.0-only"
+edition = "2021"
+authors = ["Team viridIT <https://viridit.com/>"]
+
+description = "A plugin for vSMTP that is able to check if a domain is contained in a whitelist or a blacklist."
+
+homepage = "https://github.com/viridIT/vsmtp-plugin-dnsxl"
+repository = "https://github.com/viridIT/vsmtp-plugin-dnsxl"
+documentation = "https://docs.rs/crate/vsmtp-plugin-dnsxl/"
+
+readme = "README.md"
+keywords = ["vsmtp", "dns"]
+categories = ["email", "dns", "plugin"]
+
+rust-version = "1.66.1"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+rhai = { version = "1.12.0", default-features = false, features = [
+    "unchecked",
+    "sync",
+    "internals",
+    "no_closure",
+    "metadata",
+] }
+serde = { version = "1.0.160", default-features = false, features = ["std", "derive"] }
+trust-dns-resolver = { version = "0.22.0", default-features = false, features = ["system-config", "tokio-runtime"] }
+strum = "0.24.1"
+strum_macros = "0.24.3"

@@ -15,6 +15,8 @@ release. They will however *never* happen in a patch release.
 
 ### Added
 
+* The dnsbl plugin, which is able to check in blacklists or whitelists for a specific domain. (#1179)
+
 * The `state::reject` state, which reject `RCPT TO` commands, and denies the transaction on any other command. (#1166)
 
 ```js

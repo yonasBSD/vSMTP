@@ -1,4 +1,4 @@
-# DNSBL
+# DNSXL
 
 An example to show you how to setup Domain Name System-based blocklist.
 

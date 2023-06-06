@@ -4933,6 +4933,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "vsmtp-plugin-dnsxl"
+version = "2.2.1"
+dependencies = [
+ "rhai",
+ "serde",
+ "strum",
+ "strum_macros",
+ "trust-dns-resolver 0.22.0",
+]
+
+[[package]]
 name = "vsmtp-plugin-ldap"
 version = "2.2.1"
 dependencies = [
