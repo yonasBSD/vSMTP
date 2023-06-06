@@ -17,15 +17,14 @@
 use super::{
     wants::{
         WantsApp, WantsAppLogs, WantsAppVSL, WantsServer, WantsServerDNS, WantsServerInterfaces,
-        WantsServerLogs, WantsServerQueues, WantsServerSMTPAuth, WantsServerSMTPConfig1,
-        WantsServerSMTPConfig2, WantsServerSystem, WantsServerTLSConfig, WantsServerVirtual,
-        WantsValidate, WantsVersion,
+        WantsServerLogs, WantsServerQueues, WantsServerSMTPConfig1, WantsServerSMTPConfig2,
+        WantsServerSystem, WantsServerTLSConfig, WantsServerVirtual, WantsValidate, WantsVersion,
     },
-    WantsPath,
+    WantsPath, WantsServerESMTPConfig,
 };
 use crate::field::{
     FieldApp, FieldAppLogs, FieldQueueDelivery, FieldQueueWorking, FieldServer, FieldServerDNS,
-    FieldServerInterfaces, FieldServerLogs, FieldServerQueues, FieldServerSMTP,
+    FieldServerESMTP, FieldServerInterfaces, FieldServerLogs, FieldServerQueues, FieldServerSMTP,
     FieldServerSMTPAuth, FieldServerSMTPError, FieldServerSMTPTimeoutClient, FieldServerSystem,
     FieldServerSystemThreadPool, FieldServerTls, FieldServerVirtual, FieldServerVirtualTls,
     ResolverOptsWrapper,
@@ -393,9 +392,9 @@ impl Builder<WantsServerSMTPConfig1> {
 impl Builder<WantsServerSMTPConfig2> {
     ///
     #[must_use]
-    pub fn with_default_smtp_error_handler(self) -> Builder<WantsServerSMTPAuth> {
-        Builder::<WantsServerSMTPAuth> {
-            state: WantsServerSMTPAuth {
+    pub fn with_default_smtp_error_handler(self) -> Builder<WantsServerESMTPConfig> {
+        Builder::<WantsServerESMTPConfig> {
+            state: WantsServerESMTPConfig {
                 parent: self.state,
                 error: FieldServerSMTPError::default(),
                 timeout_client: FieldServerSMTPTimeoutClient::default(),
@@ -412,9 +411,9 @@ impl Builder<WantsServerSMTPConfig2> {
         hard_count: i64,
         delay: std::time::Duration,
         timeout_client: &std::collections::BTreeMap<Stage, std::time::Duration>,
-    ) -> Builder<WantsServerSMTPAuth> {
-        Builder::<WantsServerSMTPAuth> {
-            state: WantsServerSMTPAuth {
+    ) -> Builder<WantsServerESMTPConfig> {
+        Builder::<WantsServerESMTPConfig> {
+            state: WantsServerESMTPConfig {
                 parent: self.state,
                 error: FieldServerSMTPError {
                     soft_count,
@@ -441,19 +440,30 @@ impl Builder<WantsServerSMTPConfig2> {
     }
 }
 
-impl Builder<WantsServerSMTPAuth> {
-    ///
+impl Builder<WantsServerESMTPConfig> {
+    /// Build a default Extended SMTP configuration. See `[FieldServerESMTP]` for more details.
     #[must_use]
-    pub fn without_auth(self) -> Builder<WantsApp> {
+    pub fn with_default_extensions(self) -> Builder<WantsApp> {
         Builder::<WantsApp> {
             state: WantsApp {
                 parent: self.state,
-                auth: None,
+                esmtp: FieldServerESMTP::default(),
             },
         }
     }
 
-    ///
+    /// Build a Extended SMTP configuration with the provided parameters. See `[FieldServerESMTP]` for more details.
+    #[must_use]
+    pub fn with_extensions(self, extensions: FieldServerESMTP) -> Builder<WantsApp> {
+        Builder::<WantsApp> {
+            state: WantsApp {
+                parent: self.state,
+                esmtp: extensions,
+            },
+        }
+    }
+
+    /// Use default extensions and configure authentication with safe defaults.
     #[must_use]
     pub fn with_safe_auth(self, attempt_count_max: i64) -> Builder<WantsApp> {
         self.with_auth(
@@ -463,7 +473,7 @@ impl Builder<WantsServerSMTPAuth> {
         )
     }
 
-    ///
+    /// Use default extensions and configure authentication.
     #[must_use]
     pub fn with_auth(
         self,
@@ -474,11 +484,14 @@ impl Builder<WantsServerSMTPAuth> {
         Builder::<WantsApp> {
             state: WantsApp {
                 parent: self.state,
-                auth: Some(FieldServerSMTPAuth {
-                    enable_dangerous_mechanism_in_clair,
-                    mechanisms,
-                    attempt_count_max,
-                }),
+                esmtp: FieldServerESMTP {
+                    auth: Some(FieldServerSMTPAuth {
+                        enable_dangerous_mechanism_in_clair,
+                        mechanisms,
+                        attempt_count_max,
+                    }),
+                    ..Default::default()
+                },
             },
         }
     }

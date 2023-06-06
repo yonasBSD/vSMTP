@@ -71,6 +71,7 @@ release. They will however *never* happen in a patch release.
 ```
 
 * fix a bug where vsmtp crash in case of an ill-formatted email address in 'rcpt' and 'mail from' command's arguments.
+* fix support for smtputf8 extension. (#1203)
 
 ## [2.2.1] - 2023-03-31
 

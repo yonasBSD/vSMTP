@@ -141,7 +141,7 @@ where
             // FIXME: see https://github.com/tokio-rs/tls/issues/40
             let (read, write) = tokio::io::split(tls_tcp_stream);
 
-            let (stream, sink) = (Reader::new(read), WindowWriter::new(write));
+            let (stream, sink) = (Reader::new(read, self.handler.get_config().server.esmtp.pipelining), WindowWriter::new(write));
 
             let secured_receiver = Receiver {
                 sink,
@@ -177,7 +177,10 @@ where
         message_size_max: usize,
     ) -> Self {
         let (read, write) = tcp_stream.into_split();
-        let (stream, sink) = (Reader::new(read), WindowWriter::new(write));
+        let (stream, sink) = (
+            Reader::new(read, handler.get_config().server.esmtp.pipelining),
+            WindowWriter::new(write),
+        );
         Self {
             handler,
             sink,

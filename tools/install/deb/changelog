@@ -7,6 +7,7 @@ vsmtp (x.y.z) UNRELEASED; urgency=low
     * pipelining support following rfc 2920 (#1160)
   * Fixed
     * a bug with ill-formatted email in rcpt and mail from command.
+    * fix support for smtputf8 extension. (#1203)
 
  -- ltabis <l.tabis@viridit.com>  Tue, 02 May 2023 14:53:48 +0200
 

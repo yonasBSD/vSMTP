@@ -58,7 +58,7 @@ pub fn local_test() -> Config {
         .without_tls_support()
         .with_default_smtp_options()
         .with_default_smtp_error_handler()
-        .without_auth()
+        .with_default_extensions()
         .with_app_at_location("./tmp/app")
         .with_vsl(format!(
             "{}/src/template/ignore_vsl/domain-enabled",
@@ -89,7 +89,7 @@ pub fn with_tls() -> Config {
         .expect("")
         .with_default_smtp_options()
         .with_default_smtp_error_handler()
-        .without_auth()
+        .with_default_extensions()
         .with_app_at_location("./tmp/app")
         .with_vsl("./src/template/ignore_vsl/domain-enabled")
         .with_default_app_logs()
@@ -121,6 +121,7 @@ pub fn local_ctx() -> ContextFinished {
             message_uuid: uuid::Uuid::new_v4(),
             reverse_path: Some("client@testserver.com".to_string().parse().expect("")),
             spf: None,
+            utf8: false,
         },
         rcpt_to: RcptToProperties {
             forward_paths: vec!["recipient@testserver.com".to_string().parse().expect("")],

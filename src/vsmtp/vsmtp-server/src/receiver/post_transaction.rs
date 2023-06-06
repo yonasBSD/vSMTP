@@ -182,7 +182,10 @@ where
             Err(Error::ParsingError(_) | Error::Utf8(_)) => todo!(),
         });
 
-        let mail = match (self.message_parser_factory)().parse(stream).await {
+        let mail = match (self.message_parser_factory)()
+            .parse(stream, self.config.server.esmtp.size)
+            .await
+        {
             Ok(mail) => mail,
             Err(ParserError::BufferTooLong { .. }) => {
                 return Err(
@@ -191,8 +194,17 @@ where
                         .unwrap(),
                 );
             }
+            Err(ParserError::MailSizeExceeded { .. }) => {
+                return Err(
+                    "552 4.3.1 Message size exceeds fixed maximum message size\r\n"
+                        .parse::<Reply>()
+                        .unwrap(),
+                )
+            }
+
             Err(otherwise) => todo!("handle error cleanly {:?}", otherwise),
         };
+
         tracing::info!("Message body fully received, processing...");
         Ok(mail)
     }

@@ -120,10 +120,11 @@ macro_rules! to_tab {
     ]),
     to_tab!([
         "250-testserver.com\r\n",
-        "250-STARTTLS\r\n",
         "250-8BITMIME\r\n",
         "250-SMTPUTF8\r\n",
-        "250 PIPELINING\r\n",
+        "250-STARTTLS\r\n",
+        "250-PIPELINING\r\n",
+        "250 SIZE 20000000\r\n",
         "250 Ok\r\n",
         "250 Ok\r\n",
         "354 Start mail input; end with <CRLF>.<CRLF>\r\n",

@@ -14,6 +14,7 @@
     "authpass",
     "autodocs",
     "BITMIME",
+    "bools",
     "cafile",
     "canonicalization",
     "canonicalize",
@@ -25,6 +26,7 @@
     "clamav",
     "clamsmtp",
     "clamsmtpd",
+    "cloudflare",
     "codecov",
     "consts",
     "cpus",
@@ -38,6 +40,7 @@
     "dotenv",
     "dylib",
     "ehlo",
+    "eightbitmime",
     "ENHANCEDSTATUSCODES",
     "entrypoints",
     "esmtp",
@@ -77,6 +80,7 @@
     "nonblocking",
     "ocsp",
     "opentelemetry",
+    "peekable",
     "pemfile",
     "permerror",
     "PKCS",
@@ -92,6 +96,7 @@
     "readwrite",
     "recv",
     "repr",
+    "resolv",
     "rhai",
     "rlookup",
     "rngs",
@@ -115,6 +120,7 @@
     "setuid",
     "smtps",
     "SMTPS",
+    "smtputf",
     "SMTPUTF",
     "softfail",
     "spki",
@@ -195,12 +201,10 @@
   "lldb.showDisassembly": "auto",
   "lldb.dereferencePointers": true,
   "lldb.consoleMode": "commands",
-  "cSpell.enableFiletypes": [
-    "rhai"
-  ],
+  "cSpell.enableFiletypes": ["rhai"],
   "rust-analyzer.server.extraEnv": {
     "RUSTUP_TOOLCHAIN": "stable"
   },
   "editor.wordWrapColumn": 120,
-  "evenBetterToml.formatter.columnWidth": 120,
+  "evenBetterToml.formatter.columnWidth": 120
 }

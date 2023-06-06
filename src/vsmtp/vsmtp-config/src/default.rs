@@ -24,6 +24,7 @@ use crate::{
         FieldServerSMTPAuth, FieldServerSMTPError, FieldServerSMTPTimeoutClient, FieldServerSystem,
         FieldServerSystemThreadPool, FieldServerTls, FieldServerVirtual, ResolverOptsWrapper,
     },
+    field::FieldServerESMTP,
     Config,
 };
 use vsmtp_common::{auth::Mechanism, Domain};
@@ -117,6 +118,7 @@ impl Config {
                 queues: FieldServerQueues::default(),
                 tls: None,
                 smtp: FieldServerSMTP::default(),
+                esmtp: FieldServerESMTP::default(),
                 dns: FieldServerDNS::default(),
                 r#virtual: std::collections::BTreeMap::default(),
             },
@@ -138,6 +140,7 @@ impl Default for FieldServer {
             queues: FieldServerQueues::default(),
             tls: None,
             smtp: FieldServerSMTP::default(),
+            esmtp: FieldServerESMTP::default(),
             dns: FieldServerDNS::default(),
             r#virtual: std::collections::BTreeMap::default(),
         }
@@ -398,7 +401,6 @@ impl Default for FieldServerSMTP {
             rcpt_count_max: Self::default_rcpt_count_max(),
             error: FieldServerSMTPError::default(),
             timeout_client: FieldServerSMTPTimeoutClient::default(),
-            auth: None,
         }
     }
 }
@@ -406,6 +408,45 @@ impl Default for FieldServerSMTP {
 impl FieldServerSMTP {
     pub(crate) const fn default_rcpt_count_max() -> usize {
         1000
+    }
+}
+
+impl Default for FieldServerESMTP {
+    fn default() -> Self {
+        Self {
+            auth: None,
+            eightbitmime: Self::default_eightbitmime(),
+            smtputf8: Self::default_smtputf8(),
+            pipelining: Self::default_pipelining(),
+            chunking: Self::default_chunking(),
+            size: Self::default_size(),
+        }
+    }
+}
+
+impl FieldServerESMTP {
+    pub(crate) const fn default_auth() -> Option<FieldServerSMTPAuth> {
+        None
+    }
+
+    pub(crate) const fn default_eightbitmime() -> bool {
+        true
+    }
+
+    pub(crate) const fn default_smtputf8() -> bool {
+        true
+    }
+
+    pub(crate) const fn default_pipelining() -> bool {
+        true
+    }
+
+    pub(crate) const fn default_chunking() -> bool {
+        false
+    }
+
+    pub(crate) const fn default_size() -> usize {
+        20_000_000
     }
 }
 

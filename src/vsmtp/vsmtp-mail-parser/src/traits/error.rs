@@ -31,6 +31,14 @@ pub enum ParserError {
         /// Actual size.
         got: usize,
     },
+    /// The email size exceeds the SIZE EHLO extension.
+    #[error("mail is not supposed to be bigger than {expected} bytes but was {got} bytes long")]
+    MailSizeExceeded {
+        /// Maximum size expected.
+        expected: usize,
+        /// Actual size.
+        got: usize,
+    },
     ///
     #[error("parsing email failed: {0}")]
     InvalidMail(String),

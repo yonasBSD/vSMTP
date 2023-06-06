@@ -14,6 +14,8 @@
  * this program. If not, see https://www.gnu.org/licenses/.
  *
 */
+
+extern crate alloc;
 use tokio_rustls::rustls;
 use vqueue::GenericQueueManager;
 use vsmtp_common::{
@@ -36,12 +38,12 @@ where
     Parser: MailParser + Send + Sync,
     ParserFactory: Fn() -> Parser + Send + Sync,
 {
+    /// Rule engine data used in the current transaction, like the email context, server configuration, etc.
     pub(super) state: std::sync::Arc<RuleState>,
-    // NOTE:
-    // In case the transaction context is outgoing, we create two states
-    // to run two batches of rules at the same time, one for internal transaction
-    // with recipients that have the same domain as the sender, and another
-    // for any other recipient domain.
+    // NOTE: In case the transaction context is outgoing, we create two states
+    //       to run two batches of rules at the same time, one for internal transaction
+    //       with recipients that have the same domain as the sender, and another
+    //       for any other recipient domain.
     // FIXME: find another way to do this
     pub(super) state_internal: Option<std::sync::Arc<RuleState>>,
     pub(super) skipped: Option<Status>,
@@ -105,6 +107,10 @@ impl<Parser: MailParser + Send + Sync, ParserFactory: Fn() -> Parser + Send + Sy
         self.generate_sasl_callback_inner()
     }
 
+    fn get_config(&self) -> alloc::sync::Arc<Config> {
+        self.state.server().config.clone()
+    }
+
     async fn on_accept(&mut self, ctx: &mut ReceiverContext, args: AcceptArgs) -> Reply {
         self.on_accept_inner(ctx, &args)
     }
@@ -155,7 +161,7 @@ impl<Parser: MailParser + Send + Sync, ParserFactory: Fn() -> Parser + Send + Sy
             .context()
             .write()
             .expect("state poisoned")
-            .to_mail_from(args.reverse_path)
+            .to_mail_from(args.reverse_path, args.use_smtputf8)
             .expect("bad state");
 
         match self
@@ -177,19 +183,18 @@ impl<Parser: MailParser + Send + Sync, ParserFactory: Fn() -> Parser + Send + Sy
 
     #[allow(clippy::too_many_lines)]
     async fn on_rcpt_to(&mut self, ctx: &mut ReceiverContext, args: RcptToArgs) -> Reply {
-        // FIXME: handle internal state too ??
-        if self
-            .state
-            .context()
-            .read()
-            .expect("state poisoned")
-            .forward_paths()
-            .map_or(0, Vec::len)
-            >= self.config.server.smtp.rcpt_count_max
         {
-            return "452 Requested action not taken: too many recipients\r\n"
-                .parse::<Reply>()
-                .unwrap();
+            // FIXME: handle internal state too ??
+            let locked_context = self.state.context();
+            let context = locked_context.read().expect("state poisoned");
+            if context.forward_paths().map_or(0, Vec::len) >= self.config.server.smtp.rcpt_count_max
+            {
+                return "452 Requested action not taken: too many recipients\r\n"
+                    .parse::<Reply>()
+                    .unwrap();
+            } else if !context.is_utf8_advertised() && !args.forward_path.full().is_ascii() {
+                return "553 mailbox name not allowed\r\n".parse::<Reply>().unwrap();
+            }
         }
 
         let is_internal = {

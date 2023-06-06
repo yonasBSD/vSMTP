@@ -101,8 +101,10 @@ pub struct MailFromArgs {
     pub mime_body_type: Option<MimeBodyType>,
     // TODO:
     // Option<String>       (AUTH)
-    // Option<usize>        (SIZE)
-    // use_smtputf8: bool,
+    /// (SIZE)
+    pub size: Option<usize>,
+    /// smtputf8 extension allowing utf8 email
+    pub use_smtputf8: bool,
 }
 
 /// Information received from the client at the RCPT TO command.
@@ -141,9 +143,80 @@ pub enum ParseArgsError {
         /// ill-formatted mail address
         mail: String,
     },
+    /// specified address it not available.
+    /// In command parsing, it can be fired if a given email is in utf8
+    /// and no smtputf8 option is provided
+    EmailUnavailable,
     /// Other
     // FIXME: improve that
     InvalidArgs,
+}
+
+#[allow(clippy::manual_map)]
+fn split_args(slice: &[u8], delimiter: u8) -> Option<(&[u8], &[u8])> {
+    let delimiter_pos = slice.iter().position(|c| c == &delimiter);
+    delimiter_pos.map(|pos| slice.split_at(pos))
+}
+
+#[allow(clippy::expect_used)]
+fn parse_mailfrom_arguments(
+    raw_args: &[u8],
+    mailfrom_details: &mut MailFromArgs,
+) -> Result<(), ParseArgsError> {
+    match split_args(raw_args, b'=') {
+        // FIXME: not recognized in lowercase
+        Some((b"BODY", args_mime_body_type)) => {
+            if mailfrom_details.mime_body_type.is_none() {
+                mailfrom_details.mime_body_type = <MimeBodyType as strum::VariantNames>::VARIANTS
+                    .iter()
+                    .find(|i| {
+                        args_mime_body_type.len() >= i.len()
+                            && args_mime_body_type
+                                .get(..i.len())
+                                .expect("range checked above")
+                                .eq_ignore_ascii_case(i.as_bytes())
+                    })
+                    .map(|body| body.parse().expect("body found above"));
+            } else {
+                return Err(ParseArgsError::InvalidArgs);
+            }
+        }
+        Some((b"SIZE", args_size)) => {
+            let args_size = args_size
+                .strip_prefix(b"=")
+                .ok_or(ParseArgsError::InvalidArgs)?;
+            mailfrom_details.size = Some(
+                std::str::from_utf8(args_size)
+                    .map_err(|_e| ParseArgsError::InvalidArgs)?
+                    .parse()
+                    .map_err(|_e| ParseArgsError::InvalidArgs)?,
+            );
+        }
+        _ => return Err(ParseArgsError::InvalidArgs),
+    }
+    Ok(())
+}
+
+fn parse_mailfrom_options(
+    raw_args: &[u8],
+    mailfrom_details: &mut MailFromArgs,
+) -> Result<(), ParseArgsError> {
+    match raw_args {
+        b"SMTPUTF8" => mailfrom_details.use_smtputf8 = true,
+        _ => return Err(ParseArgsError::InvalidArgs),
+    }
+    Ok(())
+}
+
+impl MailFromArgs {
+    const fn empty() -> Self {
+        Self {
+            reverse_path: None,
+            mime_body_type: None,
+            size: None,
+            use_smtputf8: false,
+        }
+    }
 }
 
 impl TryFrom<UnparsedArgs> for HeloArgs {
@@ -183,6 +256,10 @@ impl TryFrom<UnparsedArgs> for EhloArgs {
                 .to_vec(),
         )
         .map_err(ParseArgsError::InvalidUtf8)?;
+
+        if !value.is_ascii() {
+            return Err(ParseArgsError::InvalidArgs);
+        }
 
         let client_name = match &value {
             ipv6 if ipv6.to_lowercase().starts_with("[ipv6:") && ipv6.ends_with(']') => {
@@ -288,27 +365,22 @@ impl TryFrom<UnparsedArgs> for MailFromArgs {
             return Err(ParseArgsError::InvalidArgs);
         };
 
-        let mut mime_body_type = None;
+        let mut result = Self::empty();
 
-        #[allow(clippy::expect_used)]
         for args in words {
-            match args.strip_prefix(b"BODY=") {
-                Some(args_mime_body_type) if mime_body_type.is_none() => {
-                    mime_body_type = <MimeBodyType as strum::VariantNames>::VARIANTS
-                        .iter()
-                        .find(|i| {
-                            args_mime_body_type.len() >= i.len()
-                                && args_mime_body_type
-                                    .get(..i.len())
-                                    .expect("range checked above")
-                                    .eq_ignore_ascii_case(i.as_bytes())
-                        })
-                        .map(|body| body.parse().expect("body found above"));
+            match args {
+                args if args.contains(&b'=') => {
+                    parse_mailfrom_arguments(args, &mut result)?;
                 }
-                _ => return Err(ParseArgsError::InvalidArgs),
+                _ => parse_mailfrom_options(args, &mut result)?,
             }
         }
 
+        if let Some(mailbox) = mailbox.as_ref() {
+            if !result.use_smtputf8 && !mailbox.is_ascii() {
+                return Err(ParseArgsError::EmailUnavailable);
+            }
+        }
         let mailbox = match mailbox {
             Some(mailbox) => Some(
                 Address::from_str(&mailbox)
@@ -316,10 +388,8 @@ impl TryFrom<UnparsedArgs> for MailFromArgs {
             ),
             None => None,
         };
-        Ok(Self {
-            reverse_path: mailbox,
-            mime_body_type,
-        })
+        result.reverse_path = mailbox;
+        Ok(result)
     }
 }
 

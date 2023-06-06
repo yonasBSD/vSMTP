@@ -37,8 +37,8 @@ impl Builder<WantsValidate> {
         let app_logs = dns.parent;
         let app_vsl = app_logs.parent;
         let app = app_vsl.parent;
-        let auth = app.parent;
-        let smtp_error = auth.parent;
+        let esmtp = app.parent;
+        let smtp_error = esmtp.parent;
         let smtp_opt = smtp_error.parent;
         let srv_tls = smtp_opt.parent;
         let srv_delivery = srv_tls.parent;
@@ -99,8 +99,8 @@ impl Builder<WantsValidate> {
                         rcpt_to: smtp_error.timeout_client.rcpt_to,
                         data: smtp_error.timeout_client.data,
                     },
-                    auth: auth.auth,
                 },
+                esmtp: esmtp.esmtp,
                 dns: dns.config,
                 r#virtual: virtual_entries.r#virtual,
             },
@@ -135,7 +135,7 @@ mod tests {
             .without_tls_support()
             .with_default_smtp_options()
             .with_default_smtp_error_handler()
-            .without_auth()
+            .with_default_extensions()
             .with_default_app()
             .with_default_vsl_settings()
             .with_default_app_logs()

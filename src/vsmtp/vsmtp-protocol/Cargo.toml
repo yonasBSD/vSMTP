@@ -37,6 +37,10 @@ path = "../vsmtp-common"
 version = "=2.2.1"
 path = "../vsmtp-mail-parser"
 
+[dependencies.vsmtp-config]
+version = "=2.2.1"
+path = "../vsmtp-config"
+
 [dependencies]
 tokio = { version = "1.28.2", default-features = false, features = [
     "macros",

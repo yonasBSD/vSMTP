@@ -33,18 +33,36 @@ pub trait MailParser: Default {
     /// * the input is not compliant
     fn parse_sync(&mut self, raw: Vec<Vec<u8>>) -> ParserResult<either::Either<RawBody, Mail>>;
 
+    /// Parses an email from a stream.
+    ///
+    /// # Args`
+    ///
+    /// * `stream`   - The stream to parse the email from.
+    /// * `max_size` - The maximum size of the email defined by SIZE EHLO extension.
+    ///                If set to 0, there are no size restrictions.
     ///
     /// # Errors
     ///
-    /// * the input is not compliant
+    /// * The input is not compliant
+    /// * The message size exceeds the maximum size defined `max_size`.
     async fn parse<'a>(
         &'a mut self,
         mut stream: impl tokio_stream::Stream<Item = Result<Vec<u8>, ParserError>> + Unpin + Send + 'a,
+        max_size: usize,
     ) -> ParserResult<either::Either<RawBody, Mail>> {
-        let mut buffer = Vec::with_capacity(20_000_000);
+        let mut buffer = Vec::with_capacity(if max_size == 0 { 20_000_000 } else { max_size });
+        let mut size = 0;
 
         while let Some(i) = tokio_stream::StreamExt::try_next(&mut stream).await? {
+            size += i.len();
             buffer.push(i);
+        }
+
+        if max_size != 0 && size > max_size {
+            return Err(ParserError::MailSizeExceeded {
+                expected: max_size,
+                got: size,
+            });
         }
 
         self.parse_sync(buffer)

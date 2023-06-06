@@ -263,7 +263,7 @@ impl Context {
     ///
     /// * state if not [`Stage::Helo`] or [`Stage::MailFrom`]
     #[inline]
-    pub fn to_mail_from(&mut self, reverse_path: Option<Address>) -> Result<(), Error> {
+    pub fn to_mail_from(&mut self, reverse_path: Option<Address>, utf8: bool) -> Result<(), Error> {
         match self {
             Self::Helo(ContextHelo { connect, helo }) => {
                 let now = time::OffsetDateTime::now_utc();
@@ -275,6 +275,7 @@ impl Context {
                         mail_timestamp: now,
                         message_uuid: uuid::Uuid::new_v4(),
                         spf: None,
+                        utf8,
                     },
                 });
                 Ok(())
@@ -641,6 +642,18 @@ impl Context {
                 mail_from.message_uuid = uuid::Uuid::new_v4();
                 Ok(())
             }
+        }
+    }
+
+    /// Check if the client advertised utf8 option in the transaction
+    #[inline]
+    #[must_use]
+    pub fn is_utf8_advertised(&self) -> bool {
+        match self {
+            Self::Connect(_) | Self::Helo(_) => false,
+            Self::MailFrom(ContextMailFrom { mail_from, .. })
+            | Self::RcptTo(ContextRcptTo { mail_from, .. })
+            | Self::Finished(ContextFinished { mail_from, .. }) => mail_from.utf8,
         }
     }
 
@@ -1130,7 +1143,7 @@ pub struct HeloProperties {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "testing", derive(PartialEq, Eq))]
 pub struct MailFromProperties {
-    ///
+    /// sender of the email
     pub reverse_path: Option<Address>,
     ///
     #[serde(with = "time::serde::iso8601")]
@@ -1139,6 +1152,8 @@ pub struct MailFromProperties {
     pub message_uuid: uuid::Uuid,
     ///
     pub spf: Option<spf::Result>,
+    /// the transaction should support utf8 content
+    pub utf8: bool,
 }
 
 /// Properties accessible after the RCPT TO command

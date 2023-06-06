@@ -133,6 +133,7 @@ mod tests {
   "mail_timestamp": "{mail_timestamp}",
   "message_uuid": "{msg_uuid}",
   "spf": null,
+  "utf8": false,
   "forward_paths": [
     "recipient@testserver.com"
   ],
@@ -221,6 +222,7 @@ Message body:
   "mail_timestamp": "{mail_timestamp}",
   "message_uuid": "{msg_uuid}",
   "spf": null,
+  "utf8": false,
   "forward_paths": [
     "recipient@testserver.com"
   ],

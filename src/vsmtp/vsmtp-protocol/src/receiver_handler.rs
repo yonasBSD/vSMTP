@@ -14,12 +14,16 @@
  * this program. If not, see https://www.gnu.org/licenses/.
  *
 */
+
+extern crate alloc;
+
 use crate::{
     receiver::ReceiverContext, smtp_sasl::CallbackWrap, AcceptArgs, AuthArgs, AuthError, EhloArgs,
     Error, HeloArgs, MailFromArgs, ParseArgsError, RcptToArgs, UnparsedArgs, Verb,
 };
 use tokio_rustls::rustls;
 use vsmtp_common::ContextFinished;
+use vsmtp_config::Config;
 // TODO: should we move these type in this crate
 use vsmtp_common::{Reply, Stage};
 use vsmtp_mail_parser::MessageBody;
@@ -33,6 +37,9 @@ pub trait ReceiverHandler {
     /// The [`Receiver`](crate::Receiver) does not store the context.
     /// This function is called after each command to get the context stage.
     fn get_stage(&self) -> Stage;
+
+    /// Get the config used to instantiate the Handler.
+    fn get_config(&self) -> alloc::sync::Arc<Config>;
 
     /// Create an instance capable to handle the SASL handshake.
     fn generate_sasl_callback(&self) -> CallbackWrap;
@@ -179,6 +186,9 @@ pub trait ReceiverHandler {
                 format!("553 5.1.7 The address <{mail}> is not a valid RFC-5321 address\r\n")
                     .parse()
                     .expect("valid syntax")
+            }
+            ParseArgsError::EmailUnavailable => {
+                "550 mailbox unavailable\r\n".parse().expect("valid syntax")
             }
             _other => "501 Syntax error in parameters or arguments\r\n"
                 .parse()

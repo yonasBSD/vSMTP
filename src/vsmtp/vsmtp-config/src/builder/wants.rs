@@ -17,8 +17,8 @@
 #![allow(clippy::module_name_repetitions)]
 
 use crate::field::{
-    FieldQueueDelivery, FieldQueueWorking, FieldServerDNS, FieldServerSMTPAuth,
-    FieldServerSMTPError, FieldServerSMTPTimeoutClient, FieldServerTls, FieldServerVirtual,
+    FieldQueueDelivery, FieldQueueWorking, FieldServerDNS, FieldServerESMTP, FieldServerSMTPError,
+    FieldServerSMTPTimeoutClient, FieldServerTls, FieldServerVirtual,
 };
 use vsmtp_common::Domain;
 
@@ -93,7 +93,7 @@ pub struct WantsServerSMTPConfig2 {
 }
 
 ///
-pub struct WantsServerSMTPAuth {
+pub struct WantsServerESMTPConfig {
     pub(crate) parent: WantsServerSMTPConfig2,
     pub(super) error: FieldServerSMTPError,
     pub(super) timeout_client: FieldServerSMTPTimeoutClient,
@@ -101,8 +101,8 @@ pub struct WantsServerSMTPAuth {
 
 ///
 pub struct WantsApp {
-    pub(crate) parent: WantsServerSMTPAuth,
-    pub(super) auth: Option<FieldServerSMTPAuth>,
+    pub(crate) parent: WantsServerESMTPConfig,
+    pub(super) esmtp: FieldServerESMTP,
 }
 
 ///

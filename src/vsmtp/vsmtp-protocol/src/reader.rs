@@ -20,6 +20,12 @@ use tokio::io::AsyncReadExt;
 use tokio_stream::StreamExt;
 use vsmtp_common::Reply;
 
+/// max size of a received message, including addition from all the following extensions:
+/// (note: the base size is at 80 characters)
+/// - AUTH (+500 characters)
+/// - SMTPUTF8 (+10 characters)
+const MAX_LINE_SIZE: usize = 1024;
+
 fn find(bytes: &[u8], search: &[u8]) -> Option<usize> {
     bytes
         .windows(search.len())
@@ -28,15 +34,13 @@ fn find(bytes: &[u8], search: &[u8]) -> Option<usize> {
 
 #[allow(clippy::expect_used)]
 fn parse_command_line(line: &Vec<u8>) -> Result<Command<Verb, UnparsedArgs>, Error> {
-    // TODO: put max len as a parameter
-    if line.len() >= 512 {
+    if line.len() >= MAX_LINE_SIZE {
         return Err(Error::BufferTooLong {
-            expected: 512,
+            expected: MAX_LINE_SIZE,
             got: line.len(),
         });
     }
     if find(line, b"\r\n").is_none() {
-        // TODO: not sure this is exact needed behavior
         return Err(Error::ParsingError("No CRLF found".to_owned()));
     }
     Ok(<Verb as strum::VariantNames>::VARIANTS
@@ -100,17 +104,19 @@ pub struct Reader<R: tokio::io::AsyncRead + Unpin + Send> {
     inner: R,
     additional_reserve: usize,
     buffer: bytes::BytesMut,
+    pipelining_enabled: bool,
 }
 
 impl<R: tokio::io::AsyncRead + Unpin + Send> Reader<R> {
     /// Create a new stream.
     #[must_use]
     #[inline]
-    pub fn new(tcp_stream: R) -> Self {
+    pub fn new(tcp_stream: R, enable_pipelining: bool) -> Self {
         Self {
             inner: tcp_stream,
             additional_reserve: 100,
             buffer: bytes::BytesMut::with_capacity(80),
+            pipelining_enabled: enable_pipelining,
         }
     }
 
@@ -139,6 +145,7 @@ impl<R: tokio::io::AsyncRead + Unpin + Send> Reader<R> {
     pub fn as_window_stream(
         &mut self,
     ) -> impl tokio_stream::Stream<Item = std::io::Result<Batch>> + '_ {
+        let pipelined = self.pipelining_enabled; // NOTE: can break with hot-reloading ?
         async_stream::stream! {
             loop {
                 let mut batch: Batch = vec![];
@@ -148,6 +155,9 @@ impl<R: tokio::io::AsyncRead + Unpin + Send> Reader<R> {
                 tokio::pin!(window_content);
                 while let Some(cmd) = window_content.next().await {
                     batch.push(parse_command_line(&cmd?));
+                    if !pipelined {
+                        break;
+                    }
                 }
                 yield Ok(batch);
             }
@@ -227,7 +237,7 @@ impl<R: tokio::io::AsyncRead + Unpin + Send> Reader<R> {
             tokio::pin!(line_stream);
 
             loop {
-                let mut next_reply = Vec::with_capacity(512);
+                let mut next_reply = Vec::with_capacity(MAX_LINE_SIZE);
 
                 loop {
                     let new_line = line_stream.next().await;
@@ -272,7 +282,7 @@ mod tests {
         .concat();
 
         let cursor = std::io::Cursor::new(input);
-        let mut reader = super::Reader::new(cursor);
+        let mut reader = super::Reader::new(cursor, true);
         let mut window = reader.to_window_reader();
 
         let output_stream = window.flush_window();
@@ -319,7 +329,7 @@ mod tests {
         let input = ["MAIL FROM:<mrose@dbc.mtview.ca.us>\r\n"].concat();
 
         let cursor = std::io::Cursor::new(input);
-        let mut reader = super::Reader::new(cursor);
+        let mut reader = super::Reader::new(cursor, true);
         let stream = reader
             .as_window_stream()
             .timeout(std::time::Duration::from_secs(30));
@@ -347,7 +357,7 @@ mod tests {
         .concat();
 
         let cursor = std::io::Cursor::new(input);
-        let mut reader = super::Reader::new(cursor);
+        let mut reader = super::Reader::new(cursor, true);
         let stream = reader
             .as_window_stream()
             .timeout(std::time::Duration::from_secs(30));
@@ -386,7 +396,7 @@ mod tests {
         .concat();
 
         let cursor = std::io::Cursor::new(input);
-        let mut reader = super::Reader::new(cursor);
+        let mut reader = super::Reader::new(cursor, true);
         let stream = reader
             .as_window_stream()
             .timeout(std::time::Duration::from_secs(30));
@@ -417,7 +427,7 @@ mod tests {
     async fn window_stream_no_lines() {
         let input: String = String::new();
         let cursor = std::io::Cursor::new(input);
-        let mut reader = super::Reader::new(cursor);
+        let mut reader = super::Reader::new(cursor, true);
         let stream = reader
             .as_window_stream()
             .timeout(std::time::Duration::from_secs(30));

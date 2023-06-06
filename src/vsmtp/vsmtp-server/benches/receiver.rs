@@ -35,7 +35,7 @@ fn get_test_config() -> std::sync::Arc<Config> {
             .without_tls_support()
             .with_default_smtp_options()
             .with_default_smtp_error_handler()
-            .without_auth()
+            .with_default_extensions()
             .with_default_app()
             .with_vsl("./benches/main.vsl")
             .with_default_app_logs()

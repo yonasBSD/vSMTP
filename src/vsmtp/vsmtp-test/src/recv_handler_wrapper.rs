@@ -15,9 +15,12 @@
  *
 */
 
+extern crate alloc;
+
 use tokio_rustls::rustls;
 use vsmtp_common::ContextFinished;
 use vsmtp_common::{Reply, Stage};
+use vsmtp_config::Config;
 use vsmtp_mail_parser::MessageBody;
 use vsmtp_protocol::{
     AcceptArgs, AuthArgs, AuthError, CallbackWrap, EhloArgs, Error, HeloArgs, MailFromArgs,
@@ -39,7 +42,7 @@ where
     }
 }
 
-///
+/// wrapper around `ReceiverHandler` which simplify implementation of new handler
 pub struct Wrapper<Inner: ReceiverHandler, Hook: OnMessageCompletedHook> {
     ///
     pub inner: Inner,
@@ -55,6 +58,10 @@ where
 {
     fn get_stage(&self) -> Stage {
         self.inner.get_stage()
+    }
+
+    fn get_config(&self) -> alloc::sync::Arc<Config> {
+        self.inner.get_config()
     }
 
     fn generate_sasl_callback(&self) -> CallbackWrap {

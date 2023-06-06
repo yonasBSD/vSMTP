@@ -29,6 +29,106 @@ use vsmtp_protocol::{
 };
 use vsmtp_rule_engine::{ExecutionStage, RuleEngine, RuleState};
 
+fn build_ehlo_reply(config: &vsmtp_config::Config, is_transaction_secured: bool) -> Reply {
+    let auth_mechanism_list: Option<(Vec<Mechanism>, Vec<Mechanism>)> = config
+        .server
+        .esmtp
+        .auth
+        .as_ref()
+        .map(|auth| auth.mechanisms.iter().partition(|m| m.must_be_under_tls()));
+
+    let esmtp = &config.server.esmtp;
+
+    let auth = if is_transaction_secured {
+        // All "unsafe" mechanisms are available under tls.
+        auth_mechanism_list.as_ref().map(|(must_be_secured, _)| {
+            (
+                "250",
+                format!(
+                    "AUTH {}\r\n",
+                    must_be_secured
+                        .iter()
+                        .map(ToString::to_string)
+                        .collect::<Vec<_>>()
+                        .join(" ")
+                ),
+            )
+        })
+    } else {
+        auth_mechanism_list.as_ref().map(|(plain, secured)| {
+            if config
+                .server
+                .esmtp
+                .auth
+                .as_ref()
+                .map_or(false, |auth| auth.enable_dangerous_mechanism_in_clair)
+            {
+                // The user as decided to use unsafe mechanisms, even while not using tls.
+                (
+                    "250",
+                    format!(
+                        "AUTH {}\r\n",
+                        &[secured.clone(), plain.clone()]
+                            .concat()
+                            .iter()
+                            .map(ToString::to_string)
+                            .collect::<Vec<_>>()
+                            .join(" ")
+                    ),
+                )
+            } else {
+                (
+                    "250",
+                    format!(
+                        "AUTH {}\r\n",
+                        secured
+                            .iter()
+                            .map(ToString::to_string)
+                            .collect::<Vec<_>>()
+                            .join(" ")
+                    ),
+                )
+            }
+        })
+    };
+
+    // FIXME: The following code to create a reply could be cached.
+    //       (Expect for the auth and starttls extensions because
+    //       they need the transaction context)
+    let mut reply = String::default();
+    let mut extensions = [
+        Some(("250", config.server.name.to_string())),
+        auth,
+        esmtp
+            .eightbitmime
+            .then_some(("250", "8BITMIME".to_string())),
+        (esmtp.eightbitmime && esmtp.smtputf8).then_some(("250", "SMTPUTF8".to_string())),
+        (!is_transaction_secured).then_some(("250", "STARTTLS".to_string())),
+        esmtp
+            .pipelining
+            .then_some(("250", "PIPELINING".to_string())),
+        esmtp.chunking.then_some(("250", "CHUNKING".to_string())),
+        Some(("250", format!("SIZE {}", esmtp.size))),
+    ]
+    .into_iter()
+    .flatten()
+    .peekable();
+
+    // The hyphen (-), when present as the fourth character of a response,
+    // indicates the response is continued on the next line.
+    // https://datatracker.ietf.org/doc/html/rfc5321#section-4.1.1.1
+    while let Some((code, extension)) = extensions.next() {
+        // Last extension, we do not include the hyphen.
+        if extensions.peek().is_none() {
+            reply.push_str(&format!("{code} {extension}\r\n"));
+        } else {
+            reply.push_str(&format!("{code}-{extension}\r\n"));
+        }
+    }
+
+    reply.parse::<Reply>().expect("valid reply")
+}
+
 impl<Parser, ParserFactory> Handler<Parser, ParserFactory>
 where
     Parser: MailParser + Send + Sync,
@@ -159,7 +259,7 @@ where
         ctx: &mut ReceiverContext,
         args: AuthArgs,
     ) -> Option<Reply> {
-        if let Some(auth) = &self.config.server.smtp.auth {
+        if let Some(auth) = &self.config.server.esmtp.auth {
             if !self
                 .state
                 .context()
@@ -223,7 +323,7 @@ where
                 let attempt_count_max = self
                     .config
                     .server
-                    .smtp
+                    .esmtp
                     .auth
                     .as_ref()
                     .map_or(-1, |auth| auth.attempt_count_max);
@@ -284,6 +384,9 @@ where
         }
     }
 
+    /// Create a reply for the EHLO command, taking into account enabled/disabled
+    /// extensions from the vsl configuration.
+
     pub(super) fn on_ehlo_inner(&mut self, ctx: &mut ReceiverContext, args: EhloArgs) -> Reply {
         let vsl_ctx = self.state.context();
 
@@ -301,79 +404,7 @@ where
             Status::Quarantine(_) | Status::Next | Status::DelegationResult => {
                 let ctx = vsl_ctx.read().expect("state poisoned");
 
-                let auth_mechanism_list: Option<(Vec<Mechanism>, Vec<Mechanism>)> = self
-                    .config
-                    .server
-                    .smtp
-                    .auth
-                    .as_ref()
-                    .map(|auth| auth.mechanisms.iter().partition(|m| m.must_be_under_tls()));
-
-                if ctx.is_secured() {
-                    [
-                        Some(format!("250-{}\r\n", ctx.server_name())),
-                        auth_mechanism_list.as_ref().map(|(must_be_secured, _)| {
-                            format!(
-                                "250-AUTH {}\r\n",
-                                must_be_secured
-                                    .iter()
-                                    .map(ToString::to_string)
-                                    .collect::<Vec<_>>()
-                                    .join(" ")
-                            )
-                        }),
-                        Some("250-8BITMIME\r\n".to_string()),
-                        Some("250 SMTPUTF8\r\n".to_string()),
-                        Some("250 PIPELINING\r\n".to_string()), // FIXME: improve handling of ehlo infos
-                    ]
-                    .into_iter()
-                    .flatten()
-                    .collect::<String>()
-                    .parse::<Reply>()
-                    .unwrap()
-                } else {
-                    [
-                        Some(format!("250-{}\r\n", &ctx.server_name())),
-                        auth_mechanism_list.as_ref().map(|(plain, secured)| {
-                            if self
-                                .config
-                                .server
-                                .smtp
-                                .auth
-                                .as_ref()
-                                .map_or(false, |auth| auth.enable_dangerous_mechanism_in_clair)
-                            {
-                                format!(
-                                    "250-AUTH {}\r\n",
-                                    &[secured.clone(), plain.clone()]
-                                        .concat()
-                                        .iter()
-                                        .map(ToString::to_string)
-                                        .collect::<Vec<_>>()
-                                        .join(" ")
-                                )
-                            } else {
-                                format!(
-                                    "250-AUTH {}\r\n",
-                                    secured
-                                        .iter()
-                                        .map(ToString::to_string)
-                                        .collect::<Vec<_>>()
-                                        .join(" ")
-                                )
-                            }
-                        }),
-                        Some("250-STARTTLS\r\n".to_string()),
-                        Some("250-8BITMIME\r\n".to_string()),
-                        Some("250 SMTPUTF8\r\n".to_string()),
-                        Some("250 PIPELINING\r\n".to_string()),
-                    ]
-                    .into_iter()
-                    .flatten()
-                    .collect::<String>()
-                    .parse::<Reply>()
-                    .unwrap()
-                }
+                build_ehlo_reply(&self.state.server().config, ctx.is_secured())
             }
             Status::Deny(reply) | Status::Reject(reply) => {
                 ctx.deny();
@@ -462,5 +493,95 @@ impl rsasl::callback::SessionCallback for RsaslSessionCallback {
         })?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use vsmtp_config::field::FieldServerESMTP;
+
+    use super::*;
+
+    #[test]
+    fn build_full_ehlo() {
+        let config = vsmtp_config::Config::builder()
+            .with_version_str("<1.0.0")
+            .unwrap()
+            .without_path()
+            .with_server_name("testserver.com".parse::<vsmtp_common::Domain>().unwrap())
+            .with_user_group_and_default_system("root", "root")
+            .unwrap()
+            .with_ipv4_localhost()
+            .with_default_logs_settings()
+            .with_spool_dir_and_default_queues("./tmp/spool")
+            .without_tls_support()
+            .with_default_smtp_options()
+            .with_default_smtp_error_handler()
+            .with_default_extensions()
+            .with_app_at_location("./tmp/app")
+            .with_vsl(format!(
+                "{}/src/template/ignore_vsl/domain-enabled",
+                env!("CARGO_MANIFEST_DIR")
+            ))
+            .with_default_app_logs()
+            .with_system_dns()
+            .without_virtual_entries()
+            .validate();
+        let reply = build_ehlo_reply(&config, true);
+        assert_eq!(reply.code().value(), 250);
+        assert_eq!(
+            reply.to_string(),
+            [
+                "250-testserver.com",
+                "250-8BITMIME",
+                "250-SMTPUTF8",
+                "250-PIPELINING",
+                "250 SIZE 20000000\r\n",
+            ]
+            .join("\r\n")
+        );
+        // build_ehlo_reply(config: &vsmtp_config::Config, is_transaction_secured: bool)
+    }
+
+    #[test]
+    fn build_ehlo_without_8bit() {
+        let extensions = FieldServerESMTP {
+            auth: None,
+            eightbitmime: false,
+            smtputf8: true,
+            pipelining: true,
+            chunking: false,
+            size: 10,
+        };
+        let config = vsmtp_config::Config::builder()
+            .with_version_str("<1.0.0")
+            .unwrap()
+            .without_path()
+            .with_server_name("testserver.com".parse::<vsmtp_common::Domain>().unwrap())
+            .with_user_group_and_default_system("root", "root")
+            .unwrap()
+            .with_ipv4_localhost()
+            .with_default_logs_settings()
+            .with_spool_dir_and_default_queues("./tmp/spool")
+            .without_tls_support()
+            .with_default_smtp_options()
+            .with_default_smtp_error_handler()
+            .with_extensions(extensions)
+            .with_app_at_location("./tmp/app")
+            .with_vsl(format!(
+                "{}/src/template/ignore_vsl/domain-enabled",
+                env!("CARGO_MANIFEST_DIR")
+            ))
+            .with_default_app_logs()
+            .with_system_dns()
+            .without_virtual_entries()
+            .validate();
+        let reply = build_ehlo_reply(&config, true);
+        assert_eq!(reply.code().value(), 250);
+        assert_eq!(
+            reply.to_string(),
+            ["250-testserver.com", "250-PIPELINING", "250 SIZE 10\r\n",].join("\r\n")
+        );
+        // build_ehlo_reply(config: &vsmtp_config::Config, is_transaction_secured: bool)
     }
 }

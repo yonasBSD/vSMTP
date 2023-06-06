@@ -82,6 +82,9 @@ pub mod field {
         /// see [`FieldServerSMTP`]
         #[serde(default)]
         pub smtp: FieldServerSMTP,
+        /// see [`FieldServerESMTP`]
+        #[serde(default)]
+        pub esmtp: FieldServerESMTP,
         /// see [`FieldServerDNS`]
         #[serde(default)]
         pub dns: FieldServerDNS,
@@ -388,7 +391,7 @@ pub mod field {
         pub attempt_count_max: i64,
     }
 
-    /// Parameters of the SMTP.
+    /// Parameters for SMTP.
     #[serde_with::serde_as]
     #[derive(Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
     #[serde(deny_unknown_fields)]
@@ -402,9 +405,34 @@ pub mod field {
         /// SMTP's timeout policy.
         #[serde(default)]
         pub timeout_client: FieldServerSMTPTimeoutClient,
-        /// SMTP's authentication policy.
-        // TODO: should not be an Option<> and should be under #[cfg(feature = "esmtpa")]
+    }
+
+    /// Parameters for Extended SMTP.
+    #[allow(clippy::struct_excessive_bools)]
+    #[serde_with::serde_as]
+    #[derive(Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
+    #[serde(deny_unknown_fields)]
+    pub struct FieldServerESMTP {
+        /// Authentication policy.
+        #[serde(default = "FieldServerESMTP::default_auth")]
         pub auth: Option<FieldServerSMTPAuth>,
+        /// TODO:
+        #[serde(default = "FieldServerESMTP::default_eightbitmime")]
+        pub eightbitmime: bool,
+        /// Enable internationalized email (rfc 6531)
+        #[serde(default = "FieldServerESMTP::default_smtputf8")]
+        pub smtputf8: bool,
+        /// Enable pipelining.
+        #[serde(default = "FieldServerESMTP::default_pipelining")]
+        pub pipelining: bool,
+        /// Enable chunking.
+        #[serde(default = "FieldServerESMTP::default_chunking")]
+        pub chunking: bool,
+        /// Maximum size of the message in bytes.
+        /// A parameter value of 0 (zero) indicates that no fixed maximum message size is in force.
+        /// <https://datatracker.ietf.org/doc/html/rfc1870>
+        #[serde(default = "FieldServerESMTP::default_size")]
+        pub size: usize,
     }
 
     /// Configuration of the DNS resolver.

@@ -27,16 +27,22 @@ pub struct RuleState {
 }
 
 impl RuleState {
-    /// fetch the email context (possibly) mutated by the user's rules.
+    /// Fetch the email context (possibly) mutated by the user's rules.
     #[must_use]
     pub fn context(&self) -> Context {
         self.mail_context.clone()
     }
 
-    /// fetch the message body (possibly) mutated by the user's rules.
+    /// Fetch the message body (possibly) mutated by the user's rules.
     #[must_use]
     pub fn message(&self) -> Message {
         self.message.clone()
+    }
+
+    /// Fetch the server api.
+    #[must_use]
+    pub fn server(&self) -> Server {
+        self.server.clone()
     }
 
     /// get the engine used to evaluate rules for this state.

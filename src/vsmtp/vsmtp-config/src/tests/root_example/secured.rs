@@ -63,7 +63,7 @@ fn parse() {
                     Stage::RcptTo => std::time::Duration::from_millis(400),
                 }
             )
-            .without_auth()
+            .with_default_extensions()
             .with_default_app()
             .with_default_vsl_settings()
             .with_default_app_logs()
