@@ -50,7 +50,7 @@ futures-util = { version = "0.3.28", default-features = false, features = ["asyn
 
 time = { version = "0.3.21", default-features = false, features = ["std", "formatting", "macros"] }
 addr = { version = "0.15.6", default-features = false, features = ["std"] }
-url = { version = "2.3.1", default-features = false }
+url = { version = "2.4.0", default-features = false }
 urlencoding = { version = "2.1.2", default-features = false }
 
 thiserror = { version = "1.0.40", default-features = false }
