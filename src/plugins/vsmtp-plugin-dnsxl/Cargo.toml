@@ -29,7 +29,7 @@ rhai = { version = "1.12.0", default-features = false, features = [
     "no_closure",
     "metadata",
 ] }
-serde = { version = "1.0.160", default-features = false, features = ["std", "derive"] }
+serde = { version = "1.0.164", default-features = false, features = ["std", "derive"] }
 trust-dns-resolver = { version = "0.22.0", default-features = false, features = ["system-config", "tokio-runtime"] }
 strum = "0.24.1"
 strum_macros = "0.24.3"

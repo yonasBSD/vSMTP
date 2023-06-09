@@ -41,5 +41,5 @@ r2d2_redis = { version = "0.14.0", default-features = false }
 # "r2d2",
 # ] }
 
-serde = { version = "1.0.163", default-features = false, features = ["std", "derive"] }
+serde = { version = "1.0.164", default-features = false, features = ["std", "derive"] }
 humantime-serde = { version = "1.1.1", default-features = false }
