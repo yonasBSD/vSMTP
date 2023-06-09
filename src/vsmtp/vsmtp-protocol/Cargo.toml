@@ -78,7 +78,7 @@ anyhow = { version = "1.0.71", default-features = false, features = ["std"] }
 strum = { version = "0.24.1", features = ["derive"] }
 serde_with = { version = "3.0.0", default-features = false, features = ["std", "macros"] }
 
-time = { version = "0.3.21", default-features = false, features = ["std", "formatting", "macros", "serde-well-known"] }
+time = { version = "0.3.22", default-features = false, features = ["std", "formatting", "macros", "serde-well-known"] }
 
 serde = { version = "1.0.163", default-features = false, features = ["std", "derive"] }
 addr = { version = "0.15.6", default-features = false, features = ["std"] }
