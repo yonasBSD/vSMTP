@@ -101,7 +101,6 @@ jobs:
     needs: check
     steps:
       - uses: actions/checkout@v3
-      - uses: Swatinem/rust-cache@v2
       - uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: nightly

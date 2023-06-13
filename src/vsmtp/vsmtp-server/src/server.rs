@@ -285,7 +285,7 @@ impl Server {
 
         while matches!(smtp_stream.next().await, Some(Ok(()))) {}
 
-        log::info!("Connection closed cleanly.");
+        tracing::info!("Connection closed cleanly.");
         Ok(())
     }
 }
