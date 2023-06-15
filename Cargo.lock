@@ -4352,9 +4352,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-rfc-5424"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9bf4f714de9028944a67b76aa580330bf66ce0cc02bf07fe75ccfd14c99f7ed"
+checksum = "c3ae336e28cf935feab00b50e2f83b61a059dc2609f97ed5500f738b94025c7d"
 dependencies = [
  "backtrace",
  "bytes",
