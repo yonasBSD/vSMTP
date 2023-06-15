@@ -45,6 +45,8 @@
 #![allow(clippy::indexing_slicing)] // issue with async_stream
 #![allow(clippy::question_mark_used)]
 
+extern crate alloc;
+
 mod command;
 mod connection_kind;
 mod error;
@@ -55,14 +57,14 @@ mod smtp_sasl;
 mod writer;
 
 pub use command::{
-    AcceptArgs, AuthArgs, EhloArgs, HeloArgs, MailFromArgs, ParseArgsError, RcptToArgs,
-    UnparsedArgs, Verb,
+    AcceptArgs, AuthArgs, EhloArgs, HeloArgs, MailFromArgs, RcptToArgs, UnparsedArgs, Verb,
 };
 pub use connection_kind::ConnectionKind;
-pub use error::Error;
+pub use error::{Error, ErrorKind, ParseArgsError};
 pub use reader::Reader;
 pub use receiver::{Receiver, ReceiverContext};
 pub use receiver_handler::ReceiverHandler;
+pub use rsasl;
 pub use smtp_sasl::{AuthError, CallbackWrap};
 pub use tokio_rustls;
 pub use tokio_rustls::rustls;

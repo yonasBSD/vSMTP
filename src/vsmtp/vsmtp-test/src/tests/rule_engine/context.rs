@@ -152,18 +152,14 @@ fn expected(
         (
             ExecutionStage::Connect,
             ExecutionStage::Helo | ExecutionStage::MailFrom | ExecutionStage::RcptTo,
-        ) => {
-            (
-                vec![
-                    // FIXME: should have something here ??
-                ],
-                Some(format!(
-                    "vsl execution produced an error: Runtime error: \
+        ) => (
+            vec!["554 permanent problems with the remote server\r\n"],
+            Some(format!(
+                "vsl execution produced an error: Runtime error: \
                     field '{props}' is available in [{}]",
-                    stages.join(", ")
-                )),
-            )
-        }
+                stages.join(", ")
+            )),
+        ),
         (ExecutionStage::Helo, ExecutionStage::MailFrom | ExecutionStage::RcptTo) => (
             vec![
                 "220 testserver.com Service ready\r\n",

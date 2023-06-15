@@ -20,7 +20,7 @@ use tokio::io::AsyncReadExt;
 use tokio_stream::StreamExt;
 use vsmtp_common::Reply;
 
-/// max size of a received message, including addition from all the following extensions:
+/// max size of a received command, including addition from all the following extensions:
 /// (note: the base size is at 80 characters)
 /// - AUTH (+500 characters)
 /// - SMTPUTF8 (+10 characters)
@@ -34,14 +34,13 @@ fn find(bytes: &[u8], search: &[u8]) -> Option<usize> {
 
 #[allow(clippy::expect_used)]
 fn parse_command_line(line: &Vec<u8>) -> Result<Command<Verb, UnparsedArgs>, Error> {
+    // TODO: put max len as a parameter
+
     if line.len() >= MAX_LINE_SIZE {
-        return Err(Error::BufferTooLong {
-            expected: MAX_LINE_SIZE,
-            got: line.len(),
-        });
+        return Err(Error::buffer_too_long(MAX_LINE_SIZE, line.len()));
     }
     if find(line, b"\r\n").is_none() {
-        return Err(Error::ParsingError("No CRLF found".to_owned()));
+        return Err(Error::no_crlf());
     }
     Ok(<Verb as strum::VariantNames>::VARIANTS
         .iter()
@@ -218,7 +217,7 @@ impl<R: tokio::io::AsyncRead + Unpin + Send> Reader<R> {
                 // TODO: handle line length max ?
                 size += line.len();
                 if size >= size_limit {
-                    yield Err(Error::BufferTooLong { expected: size_limit, got: size });
+                    yield Err(Error::buffer_too_long(size_limit, size));
                     return;
                 }
 
@@ -255,7 +254,10 @@ impl<R: tokio::io::AsyncRead + Unpin + Send> Reader<R> {
                 let next_reply = std::str::from_utf8(&next_reply);
                 tracing::trace!("<< {:?}", next_reply);
                 yield <Reply as std::str::FromStr>::from_str(next_reply?)
-                    .map_err(|e| Error::ParsingError(e.to_string()));
+                    .map_err(|e| std::io::Error::new(
+                        std::io::ErrorKind::InvalidInput,
+                        e.to_string()
+                    ).into());
             }
         }
     }
@@ -416,7 +418,7 @@ mod tests {
                 command::UnparsedArgs(b"<dan@innosoft.com>\r\n".to_vec()),
             )),
             std::result::Result::<(command::Verb, command::UnparsedArgs), Error>::Err(
-                Error::ParsingError("No CRLF found".to_owned()),
+                Error::no_crlf(),
             ),
         ];
         assert_cmd_batch(&output, &expected);

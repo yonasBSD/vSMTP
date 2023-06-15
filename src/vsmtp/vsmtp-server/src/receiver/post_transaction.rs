@@ -16,7 +16,7 @@
 */
 
 use crate::{Handler, ProcessMessage};
-use tokio_stream::StreamExt;
+use futures_util::TryStreamExt;
 use vqueue::QueueID;
 use vsmtp_common::{
     status::{self, Status},
@@ -24,7 +24,7 @@ use vsmtp_common::{
     ContextFinished, Reply,
 };
 use vsmtp_mail_parser::{Mail, MailParser, MessageBody, ParserError, RawBody};
-use vsmtp_protocol::{Error, ReceiverContext};
+use vsmtp_protocol::{Error, ParseArgsError, ReceiverContext};
 use vsmtp_rule_engine::{ExecutionStage, RuleEngine, RuleState};
 
 impl<Parser, ParserFactory> Handler<Parser, ParserFactory>
@@ -168,19 +168,29 @@ where
         }
     }
 
+    fn convert_error(e: Error) -> ParserError {
+        if e.get_ref().is_some() {
+            match e.into_inner().unwrap().downcast::<std::io::Error>() {
+                Ok(io) => ParserError::Io(*io),
+                Err(otherwise) => match otherwise.downcast::<ParseArgsError>().map(|i| *i) {
+                    Ok(ParseArgsError::BufferTooLong { expected, got }) => {
+                        ParserError::BufferTooLong { expected, got }
+                    }
+                    Ok(otherwise) => ParserError::InvalidMail(otherwise.to_string()),
+                    Err(otherwise) => ParserError::InvalidMail(otherwise.to_string()),
+                },
+            }
+        } else {
+            ParserError::InvalidMail(e.to_string())
+        }
+    }
+
     async fn get_message_body(
         &mut self,
         stream: impl tokio_stream::Stream<Item = Result<Vec<u8>, Error>> + Send + Unpin,
     ) -> Result<either::Either<RawBody, Mail>, Reply> {
         tracing::info!("SMTP handshake completed, fetching email...");
-        let stream = stream.map(|l| match l {
-            Ok(l) => Ok(l),
-            Err(Error::Io(io)) => Err(ParserError::Io(io)),
-            Err(Error::BufferTooLong { expected, got }) => {
-                Err(ParserError::BufferTooLong { expected, got })
-            }
-            Err(Error::ParsingError(_) | Error::Utf8(_)) => todo!(),
-        });
+        let stream = stream.map_err(Self::convert_error);
 
         let mail = match (self.message_parser_factory)()
             .parse(stream, self.config.server.esmtp.size)

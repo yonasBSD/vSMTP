@@ -15,18 +15,13 @@
  *
 */
 
-extern crate alloc;
-
 use crate::{
-    receiver::ReceiverContext, smtp_sasl::CallbackWrap, AcceptArgs, AuthArgs, AuthError, EhloArgs,
-    Error, HeloArgs, MailFromArgs, ParseArgsError, RcptToArgs, UnparsedArgs, Verb,
+    receiver::ReceiverContext, smtp_sasl::CallbackWrap, AuthArgs, AuthError, EhloArgs, Error,
+    HeloArgs, MailFromArgs, ParseArgsError, RcptToArgs, UnparsedArgs, Verb,
 };
 use tokio_rustls::rustls;
-use vsmtp_common::ContextFinished;
-use vsmtp_config::Config;
 // TODO: should we move these type in this crate
 use vsmtp_common::{Reply, Stage};
-use vsmtp_mail_parser::MessageBody;
 
 // NOTE: could have 3 trait to make the implementation easier
 // PreTransactionHandler + TransactionHandler + PostTransactionHandler
@@ -34,18 +29,15 @@ use vsmtp_mail_parser::MessageBody;
 /// Trait to implement to handle the SMTP commands in pair with the [`Receiver`](crate::Receiver).
 #[async_trait::async_trait]
 pub trait ReceiverHandler {
+    /// The underlying type produced by the [`ReceiverHandler::on_message()`].
+    type Item;
+
     /// The [`Receiver`](crate::Receiver) does not store the context.
     /// This function is called after each command to get the context stage.
     fn get_stage(&self) -> Stage;
 
-    /// Get the config used to instantiate the Handler.
-    fn get_config(&self) -> alloc::sync::Arc<Config>;
-
     /// Create an instance capable to handle the SASL handshake.
     fn generate_sasl_callback(&self) -> CallbackWrap;
-
-    /// Called when the client connects to the server.
-    async fn on_accept(&mut self, ctx: &mut ReceiverContext, args: AcceptArgs) -> Reply;
 
     /// Called after receiving a [`Verb::StartTls`] command.
     async fn on_starttls(&mut self, ctx: &mut ReceiverContext) -> Reply;
@@ -90,16 +82,12 @@ pub trait ReceiverHandler {
         &mut self,
         ctx: &mut ReceiverContext,
         stream: impl tokio_stream::Stream<Item = Result<Vec<u8>, Error>> + Send + Unpin,
-    ) -> (Reply, Option<Vec<(ContextFinished, MessageBody)>>);
+    ) -> (Reply, Option<Vec<Self::Item>>);
 
     /// Called for each message produced by the [`ReceiverHandler::on_message()`] method.
     ///
     /// If this callback returns `Some`, the reply produced by [`ReceiverHandler::on_message()`] is discarded.
-    async fn on_message_completed(
-        &mut self,
-        ctx: ContextFinished,
-        msg: MessageBody,
-    ) -> Option<Reply>;
+    async fn on_message_completed(&mut self, item: Self::Item) -> Option<Reply>;
 
     /// Called when the number of reply considered as error reached a threshold (hard).
     async fn on_hard_error(&mut self, ctx: &mut ReceiverContext, reply: Reply) -> Reply;
@@ -179,8 +167,12 @@ pub trait ReceiverHandler {
 
     /// Called when an argument of a command is invalid.
     #[inline]
-    async fn on_args_error(&mut self, error: ParseArgsError) -> Reply {
-        #[allow(clippy::expect_used, clippy::wildcard_enum_match_arm)]
+    async fn on_args_error(&mut self, error: &ParseArgsError) -> Reply {
+        #[allow(
+            clippy::expect_used,
+            clippy::wildcard_enum_match_arm,
+            clippy::pattern_type_mismatch
+        )]
         match error {
             ParseArgsError::InvalidMailAddress { mail } => {
                 format!("553 5.1.7 The address <{mail}> is not a valid RFC-5321 address\r\n")

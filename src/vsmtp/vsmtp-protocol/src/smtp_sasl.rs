@@ -92,6 +92,7 @@ where
 {
     pub(crate) async fn authenticate(
         &mut self,
+        handler: &mut T,
         mechanism: Mechanism,
         initial_response: Option<Vec<u8>>,
     ) -> Result<(), AuthError> {
@@ -124,7 +125,7 @@ where
                 block_on! { tokio::io::AsyncWriteExt::flush(&mut self.0) }
             }
         }
-        let callback = self.handler.generate_sasl_callback();
+        let callback = handler.generate_sasl_callback();
 
         let rsasl_config = rsasl::config::SASLConfig::builder()
             .with_default_mechanisms()

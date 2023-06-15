@@ -15,13 +15,15 @@
  *
 */
 
-use crate::Handler;
+use crate::{scheduler::Emitter, Handler};
 use tokio_rustls::rustls;
+use vqueue::GenericQueueManager;
 use vsmtp_common::{
     auth::{Credentials, Mechanism},
     status::Status,
     ClientName, Reply,
 };
+use vsmtp_config::Config;
 use vsmtp_mail_parser::MailParser;
 use vsmtp_protocol::{
     AcceptArgs, AuthArgs, AuthError, CallbackWrap, ConnectionKind, EhloArgs, HeloArgs,
@@ -134,62 +136,116 @@ where
     Parser: MailParser + Send + Sync,
     ParserFactory: Fn() -> Parser + Send + Sync,
 {
-    pub(super) fn on_accept_inner(
-        &mut self,
-        ctx: &mut ReceiverContext,
-        args: &AcceptArgs,
-    ) -> Reply {
-        if self
-            .rule_engine
-            .get_delegation_directive_bound_to_address(args.server_addr)
+    /// Callback to provided to [`vsmtp_protocol::Receiver`] to handle the connection
+    pub fn on_accept(
+        AcceptArgs {
+            client_addr,
+            server_addr,
+            timestamp,
+            uuid,
+            kind,
+            ..
+        }: AcceptArgs,
+        rule_engine: std::sync::Arc<RuleEngine>,
+        config: std::sync::Arc<Config>,
+        rustls_config: Option<std::sync::Arc<rustls::ServerConfig>>,
+        queue_manager: std::sync::Arc<dyn GenericQueueManager>,
+        emitter: std::sync::Arc<Emitter>,
+        message_parser_factory: ParserFactory,
+    ) -> (Self, ReceiverContext, Option<Reply>) {
+        let mut ctx = ReceiverContext::default();
+        let mut skipped = None;
+        let state = rule_engine.spawn_at_connect(
+            client_addr,
+            server_addr,
+            config.server.name.clone(),
+            timestamp,
+            uuid,
+        );
+
+        if rule_engine
+            .get_delegation_directive_bound_to_address(server_addr)
             .is_some()
         {
-            self.state
+            state
                 .context()
                 .write()
                 .expect("bad state")
                 .set_skipped(Status::DelegationResult);
-            self.skipped = Some(Status::DelegationResult);
+            skipped = Some(Status::DelegationResult);
         }
 
-        let reply =
-            match self
-                .rule_engine
-                .run_when(&self.state, &mut self.skipped, ExecutionStage::Connect)
-            {
-                // FIXME: do we really want to let the end-user override the EHLO/HELO reply?
-                Status::Faccept(reply) | Status::Accept(reply) => reply,
-                Status::Quarantine(_) | Status::Next | Status::DelegationResult => {
-                    format!("220 {} Service ready\r\n", self.config.server.name)
-                        .parse::<Reply>()
-                        .unwrap()
-                }
-                Status::Deny(reply) | Status::Reject(reply) => {
-                    ctx.deny();
-                    return reply;
-                }
-                // FIXME: user ran a delegate method before postq/delivery
-                Status::Delegated(_) => unreachable!(),
-            };
+        let reply = match rule_engine.run_when(&state, &mut skipped, ExecutionStage::Connect) {
+            // FIXME: do we really want to let the end-user override the EHLO/HELO reply?
+            Status::Faccept(reply) | Status::Accept(reply) => reply,
+            Status::Quarantine(_) | Status::Next | Status::DelegationResult => {
+                format!("220 {} Service ready\r\n", config.server.name)
+                    .parse::<Reply>()
+                    .expect("valid")
+            }
+            Status::Deny(reply) | Status::Reject(reply) => {
+                ctx.deny();
+                return (
+                    Self {
+                        config,
+                        rustls_config,
+                        rule_engine,
+                        queue_manager,
+                        message_parser_factory,
+                        emitter,
+                        state,
+                        state_internal: None,
+                        skipped,
+                    },
+                    ctx,
+                    Some(reply),
+                );
+            }
+            // FIXME: user ran a delegate method before postq/delivery
+            Status::Delegated(_) => unreachable!(),
+        };
 
         // NOTE: in that case, the return value is ignored and
         // we have to manually trigger the TLS handshake,
-        if args.kind == ConnectionKind::Tunneled
-            && !self
-                .state
-                .context()
-                .read()
-                .expect("state poisoned")
-                .is_secured()
+        if kind == ConnectionKind::Tunneled
+            && !state.context().read().expect("state poisoned").is_secured()
         {
-            match &self.rustls_config {
+            match &rustls_config {
                 Some(config) => ctx.upgrade_tls(config.clone(), std::time::Duration::from_secs(2)),
                 None => ctx.deny(),
             }
-            return "100 ignored value\r\n".parse().unwrap();
+            return (
+                Self {
+                    config,
+                    rustls_config,
+                    rule_engine,
+                    queue_manager,
+                    message_parser_factory,
+                    emitter,
+                    state,
+                    state_internal: None,
+                    skipped,
+                },
+                ctx,
+                None,
+            );
         }
 
-        reply
+        (
+            Self {
+                config,
+                rustls_config,
+                rule_engine,
+                queue_manager,
+                message_parser_factory,
+                emitter,
+                state,
+                state_internal: None,
+                skipped,
+            },
+            ctx,
+            Some(reply),
+        )
     }
 
     pub(super) fn generate_sasl_callback_inner(&self) -> CallbackWrap {

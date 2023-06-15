@@ -4962,11 +4962,11 @@ name = "vsmtp-protocol"
 version = "2.2.1"
 dependencies = [
  "addr",
- "anyhow",
  "async-stream",
  "async-trait",
  "base64 0.21.2",
  "bytes",
+ "humantime",
  "rsasl",
  "serde",
  "serde_with 3.0.0",
@@ -4978,10 +4978,7 @@ dependencies = [
  "tokio-stream",
  "tracing",
  "uuid",
- "vsmtp-auth",
  "vsmtp-common",
- "vsmtp-config",
- "vsmtp-mail-parser",
 ]
 
 [[package]]

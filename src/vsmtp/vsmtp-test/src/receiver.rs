@@ -167,55 +167,53 @@ macro_rules! run_test {
             };
             let (client_stream, client_addr) = socket_server.accept().await.unwrap();
 
-            let smtp_handler = || vsmtp_server::Handler::new(
-                config.clone(),
-                {
-                    let _tls_config = Option::<std::sync::Arc<rustls::ServerConfig>>::None;
-                    $( #[allow(clippy::no_effect)] $server_name_tunnel;
-                    let _tls_config = config.server.tls.as_ref().map(|tls| {
-                        arc!(vsmtp_config::get_rustls_config(
-                            tls, &config.server.r#virtual,
-                        ).unwrap())
-                    }); )?
-
-                    $( #[allow(clippy::no_effect)] $secured_input;
-                    let _tls_config = config.server.tls.as_ref().map(|tls| {
-                        arc!(vsmtp_config::get_rustls_config(
-                            tls, &config.server.r#virtual,
-                        ).unwrap())
-                    }); )?
-
-                    _tls_config
-                },
-                rule_engine,
-                queue_manager.clone(),
-                vsmtp_mail_parser::BasicParser::default,
-                emitter,
-                client_addr,
-                server_addr,
-                config.server.name.clone(),
-                time::OffsetDateTime::now_utc(),
-                uuid::Uuid::new_v4()
-            );
-
-            let smtp_handler = {
-                let _f = smtp_handler.clone();          $(
-                let _f = || { $crate::Wrapper{
-                    inner: smtp_handler(),
-                    hook: $mail_handler,
-                }};                                     )?
-                _f()
-            };
-
             let smtp_receiver = vsmtp_protocol::Receiver::<_, vsmtp_server::ValidationVSL, _, _>::new(
                 client_stream,
                 kind,
-                smtp_handler,
                 config.server.smtp.error.soft_count,
                 config.server.smtp.error.hard_count,
                 config.server.message_size_limit,
+                config.server.esmtp.pipelining,
             );
             let smtp_stream = smtp_receiver.into_stream(
+                |args| async move {
+                    let smtp_handler = || vsmtp_server::Handler::on_accept(
+                        args,
+                        rule_engine,
+                        config.clone(),
+                        {
+                            let _tls_config = Option::<std::sync::Arc<rustls::ServerConfig>>::None;
+                            $( #[allow(clippy::no_effect)] $server_name_tunnel;
+                            let _tls_config = config.server.tls.as_ref().map(|tls| {
+                                arc!(vsmtp_config::get_rustls_config(
+                                    tls, &config.server.r#virtual,
+                                ).unwrap())
+                            }); )?
+
+                            $( #[allow(clippy::no_effect)] $secured_input;
+                            let _tls_config = config.server.tls.as_ref().map(|tls| {
+                                arc!(vsmtp_config::get_rustls_config(
+                                    tls, &config.server.r#virtual,
+                                ).unwrap())
+                            }); )?
+
+                            _tls_config
+                        },
+                        queue_manager,
+                        emitter,
+                        vsmtp_mail_parser::BasicParser::default,
+                    );
+
+                    let _f = smtp_handler;          $(
+                    let _f = || {
+                        let (inner, ctx, reply) = _f();
+                        ($crate::Wrapper{
+                            inner,
+                            hook: $mail_handler,
+                        }, ctx, reply)
+                        }; )?
+                    _f()
+                },
                 client_addr,
                 server_addr,
                 time::OffsetDateTime::now_utc(),
@@ -408,55 +406,53 @@ macro_rules! run_pipelined_test {
             };
             let (client_stream, client_addr) = socket_server.accept().await.unwrap();
 
-            let smtp_handler = || vsmtp_server::Handler::new(
-                config.clone(),
-                {
-                    let _tls_config = Option::<std::sync::Arc<rustls::ServerConfig>>::None;
-                    $( #[allow(clippy::no_effect)] $server_name_tunnel;
-                    let _tls_config = config.server.tls.as_ref().map(|tls| {
-                        arc!(vsmtp_config::get_rustls_config(
-                            tls, &config.server.r#virtual,
-                        ).unwrap())
-                    }); )?
-
-                    $( #[allow(clippy::no_effect)] $secured_input;
-                    let _tls_config = config.server.tls.as_ref().map(|tls| {
-                        arc!(vsmtp_config::get_rustls_config(
-                            tls, &config.server.r#virtual,
-                        ).unwrap())
-                    }); )?
-
-                    _tls_config
-                },
-                rule_engine,
-                queue_manager.clone(),
-                vsmtp_mail_parser::BasicParser::default,
-                emitter,
-                client_addr,
-                server_addr,
-                config.server.name.clone(),
-                time::OffsetDateTime::now_utc(),
-                uuid::Uuid::new_v4()
-            );
-
-            let smtp_handler = {
-                let _f = smtp_handler.clone();          $(
-                let _f = || { $crate::Wrapper{
-                    inner: smtp_handler(),
-                    hook: $mail_handler,
-                }};                                     )?
-                _f()
-            };
-
             let smtp_receiver = vsmtp_protocol::Receiver::<_, vsmtp_server::ValidationVSL, _, _>::new(
                 client_stream,
                 kind,
-                smtp_handler,
                 config.server.smtp.error.soft_count,
                 config.server.smtp.error.hard_count,
                 config.server.message_size_limit,
+                config.server.esmtp.pipelining,
             );
             let smtp_stream = smtp_receiver.into_stream(
+                |args| async move {
+                    let smtp_handler = || vsmtp_server::Handler::on_accept(
+                        args,
+                        rule_engine,
+                        config.clone(),
+                        {
+                            let _tls_config = Option::<std::sync::Arc<rustls::ServerConfig>>::None;
+                            $( #[allow(clippy::no_effect)] $server_name_tunnel;
+                            let _tls_config = config.server.tls.as_ref().map(|tls| {
+                                arc!(vsmtp_config::get_rustls_config(
+                                    tls, &config.server.r#virtual,
+                                ).unwrap())
+                            }); )?
+
+                            $( #[allow(clippy::no_effect)] $secured_input;
+                            let _tls_config = config.server.tls.as_ref().map(|tls| {
+                                arc!(vsmtp_config::get_rustls_config(
+                                    tls, &config.server.r#virtual,
+                                ).unwrap())
+                            }); )?
+
+                            _tls_config
+                        },
+                        queue_manager,
+                        emitter,
+                        vsmtp_mail_parser::BasicParser::default,
+                    );
+
+                    let _f = smtp_handler;          $(
+                    let _f = || {
+                        let (inner, ctx, reply) = _f();
+                        ($crate::Wrapper{
+                            inner,
+                            hook: $mail_handler,
+                        }, ctx, reply)
+                        }; )?
+                    _f()
+                },
                 client_addr,
                 server_addr,
                 time::OffsetDateTime::now_utc(),

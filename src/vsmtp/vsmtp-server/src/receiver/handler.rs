@@ -14,23 +14,19 @@
  * this program. If not, see https://www.gnu.org/licenses/.
  *
 */
+use crate::scheduler;
 
-extern crate alloc;
 use tokio_rustls::rustls;
 use vqueue::GenericQueueManager;
-use vsmtp_common::{
-    status::Status, Address, ContextFinished, Domain, Reply, Stage, TransactionType,
-};
+use vsmtp_common::{status::Status, Address, ContextFinished, Reply, Stage, TransactionType};
 use vsmtp_config::Config;
 use vsmtp_delivery::Deliver;
 use vsmtp_mail_parser::{MailParser, MessageBody};
 use vsmtp_protocol::{
-    AcceptArgs, AuthArgs, AuthError, CallbackWrap, EhloArgs, Error, HeloArgs, MailFromArgs,
-    RcptToArgs, ReceiverContext,
+    AuthArgs, AuthError, CallbackWrap, EhloArgs, Error, HeloArgs, MailFromArgs, RcptToArgs,
+    ReceiverContext,
 };
 use vsmtp_rule_engine::{ExecutionStage, RuleEngine, RuleState};
-
-use crate::scheduler;
 
 ///
 pub struct Handler<Parser, ParserFactory>
@@ -58,61 +54,14 @@ where
     pub(super) emitter: std::sync::Arc<scheduler::Emitter>,
 }
 
-impl<Parser, ParserFactory> Handler<Parser, ParserFactory>
-where
-    Parser: MailParser + Send + Sync,
-    ParserFactory: Fn() -> Parser + Send + Sync,
-{
-    ///
-    #[must_use]
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        config: std::sync::Arc<Config>,
-        rustls_config: Option<std::sync::Arc<rustls::ServerConfig>>,
-        rule_engine: std::sync::Arc<RuleEngine>,
-        queue_manager: std::sync::Arc<dyn GenericQueueManager>,
-        message_parser_factory: ParserFactory,
-        emitter: std::sync::Arc<scheduler::Emitter>,
-        client_addr: std::net::SocketAddr,
-        server_addr: std::net::SocketAddr,
-        server_name: Domain,
-        timestamp: time::OffsetDateTime,
-        uuid: uuid::Uuid,
-    ) -> Self {
-        Self {
-            state: rule_engine.spawn_at_connect(
-                client_addr,
-                server_addr,
-                server_name,
-                timestamp,
-                uuid,
-            ),
-            state_internal: None,
-            skipped: None,
-            config,
-            rustls_config,
-            rule_engine,
-            queue_manager,
-            message_parser_factory,
-            emitter,
-        }
-    }
-}
-
 #[async_trait::async_trait]
 impl<Parser: MailParser + Send + Sync, ParserFactory: Fn() -> Parser + Send + Sync>
     vsmtp_protocol::ReceiverHandler for Handler<Parser, ParserFactory>
 {
+    type Item = (ContextFinished, MessageBody);
+
     fn generate_sasl_callback(&self) -> CallbackWrap {
         self.generate_sasl_callback_inner()
-    }
-
-    fn get_config(&self) -> alloc::sync::Arc<Config> {
-        self.state.server().config.clone()
-    }
-
-    async fn on_accept(&mut self, ctx: &mut ReceiverContext, args: AcceptArgs) -> Reply {
-        self.on_accept_inner(ctx, &args)
     }
 
     async fn on_post_tls_handshake(
@@ -358,15 +307,12 @@ impl<Parser: MailParser + Send + Sync, ParserFactory: Fn() -> Parser + Send + Sy
         &mut self,
         ctx: &mut ReceiverContext,
         stream: impl tokio_stream::Stream<Item = Result<Vec<u8>, Error>> + Send + Unpin,
-    ) -> (Reply, Option<Vec<(ContextFinished, MessageBody)>>) {
+    ) -> (Reply, Option<Vec<Self::Item>>) {
         self.on_message_inner(ctx, stream).await
     }
 
-    async fn on_message_completed(
-        &mut self,
-        ctx: ContextFinished,
-        msg: MessageBody,
-    ) -> Option<Reply> {
+    async fn on_message_completed(&mut self, item: Self::Item) -> Option<Reply> {
+        let (ctx, msg) = item;
         self.on_message_completed_inner(ctx, msg).await
     }
 

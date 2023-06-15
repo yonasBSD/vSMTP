@@ -15,11 +15,15 @@
  *
 */
 
-use std::str::FromStr;
-
-use crate::{ConnectionKind, Error};
+use crate::{ConnectionKind, Error, ParseArgsError};
 use vsmtp_common::{auth::Mechanism, Address, ClientName, Domain};
-extern crate alloc;
+
+macro_rules! strip_suffix_crlf {
+    ($v:expr) => {
+        $v.0.strip_suffix(b"\r\n")
+            .ok_or(ParseArgsError::InvalidArgs)?
+    };
+}
 
 /// Buffer received from the client.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -124,34 +128,6 @@ pub struct AuthArgs {
     pub initial_response: Option<Vec<u8>>,
 }
 
-/// Error while parsing the arguments of a command.
-#[non_exhaustive]
-pub enum ParseArgsError {
-    /// Non-UTF8 buffer.
-    InvalidUtf8(alloc::string::FromUtf8Error),
-    /// Invalid IP address.
-    BadTypeAddr(std::net::AddrParseError),
-    /// The buffer is too big (between each "\r\n").
-    BufferTooLong {
-        /// buffer size limit
-        expected: usize,
-        /// actual size of the buffer we got
-        got: usize,
-    },
-    /// mail address is invalid (for rcpt, mail from ...)
-    InvalidMailAddress {
-        /// ill-formatted mail address
-        mail: String,
-    },
-    /// specified address it not available.
-    /// In command parsing, it can be fired if a given email is in utf8
-    /// and no smtputf8 option is provided
-    EmailUnavailable,
-    /// Other
-    // FIXME: improve that
-    InvalidArgs,
-}
-
 #[allow(clippy::manual_map)]
 fn split_args(slice: &[u8], delimiter: u8) -> Option<(&[u8], &[u8])> {
     let delimiter_pos = slice.iter().position(|c| c == &delimiter);
@@ -224,19 +200,13 @@ impl TryFrom<UnparsedArgs> for HeloArgs {
 
     #[inline]
     fn try_from(value: UnparsedArgs) -> Result<Self, Self::Error> {
-        let value = value
-            .0
-            .strip_suffix(b"\r\n")
-            .ok_or(ParseArgsError::InvalidArgs)?
-            .to_vec();
+        let value = strip_suffix_crlf!(value).to_vec();
 
         Ok(Self {
             client_name: Domain::from_utf8(
-                addr::parse_domain_name(
-                    &String::from_utf8(value).map_err(ParseArgsError::InvalidUtf8)?,
-                )
-                .map_err(|_err| ParseArgsError::InvalidArgs)?
-                .as_str(),
+                addr::parse_domain_name(&String::from_utf8(value)?)
+                    .map_err(|_err| ParseArgsError::InvalidArgs)?
+                    .as_str(),
             )
             .map_err(|_err| ParseArgsError::InvalidArgs)?,
         })
@@ -248,14 +218,7 @@ impl TryFrom<UnparsedArgs> for EhloArgs {
 
     #[inline]
     fn try_from(value: UnparsedArgs) -> Result<Self, Self::Error> {
-        let value = String::from_utf8(
-            value
-                .0
-                .strip_suffix(b"\r\n")
-                .ok_or(ParseArgsError::InvalidArgs)?
-                .to_vec(),
-        )
-        .map_err(ParseArgsError::InvalidUtf8)?;
+        let value = String::from_utf8(strip_suffix_crlf!(value).to_vec())?;
 
         if !value.is_ascii() {
             return Err(ParseArgsError::InvalidArgs);
@@ -264,19 +227,13 @@ impl TryFrom<UnparsedArgs> for EhloArgs {
         let client_name = match &value {
             ipv6 if ipv6.to_lowercase().starts_with("[ipv6:") && ipv6.ends_with(']') => {
                 match ipv6.get("[IPv6:".len()..ipv6.len() - 1) {
-                    Some(ipv6) => ClientName::Ip6(
-                        ipv6.parse::<std::net::Ipv6Addr>()
-                            .map_err(ParseArgsError::BadTypeAddr)?,
-                    ),
+                    Some(ipv6) => ClientName::Ip6(ipv6.parse::<std::net::Ipv6Addr>()?),
                     None => return Err(ParseArgsError::InvalidArgs),
                 }
             }
             ipv4 if ipv4.starts_with('[') && ipv4.ends_with(']') => {
                 match ipv4.get(1..ipv4.len() - 1) {
-                    Some(ipv4) => ClientName::Ip4(
-                        ipv4.parse::<std::net::Ipv4Addr>()
-                            .map_err(ParseArgsError::BadTypeAddr)?,
-                    ),
+                    Some(ipv4) => ClientName::Ip4(ipv4.parse::<std::net::Ipv4Addr>()?),
                     None => return Err(ParseArgsError::InvalidArgs),
                 }
             }
@@ -299,10 +256,7 @@ impl TryFrom<UnparsedArgs> for AuthArgs {
 
     #[inline]
     fn try_from(value: UnparsedArgs) -> Result<Self, Self::Error> {
-        let value = value
-            .0
-            .strip_suffix(b"\r\n")
-            .ok_or(ParseArgsError::InvalidArgs)?;
+        let value = strip_suffix_crlf!(value);
 
         let (mechanism, initial_response) = if let Some((idx, _)) = value
             .iter()
@@ -324,8 +278,7 @@ impl TryFrom<UnparsedArgs> for AuthArgs {
             (value.to_vec(), None)
         };
 
-        let mechanism = String::from_utf8(mechanism)
-            .map_err(ParseArgsError::InvalidUtf8)?
+        let mechanism = String::from_utf8(mechanism)?
             .parse()
             .map_err(|_err| ParseArgsError::InvalidArgs)?;
 
@@ -341,10 +294,7 @@ impl TryFrom<UnparsedArgs> for MailFromArgs {
 
     #[inline]
     fn try_from(value: UnparsedArgs) -> Result<Self, Self::Error> {
-        let value = value
-            .0
-            .strip_suffix(b"\r\n")
-            .ok_or(ParseArgsError::InvalidArgs)?;
+        let value = strip_suffix_crlf!(value);
 
         let mut words = value
             .split(u8::is_ascii_whitespace)
@@ -359,7 +309,7 @@ impl TryFrom<UnparsedArgs> for MailFromArgs {
             if mailbox.is_empty() {
                 None
             } else {
-                Some(String::from_utf8(mailbox.to_vec()).map_err(ParseArgsError::InvalidUtf8)?)
+                Some(String::from_utf8(mailbox.to_vec())?)
             }
         } else {
             return Err(ParseArgsError::InvalidArgs);
@@ -383,7 +333,7 @@ impl TryFrom<UnparsedArgs> for MailFromArgs {
         }
         let mailbox = match mailbox {
             Some(mailbox) => Some(
-                Address::from_str(&mailbox)
+                <Address as std::str::FromStr>::from_str(&mailbox)
                     .map_err(|_error| ParseArgsError::InvalidMailAddress { mail: mailbox })?,
             ),
             None => None,
@@ -398,10 +348,7 @@ impl TryFrom<UnparsedArgs> for RcptToArgs {
 
     #[inline]
     fn try_from(value: UnparsedArgs) -> Result<Self, Self::Error> {
-        let value = value
-            .0
-            .strip_suffix(b"\r\n")
-            .ok_or(ParseArgsError::InvalidArgs)?;
+        let value = strip_suffix_crlf!(value);
 
         let mut word = value
             .split(u8::is_ascii_whitespace)
@@ -414,14 +361,13 @@ impl TryFrom<UnparsedArgs> for RcptToArgs {
                     .strip_suffix(b">")
                     .ok_or(ParseArgsError::InvalidArgs)?
                     .to_vec(),
-            )
-            .map_err(ParseArgsError::InvalidUtf8)?
+            )?
         } else {
             return Err(ParseArgsError::InvalidArgs);
         };
 
         Ok(Self {
-            forward_path: Address::from_str(&mailbox)
+            forward_path: <Address as std::str::FromStr>::from_str(&mailbox)
                 .map_err(|_error| ParseArgsError::InvalidMailAddress { mail: mailbox })?,
         })
     }

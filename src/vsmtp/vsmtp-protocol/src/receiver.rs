@@ -16,12 +16,11 @@
 */
 use crate::{
     reader::Reader, writer::WindowWriter, AcceptArgs, AuthArgs, ConnectionKind, EhloArgs, Error,
-    HeloArgs, MailFromArgs, ParseArgsError, RcptToArgs, ReceiverHandler, Verb,
+    HeloArgs, MailFromArgs, RcptToArgs, ReceiverHandler, Verb,
 };
 use tokio_rustls::rustls;
 use tokio_stream::StreamExt;
-use vsmtp_common::{auth::Mechanism, Stage};
-extern crate alloc;
+use vsmtp_common::{auth::Mechanism, Reply, Stage};
 
 enum HandshakeOutcome {
     Message,
@@ -81,34 +80,36 @@ impl ReceiverContext {
 
 /// A SMTP receiver.
 pub struct Receiver<
-    T: ReceiverHandler + Send,
+    H: ReceiverHandler + Send,
     V: rsasl::validate::Validation + Send,
     W: tokio::io::AsyncWrite + Unpin + Send,
     R: tokio::io::AsyncRead + Unpin + Send,
 > where
     V::Value: Send + Sync,
 {
-    pub(crate) handler: T,
     pub(crate) sink: WindowWriter<W>,
     pub(crate) stream: Reader<R>,
     error_counter: ErrorCounter,
     context: ReceiverContext,
     kind: ConnectionKind,
     message_size_max: usize,
+    support_pipelining: bool,
     v: std::marker::PhantomData<V>,
+    h: std::marker::PhantomData<H>,
 }
 
-impl<T: ReceiverHandler + Send, V: rsasl::validate::Validation + Send>
-    Receiver<T, V, tokio::net::tcp::OwnedWriteHalf, tokio::net::tcp::OwnedReadHalf>
+impl<H: ReceiverHandler + Send, V: rsasl::validate::Validation + Send>
+    Receiver<H, V, tokio::net::tcp::OwnedWriteHalf, tokio::net::tcp::OwnedReadHalf>
 where
     V::Value: Send + Sync,
 {
     fn upgrade_tls(
         self,
+        handler: H,
         config: alloc::sync::Arc<rustls::ServerConfig>,
         handshake_timeout: std::time::Duration,
-    ) -> impl tokio_stream::Stream<Item = std::io::Result<()>> {
-        async_stream::try_stream! {
+    ) -> impl tokio_stream::Stream<Item = Result<(), Error>> {
+        async_stream::stream! {
             #[allow(clippy::expect_used)]
             let tcp_stream = self
                 .sink
@@ -118,11 +119,20 @@ where
 
             let acceptor = tokio_rustls::TlsAcceptor::from(config);
 
-            let tls_tcp_stream = tokio::time::timeout(
+            let tls_tcp_stream = match tokio::time::timeout(
                 handshake_timeout,
                 acceptor.accept(tcp_stream),
-            )
-            .await??;
+            ).await {
+                Ok(Ok(tls_tcp_stream)) => tls_tcp_stream,
+                Ok(Err(e)) => {
+                    Err(e)?;
+                    return;
+                }
+                Err(_elapsed) => {
+                    Err(Error::timeout(handshake_timeout, "tls handshake timed out"))?;
+                    return;
+                }
+            };
 
             let tls_config = tls_tcp_stream.get_ref().1;
             let sni = tls_config.sni_hostname().map(str::to_string);
@@ -141,18 +151,20 @@ where
             // FIXME: see https://github.com/tokio-rs/tls/issues/40
             let (read, write) = tokio::io::split(tls_tcp_stream);
 
-            let (stream, sink) = (Reader::new(read, self.handler.get_config().server.esmtp.pipelining), WindowWriter::new(write));
+            let (stream, sink) = (Reader::new(read, self.support_pipelining), WindowWriter::new(write));
 
             let secured_receiver = Receiver {
                 sink,
                 stream,
                 context: ReceiverContext { outcome: None },
-                handler: self.handler,
                 error_counter: self.error_counter,
                 kind: self.kind,
                 message_size_max: self.message_size_max,
+                support_pipelining: self.support_pipelining,
                 v: self.v,
+                h: self.h,
             }.into_secured_stream(
+                handler,
                 sni,
                 protocol_version,
                 negotiated_cipher_suite,
@@ -161,7 +173,7 @@ where
             );
 
             for await i in secured_receiver {
-                yield i?;
+                yield i;
             }
         }
     }
@@ -171,18 +183,17 @@ where
     pub fn new(
         tcp_stream: tokio::net::TcpStream,
         kind: ConnectionKind,
-        handler: T,
         threshold_soft_error: i64,
         threshold_hard_error: i64,
         message_size_max: usize,
+        support_pipelining: bool,
     ) -> Self {
         let (read, write) = tcp_stream.into_split();
         let (stream, sink) = (
-            Reader::new(read, handler.get_config().server.esmtp.pipelining),
+            Reader::new(read, support_pipelining),
             WindowWriter::new(write),
         );
         Self {
-            handler,
             sink,
             stream,
             error_counter: ErrorCounter {
@@ -193,28 +204,55 @@ where
             context: ReceiverContext { outcome: None },
             kind,
             message_size_max,
+            support_pipelining,
             v: std::marker::PhantomData,
+            h: std::marker::PhantomData,
         }
     }
-
     /// Handle the inner stream to produce a [`tokio_stream::Stream`], each item
     /// being a successful SMTP transaction.
     ///
     /// # Panics
     ///
-    /// * if the [`ReceiverHandler::on_accept()`] produces a `message` or a `authenticate` outcome (which is invalid)
+    /// * if the `on_accept` produces a `message` or a `authenticate` outcome (which is invalid)
     #[inline]
-    #[allow(clippy::todo)]
-    pub fn into_stream(
-        mut self,
+    pub fn into_stream<Fun, Future>(
+        self,
+        on_accept: Fun,
         client_addr: std::net::SocketAddr,
         server_addr: std::net::SocketAddr,
         timestamp: time::OffsetDateTime,
         uuid: uuid::Uuid,
-    ) -> impl tokio_stream::Stream<Item = std::io::Result<()>> {
+    ) -> impl tokio_stream::Stream<Item = Result<(), ()>>
+    where
+        Fun: FnOnce(AcceptArgs) -> Future,
+        Future: std::future::Future<Output = (H, ReceiverContext, Option<Reply>)>,
+    {
+        self.into_stream_with_error(on_accept, client_addr, server_addr, timestamp, uuid)
+            .map(|e| match e {
+                Ok(()) => Ok(()),
+                Err(e) => {
+                    tracing::error!(?e);
+                    Err(())
+                }
+            })
+    }
+
+    #[allow(clippy::panic)]
+    fn into_stream_with_error<Fun, Future>(
+        mut self,
+        on_accept: Fun,
+        client_addr: std::net::SocketAddr,
+        server_addr: std::net::SocketAddr,
+        timestamp: time::OffsetDateTime,
+        uuid: uuid::Uuid,
+    ) -> impl tokio_stream::Stream<Item = Result<(), Error>>
+    where
+        Fun: FnOnce(AcceptArgs) -> Future,
+        Future: std::future::Future<Output = (H, ReceiverContext, Option<Reply>)>,
+    {
         async_stream::try_stream! {
-            let reply_accept = self.handler.on_accept(
-                &mut self.context,
+            let accepted = on_accept(
                 AcceptArgs {
                     client_addr,
                     server_addr,
@@ -223,64 +261,72 @@ where
                     uuid,
                 }
             ).await;
-
-            let produced_context_accept = std::mem::take(&mut self.context);
-            if let Some(outcome) = produced_context_accept.outcome {
-                match outcome {
-                    HandshakeOutcome::Message | HandshakeOutcome::Authenticate { .. } =>
-                        todo!("implementation of Handler is incorrect"),
-                    HandshakeOutcome::UpgradeTLS { config, handshake_timeout } => {
-                        for await i in self.upgrade_tls(config, handshake_timeout) {
-                            yield i?;
-                        }
-                        return;
-                    }
-                    HandshakeOutcome::Quit => return,
+            let mut handler = match accepted {
+                (mut handler, ReceiverContext{ outcome: None }, Some(reply_accept)) => {
+                    self.sink
+                        .direct_send_reply(&mut self.context, &mut self.error_counter, &mut handler, reply_accept)
+                        .await?;
+                    handler
                 }
-            }
-
-            self.sink
-                .direct_send_reply(&mut self.context, &mut self.error_counter, &mut self.handler, reply_accept)
-                .await?;
+                (handler, ReceiverContext{
+                    outcome: Some(HandshakeOutcome::UpgradeTLS {
+                        config,
+                        handshake_timeout
+                    }),
+                }, None) => {
+                    for await i in self.upgrade_tls(handler, config, handshake_timeout) {
+                        yield i?;
+                    }
+                    return;
+                }
+                (mut handler, ReceiverContext{ outcome: Some(HandshakeOutcome::Quit) }, reply_accept) => {
+                    if let Some(reply_accept) = reply_accept {
+                        self.sink
+                            .direct_send_reply(&mut self.context, &mut self.error_counter, &mut handler, reply_accept)
+                            .await?;
+                    }
+                    return;
+                }
+                _ => panic!("implementation of Handler is incorrect")
+            };
 
             loop {
-                match self.smtp_handshake().await? {
+                match self.smtp_handshake(&mut handler).await? {
                     HandshakeOutcome::Message => {
                         let message_stream = self.stream.as_message_stream(self.message_size_max).fuse();
                         tokio::pin!(message_stream);
 
-                        let (mut reply, completed) = self.handler.on_message(&mut self.context, message_stream).await;
+                        let (mut reply, completed) = handler.on_message(&mut self.context, message_stream).await;
                         if let Some(completed) = completed {
-                            for (ctx, msg) in completed {
-                                if let Some(error) = self.handler.on_message_completed(ctx, msg).await {
+                            for item in completed {
+                                if let Some(error) = handler.on_message_completed(item).await {
                                     reply = error;
                                     break;
                                 }
                             }
                         }
                         self.sink
-                            .direct_send_reply(&mut self.context, &mut self.error_counter, &mut self.handler, reply)
+                            .direct_send_reply(&mut self.context, &mut self.error_counter, &mut handler, reply)
                             .await?;
 
                         yield ();
                     },
                     HandshakeOutcome::UpgradeTLS { config, handshake_timeout } => {
-                        for await i in self.upgrade_tls(config, handshake_timeout) {
+                        for await i in self.upgrade_tls(handler, config, handshake_timeout) {
                             yield i?;
                         }
                         return;
                     },
                     HandshakeOutcome::Authenticate { mechanism, initial_response } => {
-                        let auth_result = self.authenticate(mechanism, initial_response).await;
+                        let auth_result = self.authenticate(&mut handler, mechanism, initial_response).await;
                         // if security layer ...
 
-                        let reply = self.handler.on_post_auth(&mut self.context, auth_result).await;
+                        let reply = handler.on_post_auth(&mut self.context, auth_result).await;
                         self.sink
-                            .direct_send_reply(&mut self.context, &mut self.error_counter, &mut self.handler, reply)
+                            .direct_send_reply(&mut self.context, &mut self.error_counter, &mut handler, reply)
                             .await?;
 
-                        let produced_context = std::mem::take(&mut self.context);
-                        if matches!(produced_context.outcome, Some(HandshakeOutcome::Quit)) {
+                        if matches!(std::mem::take(&mut self.context).outcome, Some(HandshakeOutcome::Quit)) {
                             return;
                         }
 
@@ -301,17 +347,18 @@ impl<
 where
     V::Value: Send + Sync,
 {
-    #[allow(clippy::todo)]
+    #[allow(clippy::panic)]
     fn into_secured_stream(
         mut self,
+        mut handler: T,
         sni: Option<String>,
         protocol_version: rustls::ProtocolVersion,
         negotiated_cipher_suite: rustls::SupportedCipherSuite,
         peer_certificates: Option<Vec<rustls::Certificate>>,
         alpn_protocol: Option<Vec<u8>>,
-    ) -> impl tokio_stream::Stream<Item = std::io::Result<()>> {
+    ) -> impl tokio_stream::Stream<Item = Result<(), Error>> {
         async_stream::try_stream! {
-            let reply_post_tls_handshake = self.handler.on_post_tls_handshake(
+            let reply_post_tls_handshake = handler.on_post_tls_handshake(
                 sni,
                 protocol_version,
                 negotiated_cipher_suite.suite(),
@@ -323,44 +370,43 @@ where
                 self.sink.direct_send_reply(
                     &mut self.context,
                     &mut self.error_counter,
-                    &mut self.handler,
+                    &mut handler,
                     reply_post_tls_handshake
                 ).await?;
             }
 
             loop {
-                match self.smtp_handshake().await? {
+                match self.smtp_handshake(&mut handler).await? {
                     HandshakeOutcome::Message => {
                         let message_stream = self.stream.as_message_stream(self.message_size_max).fuse();
                         tokio::pin!(message_stream);
 
-                        let (mut reply, completed) = self.handler.on_message(&mut self.context, message_stream).await;
+                        let (mut reply, completed) = handler.on_message(&mut self.context, message_stream).await;
                         if let Some(completed) = completed {
-                            for (ctx, msg) in completed {
-                                if let Some(error) = self.handler.on_message_completed(ctx, msg).await {
+                            for item in completed {
+                                if let Some(error) = handler.on_message_completed(item).await {
                                     reply = error;
                                     break;
                                 }
                             }
                         }
                         self.sink
-                            .direct_send_reply(&mut self.context, &mut self.error_counter, &mut self.handler, reply)
+                            .direct_send_reply(&mut self.context, &mut self.error_counter, &mut handler, reply)
                             .await?;
 
                         yield ();
                     },
-                    HandshakeOutcome::UpgradeTLS { .. } => todo!("smtp_handshake should not return UpgradeTLS"),
+                    HandshakeOutcome::UpgradeTLS { .. } => panic!("smtp_handshake should not return UpgradeTLS"),
                     HandshakeOutcome::Authenticate { mechanism, initial_response } => {
-                        let auth_result = self.authenticate(mechanism, initial_response).await;
+                        let auth_result = self.authenticate(&mut handler, mechanism, initial_response).await;
                         // if security layer ...
 
-                        let reply = self.handler.on_post_auth(&mut self.context, auth_result).await;
+                        let reply = handler.on_post_auth(&mut self.context, auth_result).await;
                         self.sink
-                            .direct_send_reply(&mut self.context, &mut self.error_counter, &mut self.handler, reply)
+                            .direct_send_reply(&mut self.context, &mut self.error_counter, &mut handler, reply)
                             .await?;
 
-                        let produced_context = std::mem::take(&mut self.context);
-                        if matches!(produced_context.outcome, Some(HandshakeOutcome::Quit)) {
+                        if matches!(std::mem::take(&mut self.context).outcome, Some(HandshakeOutcome::Quit)) {
                             return;
                         }
 
@@ -377,18 +423,18 @@ where
     ///
     /// * the `Vec<u8>` is the bytes read with the SMTP verb "DATA\r\n"
     #[allow(clippy::too_many_lines)]
-    async fn smtp_handshake(&mut self) -> std::io::Result<HandshakeOutcome> {
+    async fn smtp_handshake(&mut self, handler: &mut T) -> Result<HandshakeOutcome, Error> {
         macro_rules! handle_args {
             ($args_output:ty, $args:expr, $on_event:tt) => {
                 match <$args_output>::try_from($args) {
-                    Ok(args) => self.handler.$on_event(&mut self.context, args).await,
-                    Err(e) => self.handler.on_args_error(e).await,
+                    Ok(args) => handler.$on_event(&mut self.context, args).await,
+                    Err(e) => handler.on_args_error(&e).await,
                 }
             };
             ($args_output:ty, $args:expr, Option: $on_event:tt) => {
                 match <$args_output>::try_from($args) {
-                    Ok(args) => self.handler.$on_event(&mut self.context, args).await,
-                    Err(e) => Some(self.handler.on_args_error(e).await),
+                    Ok(args) => handler.$on_event(&mut self.context, args).await,
+                    Err(e) => Some(handler.on_args_error(&e).await),
                 }
             };
         }
@@ -410,7 +456,7 @@ where
                         .direct_send_reply(
                             &mut self.context,
                             &mut self.error_counter,
-                            &mut self.handler,
+                            handler,
                             "451 Timeout - closing connection\r\n"
                                 .parse()
                                 .expect("valid syntax"),
@@ -424,44 +470,38 @@ where
             for command in commands_batch {
                 let (verb, args) = match command {
                     Ok(command) => command,
-                    Err(e) => match e {
-                        Error::BufferTooLong { expected, got } => {
-                            let reply = self
-                                .handler
-                                .on_args_error(ParseArgsError::BufferTooLong { expected, got })
-                                .await;
+                    Err(e) => {
+                        if let Some(e) = e.get_ref().and_then(
+                            <(dyn std::error::Error
+                                 + std::marker::Send
+                                 + std::marker::Sync
+                                 + 'static)>::downcast_ref,
+                        ) {
+                            let reply = handler.on_args_error(e).await;
                             self.sink
                                 .direct_send_reply(
                                     &mut self.context,
                                     &mut self.error_counter,
-                                    &mut self.handler,
+                                    handler,
                                     reply,
                                 )
                                 .await?;
                             continue;
                         }
-                        Error::Io(io) => return Err(io),
-                        Error::Utf8(e) => {
-                            return Err(std::io::Error::new(
-                                std::io::ErrorKind::InvalidData,
-                                e.to_string(),
-                            ))
-                        }
-                        Error::ParsingError(e) => {
-                            return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, e))
-                        }
-                    },
+                        tracing::error!(?e);
+                        return Err(e);
+                    }
                 };
                 tracing::trace!("<< {:?} ; {:?}", verb, std::str::from_utf8(&args.0));
 
-                let stage = self.handler.get_stage();
+                let stage = handler.get_stage();
                 let reply = match (verb, stage) {
                     (Verb::Helo, _) => Some(handle_args!(HeloArgs, args, on_helo)),
                     (Verb::Ehlo, _) => Some(handle_args!(EhloArgs, args, on_ehlo)),
-                    (Verb::Noop, _) => Some(self.handler.on_noop().await),
-                    (Verb::Rset, _) => Some(self.handler.on_rset().await),
+                    (Verb::Noop, _) => Some(handler.on_noop().await),
+                    (Verb::Rset, _) => Some(handler.on_rset().await),
                     (Verb::StartTls, Stage::Connect | Stage::Helo) => {
-                        Some(self.handler.on_starttls(&mut self.context).await)
+                        Some(handler.on_starttls(&mut self.context).await)
                     }
                     (Verb::Auth, Stage::Connect | Stage::Helo) => {
                         handle_args!(AuthArgs, args, Option: on_auth)
@@ -474,22 +514,22 @@ where
                     }
                     (Verb::Data, Stage::RcptTo) => {
                         self.context.outcome = Some(HandshakeOutcome::Message);
-                        Some(self.handler.on_data().await)
+                        Some(handler.on_data().await)
                     }
                     (Verb::Quit, _) => {
                         self.context.outcome = Some(HandshakeOutcome::Quit);
-                        Some(self.handler.on_quit().await)
+                        Some(handler.on_quit().await)
                     }
-                    (Verb::Help, _) => Some(self.handler.on_help(args).await),
-                    (Verb::Unknown, _) => Some(self.handler.on_unknown(args.0).await),
-                    otherwise => Some(self.handler.on_bad_sequence(otherwise).await),
+                    (Verb::Help, _) => Some(handler.on_help(args).await),
+                    (Verb::Unknown, _) => Some(handler.on_unknown(args.0).await),
+                    otherwise => Some(handler.on_bad_sequence(otherwise).await),
                 };
                 if let Some(reply) = reply {
                     self.sink
                         .send_reply(
                             &mut self.context,
                             &mut self.error_counter,
-                            &mut self.handler,
+                            handler,
                             reply,
                             verb,
                         )
@@ -497,11 +537,10 @@ where
                 }
             }
 
-            let produced_context = std::mem::take(&mut self.context);
             if !self.sink.is_empty() {
                 self.sink.flush().await?;
             }
-            if let Some(done) = produced_context.outcome {
+            if let Some(done) = std::mem::take(&mut self.context).outcome {
                 return Ok(done);
             }
         }

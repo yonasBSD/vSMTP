@@ -243,7 +243,6 @@ impl Server {
 
     ///
     /// # Errors
-    #[allow(clippy::too_many_arguments)]
     #[tracing::instrument(skip_all, err, fields(uuid = %args.uuid))]
     pub async fn serve(
         args: AcceptArgs,
@@ -254,28 +253,26 @@ impl Server {
         queue_manager: std::sync::Arc<dyn GenericQueueManager>,
         emitter: std::sync::Arc<Emitter>,
     ) -> anyhow::Result<()> {
-        let smtp_handler = Handler::new(
-            config.clone(),
-            tls_config,
-            rule_engine,
-            queue_manager,
-            BasicParser::default,
-            emitter,
-            args.client_addr,
-            args.server_addr,
-            config.server.name.clone(),
-            args.timestamp,
-            args.uuid,
-        );
-        let smtp_receiver = vsmtp_protocol::Receiver::<_, ValidationVSL, _, _>::new(
+        let receiver = vsmtp_protocol::Receiver::<_, ValidationVSL, _, _>::new(
             tcp_stream,
             args.kind,
-            smtp_handler,
             config.server.smtp.error.soft_count,
             config.server.smtp.error.hard_count,
             config.server.message_size_limit,
+            config.server.esmtp.pipelining,
         );
-        let smtp_stream = smtp_receiver.into_stream(
+        let smtp_stream = receiver.into_stream(
+            |args| async move {
+                Handler::on_accept(
+                    args,
+                    rule_engine,
+                    config,
+                    tls_config,
+                    queue_manager,
+                    emitter,
+                    BasicParser::default,
+                )
+            },
             args.client_addr,
             args.server_addr,
             args.timestamp,

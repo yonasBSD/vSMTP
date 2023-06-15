@@ -20,11 +20,10 @@ extern crate alloc;
 use tokio_rustls::rustls;
 use vsmtp_common::ContextFinished;
 use vsmtp_common::{Reply, Stage};
-use vsmtp_config::Config;
 use vsmtp_mail_parser::MessageBody;
 use vsmtp_protocol::{
-    AcceptArgs, AuthArgs, AuthError, CallbackWrap, EhloArgs, Error, HeloArgs, MailFromArgs,
-    RcptToArgs, ReceiverContext, ReceiverHandler,
+    AuthArgs, AuthError, CallbackWrap, EhloArgs, Error, HeloArgs, MailFromArgs, RcptToArgs,
+    ReceiverContext, ReceiverHandler,
 };
 
 // NOTE: could be enhance to allow entry point on each call
@@ -42,8 +41,11 @@ where
     }
 }
 
-/// wrapper around `ReceiverHandler` which simplify implementation of new handler
-pub struct Wrapper<Inner: ReceiverHandler, Hook: OnMessageCompletedHook> {
+///
+pub struct Wrapper<
+    Inner: ReceiverHandler<Item = (ContextFinished, MessageBody)>,
+    Hook: OnMessageCompletedHook,
+> {
     ///
     pub inner: Inner,
     ///
@@ -53,23 +55,17 @@ pub struct Wrapper<Inner: ReceiverHandler, Hook: OnMessageCompletedHook> {
 #[async_trait::async_trait]
 impl<Inner, Hook> ReceiverHandler for Wrapper<Inner, Hook>
 where
-    Inner: ReceiverHandler + Send,
+    Inner: ReceiverHandler<Item = (ContextFinished, MessageBody)> + Send,
     Hook: OnMessageCompletedHook + Clone + Send,
 {
+    type Item = (ContextFinished, MessageBody);
+
     fn get_stage(&self) -> Stage {
         self.inner.get_stage()
     }
 
-    fn get_config(&self) -> alloc::sync::Arc<Config> {
-        self.inner.get_config()
-    }
-
     fn generate_sasl_callback(&self) -> CallbackWrap {
         self.inner.generate_sasl_callback()
-    }
-
-    async fn on_accept(&mut self, ctx: &mut ReceiverContext, args: AcceptArgs) -> Reply {
-        self.inner.on_accept(ctx, args).await
     }
 
     async fn on_starttls(&mut self, ctx: &mut ReceiverContext) -> Reply {
@@ -127,16 +123,12 @@ where
         &mut self,
         ctx: &mut ReceiverContext,
         stream: impl tokio_stream::Stream<Item = Result<Vec<u8>, Error>> + Send + Unpin,
-    ) -> (Reply, Option<Vec<(ContextFinished, MessageBody)>>) {
+    ) -> (Reply, Option<Vec<Self::Item>>) {
         self.inner.on_message(ctx, stream).await
     }
 
-    async fn on_message_completed(
-        &mut self,
-        ctx: ContextFinished,
-        msg: MessageBody,
-    ) -> Option<Reply> {
-        // self.inner.on_message_completed(ctx, msg).await
+    async fn on_message_completed(&mut self, item: Self::Item) -> Option<Reply> {
+        let (ctx, msg) = item;
         self.hook.clone().on_message_completed(ctx, msg);
         None
     }
