@@ -86,7 +86,7 @@ uuid = { version = "1.3.4", default-features = false, features = ["std", "v4", "
 
 [dev-dependencies]
 vsmtp-test = { path = "../vsmtp-test" }
-test-log = { version = "0.2.11", features = ["trace"] }
+test-log = { version = "0.2.12", features = ["trace"] }
 
 rstest = "0.17.0"
 

@@ -123,7 +123,7 @@ rand = "0.8.5"
 
 rustls-pemfile = { version = "1.0.2", default-features = false }
 
-test-log = { version = "0.2.11", features = ["trace"] }
+test-log = { version = "0.2.12", features = ["trace"] }
 env_logger = "0.10.0"
 tracing-subscriber = { version = "0.3.17", default-features = false, features = [
   "std",
