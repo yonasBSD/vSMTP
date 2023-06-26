@@ -38,7 +38,8 @@
     clippy::implicit_return,
     clippy::arithmetic_side_effects,
     clippy::integer_arithmetic,
-    clippy::shadow_same
+    clippy::shadow_same,
+    clippy::shadow_unrelated
 )]
 // FIXME:
 #![allow(clippy::std_instead_of_core)] // issue with thiserror

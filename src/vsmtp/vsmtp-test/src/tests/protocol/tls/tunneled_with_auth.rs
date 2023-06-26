@@ -65,6 +65,7 @@ run_test! {
         "250-8BITMIME\r\n",
         "250-SMTPUTF8\r\n",
         "250-PIPELINING\r\n",
+        "250-DSN\r\n",
         "250 SIZE 20000000\r\n",
         "334 \r\n",
         "235 2.7.0 Authentication succeeded\r\n",

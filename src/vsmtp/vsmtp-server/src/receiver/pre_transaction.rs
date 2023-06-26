@@ -110,6 +110,7 @@ fn build_ehlo_reply(config: &vsmtp_config::Config, is_transaction_secured: bool)
             .pipelining
             .then_some(("250", "PIPELINING".to_string())),
         esmtp.chunking.then_some(("250", "CHUNKING".to_string())),
+        Some(("250", "DSN".to_owned())),
         Some(("250", format!("SIZE {}", esmtp.size))),
     ]
     .into_iter()
@@ -592,6 +593,7 @@ mod tests {
                 "250-8BITMIME",
                 "250-SMTPUTF8",
                 "250-PIPELINING",
+                "250-DSN",
                 "250 SIZE 20000000\r\n",
             ]
             .join("\r\n")
@@ -636,7 +638,13 @@ mod tests {
         assert_eq!(reply.code().value(), 250);
         assert_eq!(
             reply.to_string(),
-            ["250-testserver.com", "250-PIPELINING", "250 SIZE 10\r\n",].join("\r\n")
+            [
+                "250-testserver.com",
+                "250-PIPELINING",
+                "250-DSN",
+                "250 SIZE 10\r\n",
+            ]
+            .join("\r\n")
         );
         // build_ehlo_reply(config: &vsmtp_config::Config, is_transaction_secured: bool)
     }

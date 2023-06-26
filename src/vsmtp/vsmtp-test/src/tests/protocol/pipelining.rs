@@ -30,8 +30,8 @@ run_pipelined_test! {
         250-SMTPUTF8\r\n\
         250-STARTTLS\r\n\
         250-PIPELINING\r\n\
+        250-DSN\r\n\
         250 SIZE 20000000\r\n",
-
         "221 Service closing transmission channel\r\n",
     ],
 }
@@ -53,6 +53,7 @@ run_pipelined_test! {
         250-SMTPUTF8\r\n\
         250-STARTTLS\r\n\
         250-PIPELINING\r\n\
+        250-DSN\r\n\
         250 SIZE 20000000\r\n",
         "250 Ok\r\n\
         250 Ok\r\n\
@@ -80,6 +81,7 @@ run_pipelined_test! {
         250-SMTPUTF8\r\n\
         250-STARTTLS\r\n\
         250-PIPELINING\r\n\
+        250-DSN\r\n\
         250 SIZE 20000000\r\n",
         "250 Ok\r\n\
         250 Ok\r\n\
@@ -106,6 +108,7 @@ run_pipelined_test! {
         250-SMTPUTF8\r\n\
         250-STARTTLS\r\n\
         250-PIPELINING\r\n\
+        250-DSN\r\n\
         250 SIZE 20000000\r\n",
         "250 Ok\r\n\
         503 Bad sequence of commands\r\n",
@@ -130,6 +133,7 @@ run_pipelined_test! {
         250-SMTPUTF8\r\n\
         250-STARTTLS\r\n\
         250-PIPELINING\r\n\
+        250-DSN\r\n\
         250 SIZE 20000000\r\n",
         "250 Ok\r\n\
         553 5.1.7 The address <galvin@> is not a valid RFC-5321 address\r\n\
@@ -156,6 +160,7 @@ run_pipelined_test! {
         250-SMTPUTF8\r\n\
         250-STARTTLS\r\n\
         250-PIPELINING\r\n\
+        250-DSN\r\n\
         250 SIZE 20000000\r\n",
         "250 Ok\r\n\
         250 Ok\r\n\
@@ -185,6 +190,7 @@ run_pipelined_test! {
         250-SMTPUTF8\r\n\
         250-STARTTLS\r\n\
         250-PIPELINING\r\n\
+        250-DSN\r\n\
         250 SIZE 20000000\r\n",
         "250 Ok\r\n\
         250 Ok\r\n\
@@ -219,6 +225,7 @@ run_pipelined_test! {
         250-SMTPUTF8\r\n\
         250-STARTTLS\r\n\
         250-PIPELINING\r\n\
+        250-DSN\r\n\
         250 SIZE 20000000\r\n",
         "250 Ok\r\n\
         250 Ok\r\n\
@@ -250,6 +257,7 @@ run_pipelined_test! {
         250-SMTPUTF8\r\n\
         250-STARTTLS\r\n\
         250-PIPELINING\r\n\
+        250-DSN\r\n\
         250 SIZE 20000000\r\n",
         "250 Ok\r\n\
         250 Ok\r\n\

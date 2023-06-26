@@ -23,6 +23,7 @@ mod examples {
 }
 mod protocol {
     mod clair;
+    mod dsn;
     mod mail_from;
     mod message_max_size;
     mod pipelining;

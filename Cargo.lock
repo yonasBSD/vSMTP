@@ -4967,6 +4967,7 @@ dependencies = [
  "base64 0.21.2",
  "bytes",
  "humantime",
+ "memchr",
  "rsasl",
  "serde",
  "serde_with 3.0.0",

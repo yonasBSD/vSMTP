@@ -247,10 +247,13 @@ impl From<std::str::Utf8Error> for Error {
 #[derive(Debug, thiserror::Error)]
 pub enum ParseArgsError {
     /// Non-UTF8 buffer.
-    #[error("")]
+    #[error("{0}")]
     InvalidUtf8(#[from] alloc::string::FromUtf8Error),
+    /// Non-UTF8 buffer.
+    #[error("{0}")]
+    InvalidUtf8ref(#[from] std::str::Utf8Error),
     /// Invalid IP address.
-    #[error("")]
+    #[error("{0}")]
     BadTypeAddr(#[from] std::net::AddrParseError),
     /// The buffer is too big (between each "\r\n").
     #[error("buffer is not supposed to be longer than {expected} bytes but got {got}")]

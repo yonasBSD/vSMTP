@@ -25,6 +25,14 @@ macro_rules! strip_suffix_crlf {
     };
 }
 
+fn strip_quote(input: &[u8]) -> Result<&[u8], ParseArgsError> {
+    input
+        .strip_prefix(b"<")
+        .ok_or(ParseArgsError::InvalidArgs)?
+        .strip_suffix(b">")
+        .ok_or(ParseArgsError::InvalidArgs)
+}
+
 /// Buffer received from the client.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
@@ -96,6 +104,13 @@ pub enum MimeBodyType {
     // Binary,
 }
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum DsnReturn {
+    Full,
+    Headers,
+}
+
 /// Information received from the client at the MAIL FROM command.
 #[non_exhaustive]
 pub struct MailFromArgs {
@@ -109,6 +124,31 @@ pub struct MailFromArgs {
     pub size: Option<usize>,
     /// smtputf8 extension allowing utf8 email
     pub use_smtputf8: bool,
+    /// rfc 3461 : client defined identifier for the message. Not the same as the header field `Message-ID` or
+    /// `message_uuid`/`connection_uuid` used by vSMTP
+    pub envelop_id: Option<String>,
+    /// rfc 3461 : return either the full message or only the headers.
+    /// Only applies to DSNs that indicate delivery failure for at least one recipient.
+    /// If a DSN contains no indications of delivery failure, only the headers of the message should be returned.
+    pub ret: Option<DsnReturn>,
+}
+
+/// <https://www.rfc-editor.org/rfc/rfc3461>
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub enum NotifyOn {
+    Never,
+    // NOTE: this should be implemented as a bitmask
+    Some {
+        success: bool,
+        failure: bool,
+        delay: bool,
+    },
+}
+
+pub struct OriginalRecipient {
+    pub addr_type: String,
+    pub mailbox: Address,
 }
 
 /// Information received from the client at the RCPT TO command.
@@ -116,6 +156,10 @@ pub struct MailFromArgs {
 pub struct RcptToArgs {
     /// Recipient address.
     pub forward_path: Address,
+    /// rfc 3461
+    pub original_forward_path: Option<OriginalRecipient>,
+    /// rfc 3461
+    pub notify_on: NotifyOn,
 }
 
 /// Information received from the client at the AUTH command.
@@ -128,71 +172,11 @@ pub struct AuthArgs {
     pub initial_response: Option<Vec<u8>>,
 }
 
-#[allow(clippy::manual_map)]
-fn split_args(slice: &[u8], delimiter: u8) -> Option<(&[u8], &[u8])> {
-    let delimiter_pos = slice.iter().position(|c| c == &delimiter);
-    delimiter_pos.map(|pos| slice.split_at(pos))
-}
-
-#[allow(clippy::expect_used)]
-fn parse_mailfrom_arguments(
-    raw_args: &[u8],
-    mailfrom_details: &mut MailFromArgs,
-) -> Result<(), ParseArgsError> {
-    match split_args(raw_args, b'=') {
-        // FIXME: not recognized in lowercase
-        Some((b"BODY", args_mime_body_type)) => {
-            if mailfrom_details.mime_body_type.is_none() {
-                mailfrom_details.mime_body_type = <MimeBodyType as strum::VariantNames>::VARIANTS
-                    .iter()
-                    .find(|i| {
-                        args_mime_body_type.len() >= i.len()
-                            && args_mime_body_type
-                                .get(..i.len())
-                                .expect("range checked above")
-                                .eq_ignore_ascii_case(i.as_bytes())
-                    })
-                    .map(|body| body.parse().expect("body found above"));
-            } else {
-                return Err(ParseArgsError::InvalidArgs);
-            }
-        }
-        Some((b"SIZE", args_size)) => {
-            let args_size = args_size
-                .strip_prefix(b"=")
-                .ok_or(ParseArgsError::InvalidArgs)?;
-            mailfrom_details.size = Some(
-                std::str::from_utf8(args_size)
-                    .map_err(|_e| ParseArgsError::InvalidArgs)?
-                    .parse()
-                    .map_err(|_e| ParseArgsError::InvalidArgs)?,
-            );
-        }
-        _ => return Err(ParseArgsError::InvalidArgs),
-    }
-    Ok(())
-}
-
-fn parse_mailfrom_options(
-    raw_args: &[u8],
-    mailfrom_details: &mut MailFromArgs,
-) -> Result<(), ParseArgsError> {
-    match raw_args {
-        b"SMTPUTF8" => mailfrom_details.use_smtputf8 = true,
-        _ => return Err(ParseArgsError::InvalidArgs),
-    }
-    Ok(())
-}
-
-impl MailFromArgs {
-    const fn empty() -> Self {
-        Self {
-            reverse_path: None,
-            mime_body_type: None,
-            size: None,
-            use_smtputf8: false,
-        }
-    }
+fn split_args(slice: &[u8]) -> Option<(&[u8], &[u8])> {
+    slice.iter().position(|c| *c == b'=').map(|pos| {
+        let (k, v) = slice.split_at(pos);
+        (k, &v[1..])
+    })
 }
 
 impl TryFrom<UnparsedArgs> for HeloArgs {
@@ -289,6 +273,78 @@ impl TryFrom<UnparsedArgs> for AuthArgs {
     }
 }
 
+impl MailFromArgs {
+    fn parse_arguments(&mut self, raw_args: &[u8]) -> Result<(), ParseArgsError> {
+        match split_args(raw_args) {
+            #[allow(clippy::expect_used)]
+            Some((key, value)) if key.eq_ignore_ascii_case(b"BODY") => {
+                if self.mime_body_type.is_some() {
+                    Err(ParseArgsError::InvalidArgs)
+                } else {
+                    self.mime_body_type = <MimeBodyType as strum::VariantNames>::VARIANTS
+                        .iter()
+                        .find(|i| {
+                            value.len() >= i.len()
+                                && value
+                                    .get(..i.len())
+                                    .expect("range checked above")
+                                    .eq_ignore_ascii_case(i.as_bytes())
+                        })
+                        .map(|body| body.parse().expect("body found above"));
+                    Ok(())
+                }
+            }
+            Some((key, value)) if key.eq_ignore_ascii_case(b"SIZE") => {
+                if self.mime_body_type.is_some() {
+                    Err(ParseArgsError::InvalidArgs)
+                } else {
+                    self.size = Some(
+                        std::str::from_utf8(value)?
+                            .parse()
+                            .map_err(|_e| ParseArgsError::InvalidArgs)?,
+                    );
+                    Ok(())
+                }
+            }
+            Some((key, value)) if key.eq_ignore_ascii_case(b"RET") => {
+                if self.ret.is_some() {
+                    Err(ParseArgsError::InvalidArgs)
+                } else {
+                    self.ret = match value {
+                        value if value.eq_ignore_ascii_case(b"FULL") => Some(DsnReturn::Full),
+                        value if value.eq_ignore_ascii_case(b"HDRS") => Some(DsnReturn::Headers),
+                        _ => return Err(ParseArgsError::InvalidArgs),
+                    };
+                    Ok(())
+                }
+            }
+            Some((key, value)) if key.eq_ignore_ascii_case(b"ENVID") => {
+                if self.envelop_id.is_some() {
+                    Err(ParseArgsError::InvalidArgs)
+                } else {
+                    self.envelop_id = Some(
+                        std::str::from_utf8(value)?
+                            .parse()
+                            .map_err(|_e| ParseArgsError::InvalidArgs)?,
+                    );
+                    Ok(())
+                }
+            }
+            _ => Err(ParseArgsError::InvalidArgs),
+        }
+    }
+
+    fn parse_options(&mut self, raw_args: &[u8]) -> Result<(), ParseArgsError> {
+        match raw_args {
+            b"SMTPUTF8" => {
+                self.use_smtputf8 = true;
+                Ok(())
+            }
+            _ => Err(ParseArgsError::InvalidArgs),
+        }
+    }
+}
+
 impl TryFrom<UnparsedArgs> for MailFromArgs {
     type Error = ParseArgsError;
 
@@ -296,50 +352,147 @@ impl TryFrom<UnparsedArgs> for MailFromArgs {
     fn try_from(value: UnparsedArgs) -> Result<Self, Self::Error> {
         let value = strip_suffix_crlf!(value);
 
-        let mut words = value
+        let mut args = value
             .split(u8::is_ascii_whitespace)
             .filter(|s| !s.is_empty());
 
-        let mailbox = if let Some(s) = words.next() {
-            let mailbox = s
-                .strip_prefix(b"<")
-                .ok_or(ParseArgsError::InvalidArgs)?
-                .strip_suffix(b">")
-                .ok_or(ParseArgsError::InvalidArgs)?;
-            if mailbox.is_empty() {
-                None
-            } else {
-                Some(String::from_utf8(mailbox.to_vec())?)
-            }
+        let mailbox = strip_quote(args.next().ok_or(ParseArgsError::InvalidArgs)?)?;
+        let mailbox = if mailbox.is_empty() {
+            None
         } else {
-            return Err(ParseArgsError::InvalidArgs);
+            Some(String::from_utf8(mailbox.to_vec())?)
         };
 
-        let mut result = Self::empty();
+        let mut result = Self {
+            reverse_path: None,
+            mime_body_type: None,
+            size: None,
+            use_smtputf8: false,
+            envelop_id: None,
+            ret: None,
+        };
 
-        for args in words {
-            match args {
-                args if args.contains(&b'=') => {
-                    parse_mailfrom_arguments(args, &mut result)?;
-                }
-                _ => parse_mailfrom_options(args, &mut result)?,
+        for arg in args {
+            if arg.contains(&b'=') {
+                result.parse_arguments(arg)?;
+            } else {
+                result.parse_options(arg)?;
             }
         }
 
-        if let Some(mailbox) = mailbox.as_ref() {
+        result.reverse_path = if let Some(mailbox) = mailbox {
             if !result.use_smtputf8 && !mailbox.is_ascii() {
                 return Err(ParseArgsError::EmailUnavailable);
             }
-        }
-        let mailbox = match mailbox {
-            Some(mailbox) => Some(
-                <Address as std::str::FromStr>::from_str(&mailbox)
-                    .map_err(|_error| ParseArgsError::InvalidMailAddress { mail: mailbox })?,
-            ),
-            None => None,
+            match <Address as std::str::FromStr>::from_str(&mailbox) {
+                Ok(mailbox) => Some(mailbox),
+                Err(_error) => return Err(ParseArgsError::InvalidMailAddress { mail: mailbox }),
+            }
+        } else {
+            None
         };
-        result.reverse_path = mailbox;
         Ok(result)
+    }
+}
+
+impl RcptToArgs {
+    fn parse_arguments(&mut self, raw_args: &[u8]) -> Result<(), ParseArgsError> {
+        match split_args(raw_args) {
+            #[allow(clippy::expect_used)]
+            Some((key, value)) if key.eq_ignore_ascii_case(b"ORCPT") => {
+                if self.original_forward_path.is_some() {
+                    Err(ParseArgsError::InvalidArgs)
+                } else {
+                    let (addr_type, addr) = match value.iter().position(|c| *c == b';') {
+                        Some(pos) => (&value[..pos], &value[pos + 1..]),
+                        None => return Err(ParseArgsError::InvalidArgs),
+                    };
+
+                    let value = std::str::from_utf8(addr)?;
+                    self.original_forward_path =
+                        match <Address as std::str::FromStr>::from_str(value) {
+                            Ok(mailbox) => Some(OriginalRecipient {
+                                addr_type: std::str::from_utf8(addr_type)?.to_owned(),
+                                mailbox,
+                            }),
+                            Err(_error) => {
+                                return Err(ParseArgsError::InvalidMailAddress {
+                                    mail: value.to_owned(),
+                                })
+                            }
+                        };
+                    Ok(())
+                }
+            }
+            Some((key, value)) if key.eq_ignore_ascii_case(b"NOTIFY") => {
+                const SUCCESS: &[u8] = b"SUCCESS";
+                const FAILURE: &[u8] = b"FAILURE";
+                const DELAY: &[u8] = b"DELAY";
+                const VARIANTS: &[&[u8]] = &[SUCCESS, FAILURE, DELAY];
+
+                let mut notify = None;
+
+                let mut begin = 0;
+                let it = memchr::memchr_iter(b'|', value);
+                for pos in it {
+                    let v = &value[begin..=pos];
+
+                    #[allow(clippy::pattern_type_mismatch)]
+                    match (v, &mut notify) {
+                        (value, Some(NotifyOn::Never))
+                            if VARIANTS.iter().any(|i| i.eq_ignore_ascii_case(value)) =>
+                        {
+                            return Err(ParseArgsError::InvalidArgs)
+                        }
+                        (value, None) if value.eq_ignore_ascii_case(b"NEVER") => {
+                            notify = Some(NotifyOn::Never);
+                        }
+                        (value, None) if value.eq_ignore_ascii_case(SUCCESS) => {
+                            notify = Some(NotifyOn::Some {
+                                success: true,
+                                failure: false,
+                                delay: false,
+                            });
+                        }
+                        (value, None) if value.eq_ignore_ascii_case(b"FAILURE") => {
+                            notify = Some(NotifyOn::Some {
+                                success: false,
+                                failure: true,
+                                delay: false,
+                            });
+                        }
+                        (value, None) if value.eq_ignore_ascii_case(DELAY) => {
+                            notify = Some(NotifyOn::Some {
+                                success: false,
+                                failure: false,
+                                delay: true,
+                            });
+                        }
+                        (value, Some(NotifyOn::Some { success, .. }))
+                            if value.eq_ignore_ascii_case(SUCCESS) =>
+                        {
+                            *success = true;
+                        }
+                        (value, Some(NotifyOn::Some { failure, .. }))
+                            if value.eq_ignore_ascii_case(FAILURE) =>
+                        {
+                            *failure = true;
+                        }
+                        (value, Some(NotifyOn::Some { delay, .. }))
+                            if value.eq_ignore_ascii_case(DELAY) =>
+                        {
+                            *delay = true;
+                        }
+                        _ => return Err(ParseArgsError::InvalidArgs),
+                    }
+
+                    begin = pos;
+                }
+
+                Ok(())
+            }
+            _ => Err(ParseArgsError::InvalidArgs),
+        }
     }
 }
 
@@ -350,32 +503,43 @@ impl TryFrom<UnparsedArgs> for RcptToArgs {
     fn try_from(value: UnparsedArgs) -> Result<Self, Self::Error> {
         let value = strip_suffix_crlf!(value);
 
-        let mut word = value
+        let mut args = value
             .split(u8::is_ascii_whitespace)
             .filter(|s| !s.is_empty());
 
-        let mailbox = if let Some(s) = word.next() {
-            String::from_utf8(
-                s.strip_prefix(b"<")
-                    .ok_or(ParseArgsError::InvalidArgs)?
-                    .strip_suffix(b">")
-                    .ok_or(ParseArgsError::InvalidArgs)?
-                    .to_vec(),
-            )?
-        } else {
+        let mailbox = strip_quote(args.next().ok_or(ParseArgsError::InvalidArgs)?)?;
+        let mailbox = if mailbox.is_empty() {
             return Err(ParseArgsError::InvalidArgs);
+        } else {
+            String::from_utf8(mailbox.to_vec())?
         };
 
-        Ok(Self {
+        let mut result = Self {
             forward_path: <Address as std::str::FromStr>::from_str(&mailbox)
                 .map_err(|_error| ParseArgsError::InvalidMailAddress { mail: mailbox })?,
-        })
+            original_forward_path: None,
+            notify_on: NotifyOn::Some {
+                success: false,
+                failure: true,
+                delay: false,
+            },
+        };
+
+        for arg in args {
+            if arg.contains(&b'=') {
+                result.parse_arguments(arg)?;
+            } else {
+                return Err(ParseArgsError::InvalidArgs);
+            }
+        }
+
+        Ok(result)
     }
 }
 
 /// SMTP Command.
 #[derive(
-    Debug, strum::AsRefStr, strum::EnumString, strum::EnumVariantNames, Clone, PartialEq, Eq, Copy,
+    Debug, Copy, Clone, PartialEq, Eq, strum::AsRefStr, strum::EnumString, strum::EnumVariantNames,
 )]
 #[non_exhaustive]
 pub enum Verb {
@@ -432,10 +596,10 @@ pub enum Verb {
 }
 
 impl Verb {
-    #[inline]
-    #[must_use]
     /// check if the answer of the verb is bufferable (cf. pipelining)
     // Note: missing VRFY, EXPN, TURN
+    #[inline]
+    #[must_use]
     pub const fn is_bufferable(self) -> bool {
         !matches!(self, Self::Ehlo | Self::Data | Self::Quit | Self::Noop)
     }
