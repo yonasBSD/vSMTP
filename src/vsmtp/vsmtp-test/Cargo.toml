@@ -23,7 +23,7 @@ vqueue = { path = "../../vqueue", features = ["testing"] }
 vsmtp-protocol = { path = "../vsmtp-protocol" }
 
 async-trait = "0.1.68"
-lettre = { version = "0.10.3", default-features = false, features = [
+lettre = { version = "0.10.4", default-features = false, features = [
   "smtp-transport",
   "builder",
   "tokio1-rustls-tls",
@@ -36,7 +36,7 @@ trust-dns-resolver = { version = "0.22.0", default-features = false, features = 
   "tokio-runtime",
 ] }
 
-tokio-rustls = { version = "0.23.4", default-features = false, features = [
+tokio-rustls = { version = "0.24.1", default-features = false, features = [
   "logging",
   "tls12",
   "dangerous_configuration",

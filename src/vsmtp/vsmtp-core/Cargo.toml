@@ -116,11 +116,11 @@ tracing-journald = { version = "0.3.0", optional = true, default-features = fals
 tracing-rfc-5424 = { version = "0.1.1", optional = true, default-features = false }
 console-subscriber = { version = "0.1.9", optional = true, default-features = false }
 
-tracing-opentelemetry = { version = "0.18.0", optional = true, default-features = false, features = [
+tracing-opentelemetry = { version = "0.19.0", optional = true, default-features = false, features = [
     "tracing-log",
     "metrics",
 ] }
-opentelemetry-jaeger = { version = "0.17.0", optional = true, default-features = false, features = ["rt-tokio"] }
+opentelemetry-jaeger = { version = "0.18.0", optional = true, default-features = false, features = ["rt-tokio"] }
 
 document-features = { version = "0.2.7", optional = true }
 

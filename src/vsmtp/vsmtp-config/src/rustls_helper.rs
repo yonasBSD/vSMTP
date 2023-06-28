@@ -119,7 +119,7 @@ pub fn get_rustls_config(
         .with_protocol_versions(protocol_version)
         .map_err(|e| anyhow::anyhow!("cannot initialize tls config: '{e}'"))?
         // TODO: allow configurable ClientAuth (DANE)
-        .with_client_cert_verifier(rustls::server::NoClientAuth::new())
+        .with_client_cert_verifier(rustls::server::NoClientAuth::boxed())
         .with_cert_resolver(std::sync::Arc::new(CertResolver {
             sni_resolver: cert_resolver,
             default_cert: config

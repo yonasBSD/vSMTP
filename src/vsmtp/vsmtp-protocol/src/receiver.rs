@@ -135,7 +135,7 @@ where
             };
 
             let tls_config = tls_tcp_stream.get_ref().1;
-            let sni = tls_config.sni_hostname().map(str::to_string);
+            let sni = tls_config.server_name().map(str::to_string);
 
             #[allow(clippy::expect_used)]
             let protocol_version = tls_config.protocol_version()

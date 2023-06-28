@@ -108,6 +108,11 @@ name = "webpki"
 expression = "LicenseRef-webpki"
 license-files = [{ path = "LICENSE", hash = 0x001c7e6c }]
 
+[[licenses.clarify]]
+name = "rustls-webpki"
+expression = "LicenseRef-webpki"
+license-files = [{ path = "LICENSE", hash = 0x001c7e6c }]
+
 [licenses.private]
 # If true, ignores workspace crates that aren't published, or are only
 # published to private registries.

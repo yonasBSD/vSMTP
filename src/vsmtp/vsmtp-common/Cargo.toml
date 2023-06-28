@@ -47,7 +47,7 @@ time = { version = "0.3.22", default-features = false, features = ["std", "forma
 libc = { version = "0.2.146", default-features = false, features = ["std"] }
 tracing = { version = "0.1.37", default-features = false, features = ["std", "attributes", "release_max_level_info"] }
 
-lettre = { version = "0.10.3", default-features = false, features = [
+lettre = { version = "0.10.4", default-features = false, features = [
     "smtp-transport",
     "builder",
     "tokio1-rustls-tls",
@@ -55,7 +55,7 @@ lettre = { version = "0.10.3", default-features = false, features = [
     "serde",
 ] }
 tokio = { version = "1.28.2", default-features = false, features = ["macros", "sync", "fs", "libc", "mio"] }
-rustls = { version = "0.20.8", default-features = false, features = ["tls12", "logging"] }
+rustls = { version = "0.21.2", default-features = false, features = ["tls12", "logging"] }
 rustls-pemfile = { version = "1.0.2", default-features = false }
 
 trust-dns-resolver = { version = "0.22.0", default-features = false, features = [

@@ -56,7 +56,12 @@ macro_rules! run_test {
                     ) {
                         Ok(res) => Ok(res),
                         // got this error when not using SNI
-                        Err(rustls::Error::UnsupportedNameType) => Ok(rustls::client::ServerCertVerified::assertion()),
+                        Err(
+                            rustls::Error::InvalidCertificate(
+                                rustls::CertificateError::NotValidForName
+                            ) | rustls::Error::UnsupportedNameType) => Ok(
+                                rustls::client::ServerCertVerified::assertion()
+                            ),
                         Err(e) => Err(e)
                     }
                 }
