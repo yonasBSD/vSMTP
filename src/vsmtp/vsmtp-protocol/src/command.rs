@@ -104,10 +104,17 @@ pub enum MimeBodyType {
     // Binary,
 }
 
+/// <https://www.rfc-editor.org/rfc/rfc3461>
+/// return either the full message or only the headers.
+/// Only applies to DSNs that indicate delivery failure for at least one recipient.
+/// If a DSN contains no indications of delivery failure, only the headers of the message should be returned.
+#[allow(clippy::exhaustive_enums)]
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum DsnReturn {
+    /// Complete message
     Full,
+    /// Only the message headers
     Headers,
 }
 
@@ -127,27 +134,36 @@ pub struct MailFromArgs {
     /// rfc 3461 : client defined identifier for the message. Not the same as the header field `Message-ID` or
     /// `message_uuid`/`connection_uuid` used by vSMTP
     pub envelop_id: Option<String>,
-    /// rfc 3461 : return either the full message or only the headers.
-    /// Only applies to DSNs that indicate delivery failure for at least one recipient.
-    /// If a DSN contains no indications of delivery failure, only the headers of the message should be returned.
+    /// `RET` argument of the `MAIL FROM` command
     pub ret: Option<DsnReturn>,
 }
 
 /// <https://www.rfc-editor.org/rfc/rfc3461>
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
+#[allow(clippy::exhaustive_enums)]
 pub enum NotifyOn {
+    /// This message must explicitly not produce a DSN.
     Never,
     // NOTE: this should be implemented as a bitmask
+    /// One or more scenarios that should produce a DSN.
     Some {
+        /// The delivery of the message to the recipient was successful.
         success: bool,
+        /// The delivery of the message to the recipient failed.
         failure: bool,
+        /// The delivery of the message to the recipient has been delayed.
         delay: bool,
     },
 }
 
+/// <https://www.rfc-editor.org/rfc/rfc3461>
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[allow(clippy::exhaustive_structs)]
 pub struct OriginalRecipient {
+    /// The type of address used in the `ORCPT` argument. (rfc822)
     pub addr_type: String,
+    /// The original recipient address.
     pub mailbox: Address,
 }
 
@@ -156,9 +172,9 @@ pub struct OriginalRecipient {
 pub struct RcptToArgs {
     /// Recipient address.
     pub forward_path: Address,
-    /// rfc 3461
+    /// `ORCPT` argument of the `RCPT TO` command
     pub original_forward_path: Option<OriginalRecipient>,
-    /// rfc 3461
+    /// `NOTIFY` argument of the `RCPT TO` command
     pub notify_on: NotifyOn,
 }
 

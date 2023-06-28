@@ -58,7 +58,8 @@ mod smtp_sasl;
 mod writer;
 
 pub use command::{
-    AcceptArgs, AuthArgs, EhloArgs, HeloArgs, MailFromArgs, RcptToArgs, UnparsedArgs, Verb,
+    AcceptArgs, AuthArgs, DsnReturn, EhloArgs, HeloArgs, MailFromArgs, NotifyOn, OriginalRecipient,
+    RcptToArgs, UnparsedArgs, Verb,
 };
 pub use connection_kind::ConnectionKind;
 pub use error::{Error, ErrorKind, ParseArgsError};
