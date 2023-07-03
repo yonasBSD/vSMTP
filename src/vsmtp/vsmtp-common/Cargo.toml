@@ -84,7 +84,7 @@ rsasl = { version = "=2.0.0", default-features = false, features = [
     "login",
 ] }
 
-uuid = { version = "1.3.4", default-features = false, features = ["std", "v4", "fast-rng", "serde"] }
+uuid = { version = "1.4.0", default-features = false, features = ["std", "v4", "fast-rng", "serde"] }
 function_name = { version = "0.3.0", default-features = false }
 
 [dev-dependencies]
