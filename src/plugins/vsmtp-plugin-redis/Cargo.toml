@@ -22,7 +22,7 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-rhai = { version = "1.14.0", default-features = false, features = [
+rhai = { version = "*", default-features = false, features = [
     "unchecked",
     "sync",
     "internals",

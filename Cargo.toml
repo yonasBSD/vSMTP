@@ -28,3 +28,7 @@ members = [
 ]
 
 exclude = ["fuzz", "benchmarks/stress"]
+
+[profile.release]
+opt-level = 2
+debug = false

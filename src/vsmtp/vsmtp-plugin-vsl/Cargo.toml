@@ -26,7 +26,7 @@ pre-release-replacements = [
 [dependencies]
 vsmtp-common = { path = "../vsmtp-common", version = "=2.2.1" }
 
-rhai = { version = "=1.14.0", features = ["unchecked", "sync", "internals", "no_closure", "metadata"] }
+rhai = { version = "*", features = ["unchecked", "sync", "internals", "no_closure", "metadata"] }
 
 strum = { version = "0.24.1", default-features = false, features = ["std", "derive"] }
 regex = { version = "1.8.4", default-features = false, features = ["std", "perf", "unicode"] }

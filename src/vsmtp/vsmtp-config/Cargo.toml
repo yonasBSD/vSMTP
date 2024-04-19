@@ -81,7 +81,7 @@ serde_json = { version = "1.0.97", default-features = false, features = ["std"] 
 serde_with = { version = "3.0.0", default-features = false, features = ["std", "macros"] }
 serde_path_to_error = "0.1.11"
 
-rhai = { version = "=1.14.0", features = ["sync", "serde"] }
+rhai = { version = "*", features = ["sync", "serde"] }
 
 [dev-dependencies]
 vsmtp-test = { path = "../vsmtp-test" }
